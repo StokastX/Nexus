@@ -55,7 +55,7 @@ Nexus requires the following:
 ## Build
 - Clone the repository
    ```sh
-   git clone --recurse-submodules https://github.com/Patoche692/Nexus
+   git clone --recurse-submodules https://github.com/StokastX/Nexus
    ```
 - Launch the setup.bat script. It will generate a Visual Studio solution in the build folder
 
