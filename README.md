@@ -13,28 +13,17 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
 
 ## Screenshots
 
-<!--![cannelle_et_fromage3](https://github.com/Patoche692/PathTracer/assets/54531293/1356478c-4c1c-4192-93fb-3798a642b5f4)-->
-![cannelle_et_fromage8](https://github.com/user-attachments/assets/a21a9b3a-3cea-4d76-8ee3-3f16de8e4f3a)
-![stormtrooper](https://github.com/Patoche692/PathTracer/assets/54531293/865d00db-9711-469a-be3f-c5fe647e4d72)
-![water2](https://github.com/Patoche692/Nexus/assets/54531293/7d4a0d12-b630-4024-915d-b26194f49ca7)
-![kitchen](https://github.com/user-attachments/assets/569f1bcd-477f-459a-b9cd-14e16e85a945)
-![mustang](https://github.com/Patoche692/PathTracer/assets/54531293/ffa3f777-da30-4935-92d9-2c21f2d0bc0b)
-![danish_mood](https://github.com/user-attachments/assets/df82f937-42ea-4856-a27a-ba835ab7393c)
-![bedroom](https://github.com/Patoche692/Nexus/assets/54531293/391682ab-78f7-4bcb-831f-8a7f84719ca4)
-![spider](https://github.com/Patoche692/Nexus/assets/54531293/8b7cdec1-ff7e-42b2-a093-f76261d4e108)
-![bathroom5](https://github.com/Patoche692/PathTracer/assets/54531293/d3a828f9-3cb1-4bf7-abce-e193a9968538)
-![piano3](https://github.com/Patoche692/PathTracer/assets/54531293/905c2bce-2aac-4b43-818e-ff928d16aab4)
-<!--![piano_zoom](https://github.com/Patoche692/PathTracer/assets/54531293/138c3838-6097-49fd-a905-b48878f885d9)-->
-<!--![lamp](https://github.com/Patoche692/PathTracer/assets/54531293/d8344999-7289-43be-bf91-b9e99ff67e7d)-->
-<!--![rolls_royce](https://github.com/Patoche692/PathTracer/assets/54531293/9af03cd7-273b-4bad-bf69-3a73ff2f6604)-->
-<!--![rolls_royce4](https://github.com/Patoche692/PathTracer/assets/54531293/244558e1-872b-45f5-ac1f-b6b38f027ba0)-->
-<!--![coffee](https://github.com/Patoche692/PathTracer/assets/54531293/b860d5a9-99b1-43ef-ad98-8ae17d41a931)-->
-<!--![monster_under_bed](https://github.com/Patoche692/PathTracer/assets/54531293/fdd2a636-e2ef-47cf-8449-c7b2c030d534)-->
-<!--![iphone](https://github.com/Patoche692/PathTracer/assets/54531293/d30c0db5-5a8e-4793-bc39-8d8730093800) -->
-<!--![iron_man](https://github.com/Patoche692/PathTracer/assets/54531293/700463ed-03cc-412c-a283-ac726a1282ef)-->
-<!--![junk_shop](https://github.com/Patoche692/PathTracer/assets/54531293/1c46544b-8889-4b02-bd82-86924ffc36b3)-->
-<!--![cornell_box_spheres](https://github.com/Patoche692/PathTracer/assets/54531293/c8028e26-bb3d-45f5-bfdf-d8e1849d3c39)-->
-![24spp_MIS_IS_Comparison](https://github.com/user-attachments/assets/bf24f824-c643-47df-ae4d-c474273aa8fb)
+![canelle_et_fromage](https://github.com/user-attachments/assets/aad0c9cc-7de3-4c7d-ad65-8e506db69156)
+![stormtrooper](https://github.com/user-attachments/assets/e5e1dea7-7232-434c-ac56-114b24f26f67)
+![glass_of_water](https://github.com/user-attachments/assets/ea53185c-85b2-47a2-b302-dcb7c8b9984f)
+![kitchen](https://github.com/user-attachments/assets/94eeb762-c1e1-448c-83b4-f7ff83c80ab5)
+![ford_mustang](https://github.com/user-attachments/assets/690fe199-18fb-486a-ac88-7bcc51e3d991)
+![danish_mood](https://github.com/user-attachments/assets/593b537e-eff1-4967-a327-b67fe1bb8e03)
+![bedroom](https://github.com/user-attachments/assets/d8387785-86cb-4c84-b1c3-0fd949b6b6c1)
+![spider](https://github.com/user-attachments/assets/354a6c07-e181-4e8a-b3d3-5abd6a2570bf)
+![bathroom](https://github.com/user-attachments/assets/60188c8e-1729-4d12-9eab-8592b02b38e9)
+![piano](https://github.com/user-attachments/assets/bef492f7-769e-4966-a6a6-92c0ea2768bf)
+![mis_comparison](https://github.com/user-attachments/assets/214bccc0-1c9f-48f8-ac89-63549ef719f8)
 <p align="center"><em>Left: multiple importance sampling. Right: naive render (BSDF importance sampling). Image rendered at 24 spp.</em></p>
 
 
@@ -66,7 +55,7 @@ Nexus requires the following:
 ## Build
 - Clone the repository
    ```sh
-   git clone --recurse-submodules https://github.com/Patoche692/Nexus
+   git clone --recurse-submodules https://github.com/StokastX/Nexus
    ```
 - Launch the setup.bat script. It will generate a Visual Studio solution in the build folder
 
