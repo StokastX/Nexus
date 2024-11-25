@@ -32,6 +32,8 @@ add_subdirectory(vendor/glm)
 
 add_subdirectory(vendor/imgui)
 
+add_subdirectory(vendor/bvh-builder)
+
 file(GLOB_RECURSE src_files src/*.h src/*.cpp src/*.cuh src/*.cu)
 
 set (include_files
@@ -43,6 +45,7 @@ set (include_files
 	vendor/imgui
 	vendor/imgui/backends
 	vendor/stb
+	vendor/bvh-builder/src
 )
 
 add_executable(Nexus ${src_files})
@@ -52,6 +55,7 @@ target_link_libraries(Nexus
 	glew
 	assimp
 	imgui
+	bvh-builder
 )
 
 target_include_directories(Nexus
