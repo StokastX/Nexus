@@ -13,7 +13,6 @@
 #include "Cuda/Scene/Camera.cuh"
 #include "Cuda/Sampler.cuh"
 
-
 __device__ __constant__ uint32_t frameNumber;
 __device__ __constant__ uint32_t bounce;
 

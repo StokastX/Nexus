@@ -32,6 +32,7 @@ add_subdirectory(vendor/glm)
 
 add_subdirectory(vendor/imgui)
 
+set(NEXUSBVH_BUILD_TESTS OFF CACHE BOOL "NexusBVH lib only")
 add_subdirectory(vendor/NexusBVH)
 
 file(GLOB_RECURSE src_files src/*.h src/*.cpp src/*.cuh src/*.cu)

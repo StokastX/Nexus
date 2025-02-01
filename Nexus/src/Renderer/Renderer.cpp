@@ -8,6 +8,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "FileDialog.h"
+//#include <thrust/sort.h>
+//#include <cub/device/device_radix_sort.cuh>
 
 
 Renderer::Renderer(uint32_t width, uint32_t height, GLFWwindow* window, Scene* scene)
@@ -23,6 +25,7 @@ Renderer::Renderer(uint32_t width, uint32_t height, GLFWwindow* window, Scene* s
     ImGui::StyleColorsCustomDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
+	//cub::DeviceRadixSort::SortPairs()
 }
 
 Renderer::~Renderer()
@@ -40,6 +43,10 @@ void Renderer::Reset()
 
 void Renderer::Render(Scene& scene, float deltaTime)
 { 
+	//float dpi = ImGui::GetWindowDpiScale();
+	//ImGuiStyle& style = ImGui::GetStyle();
+	//style.ScaleAllSizes(dpi);
+
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
