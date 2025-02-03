@@ -1,6 +1,6 @@
 #include <vector>
 #include <numeric>
-#include "BVH.h"
+#include "BVH2.h"
 #include "Geometry/AABB.h"
 #include "Utils/Utils.h"
 

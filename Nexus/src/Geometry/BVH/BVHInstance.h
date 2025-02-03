@@ -2,8 +2,6 @@
 
 #include <cuda_runtime_api.h>
 
-#include "BVH.h"
-#include "BVH8.h"
 #include "Math/Mat4.h"
 #include "Geometry/AABB.h"
 #include "Cuda/BVH/BVHInstance.cuh"

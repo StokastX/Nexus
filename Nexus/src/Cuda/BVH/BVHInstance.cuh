@@ -10,5 +10,5 @@ struct D_BVHInstance
 	Mat4 invTransform;
 	Mat4 transform;
 	D_AABB bounds;
-	int materialId;
+	int materialIdx;
 };

@@ -21,14 +21,8 @@ struct D_Triangle_SOA
 	float3* texCoord2;
 };
 
-
-struct D_Triangle
+struct D_TriangleData
 {
-	// Positions
-	float3 pos0;
-	float3 pos1;
-	float3 pos2;
-
 	// Normals
 	float3 normal0;
 	float3 normal1;
@@ -38,16 +32,20 @@ struct D_Triangle
 	float2 texCoord0;
 	float2 texCoord1;
 	float2 texCoord2;
+};
+
+
+struct D_Triangle
+{
+	// Positions
+	float3 pos0;
+	float3 pos1;
+	float3 pos2;
 
 	__device__ D_Triangle() = default;
 
-	__device__ D_Triangle(
-		float3 p0, float3 p1, float3 p2,
-		float3 n0 = make_float3(0.0f), float3 n1 = make_float3(0.0f), float3 n2 = make_float3(0.0f),
-		float2 t0 = make_float2(0.0f), float2 t1 = make_float2(0.0f), float2 t2 = make_float2(0.0f)
-	): pos0(p0), pos1(p1), pos2(p2), normal0(n0), normal1(n1),
-		normal2(n2), texCoord0(t0), texCoord1(t1), texCoord2(t2) { }
-
+	__device__ D_Triangle(float3 p0, float3 p1, float3 p2)
+		: pos0(p0), pos1(p1), pos2(p2) { }
 
 	// Möller-Trumbore intersection algorithm. See https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 	inline __device__ void Trace(D_Ray& r, D_Intersection& intersection, const uint32_t instIdx, const uint32_t primIdx)

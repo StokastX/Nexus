@@ -10,7 +10,6 @@
 #include "Assets/AssetManager.h"
 #include "Scene/MeshInstance.h"
 #include "Cuda/Scene/Material.cuh"
-#include "Cuda/BVH/BVHInstance.cuh"
 #include "Cuda/Scene/Scene.cuh"
 #include "Cuda/Scene/Light.cuh"
 
@@ -54,7 +53,6 @@ private:
 private:
 	std::shared_ptr<Camera> m_Camera;
 
-	std::vector<BVHInstance> m_BVHInstances;
 	std::vector<MeshInstance> m_MeshInstances;
 	std::vector<Light> m_Lights;
 
@@ -71,6 +69,6 @@ private:
 
 	// Device members
 	cudaTextureObject_t m_DeviceHdrMap;
-	DeviceVector<BVHInstance, D_BVHInstance> m_DeviceBVHInstances;
+	DeviceVector<MeshInstance, D_MeshInstance> m_DeviceMeshInstances;
 	DeviceVector<Light, D_Light> m_DeviceLights;
 };

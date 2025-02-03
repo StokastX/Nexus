@@ -3,7 +3,7 @@
 #include <vector>
 #include "Device/DeviceVector.h"
 #include "Utils/cuda_math.h"
-#include "BVH.h"
+#include "BVH2.h"
 #include "Cuda/BVH/BVH8.cuh"
 #include "Cuda/Geometry/Triangle.cuh"
 

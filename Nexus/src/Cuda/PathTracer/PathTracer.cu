@@ -174,7 +174,7 @@ __global__ void LogicKernel()
 		return;
 
 	const D_BVHInstance instance = blas[intersection.instanceIdx];
-	const D_Material material = scene.materials[instance.materialId];
+	const D_Material material = scene.materials[instance.materialIdx];
 
 	int32_t requestIdx;
 	switch (material.type)
@@ -275,7 +275,7 @@ inline __device__ void NextEventEstimation(
 		if (!Sampler::IsPdfValid(lightPdf))
 			return;
 
-		const D_Material lightMaterial = scene.materials[instance.materialId];
+		const D_Material lightMaterial = scene.materials[instance.materialIdx];
 
 		float3 sampleThroughput;
 		float bsdfPdf;
@@ -327,7 +327,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	const D_BVHInstance instance = blas[intersection.instanceIdx];
 	const D_Triangle triangle = bvhs[instance.bvhIdx].triangles[intersection.triIdx];
 
-	D_Material material = scene.materials[instance.materialId];
+	D_Material material = scene.materials[instance.materialIdx];
 
 	const float2 uv = make_float2(intersection.u, intersection.v);
 
@@ -529,16 +529,16 @@ uint32_t* GetDeviceBounceAddress()
 	return target;
 }
 
-D_BVH8* GetDeviceTLASAddress()
+D_BVH* GetDeviceTLASAddress()
 {
-	D_BVH8* target;
+	D_BVH* target;
 	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, tlas));
 	return target;
 }
 
-D_BVH8** GetDeviceBVHAddress()
+D_BVH** GetDeviceBVHAddress()
 {
-	D_BVH8** target;
+	D_BVH** target;
 	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, bvhs));
 	return target;
 }

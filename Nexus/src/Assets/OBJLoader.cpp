@@ -5,9 +5,10 @@
 
 Assimp::Importer OBJLoader::m_Importer;
 
-static std::vector<Triangle> GetTrianglesFromAiMesh(const aiMesh* mesh)
+static std::tuple<std::vector<NXB::Triangle>, std::vector<TriangleData>> GetTrianglesFromAiMesh(const aiMesh* mesh)
 {
-	std::vector<Triangle> triangles(mesh->mNumFaces);
+	std::vector<NXB::Triangle> triangles(mesh->mNumFaces);
+	std::vector<TriangleData> triangleData(mesh->mNumFaces);
 
 	for (int i = 0; i < mesh->mNumFaces; i++)
 	{
@@ -51,10 +52,13 @@ static std::vector<Triangle> GetTrianglesFromAiMesh(const aiMesh* mesh)
 		if (skipFace)
 			continue;
 
-		Triangle triangle(
+		NXB::Triangle triangle(
 			pos[0],
 			pos[1],
-			pos[2],
+			pos[2]
+		);
+
+		TriangleData data(
 			normal[0],
 			normal[1],
 			normal[2],
@@ -62,15 +66,17 @@ static std::vector<Triangle> GetTrianglesFromAiMesh(const aiMesh* mesh)
 			texCoord[1],
 			texCoord[2]
 		);
+
 		triangles[i] = triangle;
+		triangleData[i] = data;
 	}
-	return triangles;
+	return std::make_tuple(triangles, triangleData);
 }
 
 // Return the list of IDs of the created materials
-static std::vector<int32_t > CreateMaterialsFromAiScene(const aiScene* scene, AssetManager* assetManager, const std::string& path)
+static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, AssetManager* assetManager, const std::string& path)
 {
-	std::vector<int> materialIdx(scene->mNumMaterials);
+	std::vector<uint32_t> materialIdx(scene->mNumMaterials);
 
 	for (int i = 0; i < scene->mNumMaterials; i++)
 	{
@@ -162,24 +168,25 @@ static std::vector<int32_t > CreateMaterialsFromAiScene(const aiScene* scene, As
 	return materialIdx;
 }
 
-static std::vector<int32_t> CreateMeshesFromScene(const aiScene* scene, AssetManager* assetManager)
+static std::vector<uint32_t> CreateMeshesFromScene(const aiScene* scene, AssetManager* assetManager, std::vector<uint32_t> materialIdx)
 {
-	std::vector<int32_t> meshIds;
+	std::vector<uint32_t> meshIds;
 	for (int i = 0; i < scene->mNumMeshes; i++)
 	{
 		aiMesh* mesh = scene->mMeshes[i];
-		std::vector<Triangle> triangles = GetTrianglesFromAiMesh(mesh);
-		int32_t bvhId = assetManager->CreateBVH(triangles);
+		auto data = GetTrianglesFromAiMesh(mesh);
+		std::vector<NXB::Triangle> triangles = std::get<0>(data);
+		std::vector<TriangleData> triangleData = std::get<1>(data);
 
 		std::string meshName = mesh->mName.data;
-		Mesh newMesh(meshName, bvhId);
-		int32_t meshId = assetManager->AddMesh(std::move(newMesh));
+		uint32_t mIdx = materialIdx[mesh->mMaterialIndex];
+		uint32_t meshId = assetManager->AddMesh(meshName, mIdx, triangles, triangleData);
 		meshIds.push_back(meshId);
 	}
 	return meshIds;
 }
 
-static void CreateMeshInstancesFromNode(const aiScene* assimpScene, Scene* scene, const aiNode* node, aiMatrix4x4 aiTransform, std::vector<int>& materialIds, std::vector<int>& meshIds)
+static void CreateMeshInstancesFromNode(const aiScene* assimpScene, Scene* scene, const aiNode* node, aiMatrix4x4 aiTransform, std::vector<uint32_t>& materialIds, std::vector<uint32_t>& meshIds)
 {
 	aiTransform = aiTransform * node->mTransformation;
 	for (int i = 0; i < node->mNumMeshes; i++)
@@ -231,9 +238,9 @@ void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Sc
 	//// Fix for assimp scaling FBX with a factor 100
 	//scene->mMetaData->Set("UnitScaleFactor", factor);
 	
-	std::vector<int32_t> materialIds = CreateMaterialsFromAiScene(objScene, assetManager, path);
-	std::vector<int32_t> meshIds = CreateMeshesFromScene(objScene, assetManager);
-	CreateMeshInstancesFromNode(objScene, scene, objScene->mRootNode, aiMatrix4x4(), materialIds, meshIds);
+	std::vector<uint32_t> materialIdx = CreateMaterialsFromAiScene(objScene, assetManager, path);
+	std::vector<uint32_t> meshIdx = CreateMeshesFromScene(objScene, assetManager, materialIdx);
+	CreateMeshInstancesFromNode(objScene, scene, objScene->mRootNode, aiMatrix4x4(), materialIdx, meshIdx);
 
 	std::cout << "OBJLoader: loaded model " << filePath << " successfully" << std::endl;
 }

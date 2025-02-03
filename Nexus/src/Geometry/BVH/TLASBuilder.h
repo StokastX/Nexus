@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "BVH.h"
+#include "BVH2.h"
 #include "TLAS.h"
 
 /*

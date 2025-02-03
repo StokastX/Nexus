@@ -88,9 +88,8 @@ float3** GetDeviceAccumulationBufferAddress();
 uint32_t** GetDeviceRenderBufferAddress();
 uint32_t* GetDeviceFrameNumberAddress();
 uint32_t* GetDeviceBounceAddress();
-D_BVH8* GetDeviceTLASAddress();
-D_BVH8** GetDeviceBVHAddress();
-D_BVHInstance** GetDeviceBLASAddress();
+D_BVH* GetDeviceTLASAddress();
+D_BVH** GetDeviceBVHAddress();
 
 D_PathStateSOA* GetDevicePathStateAddress();
 D_ShadowTraceRequestSOA* GetDeviceShadowTraceRequestAddress();

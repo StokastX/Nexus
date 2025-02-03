@@ -3,6 +3,11 @@
 #include <cuda_runtime_api.h>
 #include "Utils/Utils.h"
 #include "BVH2.cuh"
+#include "BVHInstance.cuh"
+
+__device__ __constant__ D_BVH2 tlas2;
+__device__ __constant__ D_BVHInstance* blas2;
+__device__ __constant__ D_BVH2* bvhs2;
 
 inline __device__ void IntersectBVH2(const D_BVH2& bvh, D_Ray& ray, const uint32_t instanceIdx)
 {

@@ -40,6 +40,6 @@ D_BVHInstance BVHInstance::ToDevice(const BVHInstance& bvhInstance)
 	deviceInstance.bvhIdx = bvhInstance.m_BvhIdx;
 	deviceInstance.transform = bvhInstance.m_Transform;
 	deviceInstance.invTransform = bvhInstance.m_InvTransform;
-	deviceInstance.materialId = bvhInstance.m_MaterialId;
+	deviceInstance.materialIdx = bvhInstance.m_MaterialId;
 	return deviceInstance;
 }

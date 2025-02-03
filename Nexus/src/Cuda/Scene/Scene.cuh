@@ -32,5 +32,7 @@ struct D_Scene
 	D_Material* materials;
 	D_Camera camera;
 
+	D_MeshInstance* meshInstances;
+
 	D_RenderSettings renderSettings;
 };
