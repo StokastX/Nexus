@@ -4,7 +4,6 @@
 #include "Cuda/PathTracer/PathTracer.cuh"
 
 AssetManager::AssetManager()
-	: m_DeviceBvhsAddress(GetDeviceBVHAddress())
 {
 }
 
@@ -31,18 +30,9 @@ uint32_t AssetManager::AddMesh(const std::string name, uint32_t materialIdx, con
 	NXB::BVHBuilder builder;
 	m_Meshes.push_back(Mesh(name, triangles, triangleData));
 	Mesh& newMesh = m_Meshes.back();
+	newMesh.BuildBVH();
 
-	NXB::BVH* deviceBvh = builder.BuildBinary((NXB::Triangle*)newMesh.deviceTriangles.Data(), newMesh.deviceTriangles.Size());
-	NXB::BVH bvh;
-	CudaMemory::CopyAsync(&bvh, deviceBvh, 1, cudaMemcpyDeviceToHost);
-
-	// Set new mesh idx to newMesh
-	newMesh.bvhIdx = m_DeviceBvhs.Size() - 1;
-	m_DeviceBvhs.PushBack(bvh);
 	m_DeviceMeshes.PushBack(newMesh);
-
-	// Update device BVH list
-	m_DeviceBvhsAddress = m_DeviceBvhs.Data();
 
 	return m_Meshes.size() - 1;
 }

@@ -24,7 +24,7 @@ public:
 	void AddMaterial(Material& material);
 	std::vector<Material>& GetMaterials() { return m_AssetManager.GetMaterials(); }
 	AssetManager& GetAssetManager() { return m_AssetManager; }
-	std::shared_ptr<TLAS> GetTLAS() { return m_Tlas; }
+	NXB::BVH& GetTLAS() { return m_Tlas; }
 	const RenderSettings& GetRenderSettings() const { return m_RenderSettings; }
 	RenderSettings& GetRenderSettings() { return m_RenderSettings; }
 
@@ -57,7 +57,7 @@ private:
 	std::vector<Light> m_Lights;
 
 	std::set<uint32_t> m_InvalidMeshInstances;
-	std::shared_ptr<TLAS> m_Tlas;
+	NXB::BVH m_Tlas;
 
 	Texture m_HdrMap;
 
@@ -71,4 +71,5 @@ private:
 	cudaTextureObject_t m_DeviceHdrMap;
 	DeviceVector<MeshInstance, D_MeshInstance> m_DeviceMeshInstances;
 	DeviceVector<Light, D_Light> m_DeviceLights;
+	DeviceInstance<NXB::BVH, D_BVH> m_DeviceTlas;
 };

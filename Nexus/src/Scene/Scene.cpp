@@ -7,9 +7,8 @@
 
 
 Scene::Scene(uint32_t width, uint32_t height)
-	:m_Camera(std::make_shared<Camera>(make_float3(0.0f, 4.0f, 14.0f), make_float3(0.0f, 0.0f, -1.0f), 60.0f, width, height, 5.0f, 0.0f))
-{
-}
+	:m_Camera(std::make_shared<Camera>(make_float3(0.0f, 4.0f, 14.0f), make_float3(0.0f, 0.0f, -1.0f), 60.0f,
+		width, height, 5.0f, 0.0f)), m_DeviceTlas(GetDeviceTLASAddress()) { }
 
 void Scene::Reset()
 {
@@ -36,17 +35,11 @@ void Scene::Update()
 		for (uint32_t i : m_InvalidMeshInstances)
 		{
 			MeshInstance& meshInstance = m_MeshInstances[i];
-			m_BVHInstances[meshInstance.bvhInstanceIdx].SetTransform(meshInstance.position, meshInstance.rotation, meshInstance.scale);
 			if (meshInstance.materialIdx != -1)
-			{
-				m_BVHInstances[meshInstance.bvhInstanceIdx].AssignMaterial(meshInstance.materialIdx);
 				UpdateInstanceLighting(i);
-			}
 		}
-		m_Tlas->SetBVHInstances(m_BVHInstances);
-		m_Tlas->Build();
-		m_Tlas->Convert();
-		m_Tlas->UpdateDeviceData();
+
+		BuildTLAS();
 
 		m_InvalidMeshInstances.clear();
 	}
@@ -55,17 +48,22 @@ void Scene::Update()
 
 void Scene::BuildTLAS()
 {
-	m_Tlas = std::make_shared<TLAS>(m_BVHInstances, m_AssetManager.GetBVHs());
-	m_Tlas->Build();
-	m_Tlas->UpdateDeviceData();
+	std::vector<NXB::AABB> instancesBounds(m_MeshInstances.size());
+	for (uint32_t i = 0; i < m_MeshInstances.size(); i++)
+		instancesBounds[i] = m_MeshInstances[i].GetBounds();
+
+	DeviceVector<NXB::AABB> deviceBounds = instancesBounds;
+
+	NXB::BVHBuilder builder;
+	NXB::BVH* deviceTlas = builder.BuildBinary(deviceBounds.Data(), instancesBounds.size());
+	NXB::BVH tlas;
+	CudaMemory::Copy(&tlas, deviceTlas, 1, cudaMemcpyDeviceToHost);
+	m_DeviceTlas = tlas;
 }
 
 MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)
 {
 	Mesh& mesh = m_AssetManager.GetMeshes()[meshId];
-	BVH8& bvh8 = m_AssetManager.GetBVHs()[mesh.bvhIdx];
-
-	m_BVHInstances.push_back(BVHInstance(meshId, &bvh8));
 
 	MeshInstance meshInstance(mesh, meshId, mesh.materialIdx);
 	m_MeshInstances.push_back(meshInstance);

@@ -9,6 +9,7 @@
 #include "Cuda/Scene/Material.cuh"
 #include "Geometry/BVH/BVH.h"
 #include "Cuda/BVH/BVH.cuh"
+#include "Geometry/Triangle.h"
 
 class AssetManager
 {
@@ -55,8 +56,5 @@ private:
 	DeviceVector<Material, D_Material> m_DeviceMaterials;
 	DeviceVector<Texture, cudaTextureObject_t> m_DeviceDiffuseMaps;
 	DeviceVector<Texture, cudaTextureObject_t> m_DeviceEmissiveMaps;
-	DeviceVector<NXB::BVH, D_BVH> m_DeviceBvhs;
 	DeviceVector<Mesh, D_Mesh> m_DeviceMeshes;
-
-	DeviceInstance<D_BVH*> m_DeviceBvhsAddress;
 };

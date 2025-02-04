@@ -8,13 +8,13 @@
 struct MeshInstance
 {
 	MeshInstance() = default;
-	MeshInstance(const Mesh& mesh, const NXB::BVH& bvh, uint32_t mIdx, uint32_t matIdx = INVALID_IDX)
+	MeshInstance(const Mesh& mesh, uint32_t mIdx, uint32_t matIdx = INVALID_IDX)
 	{
 		name = mesh.name;
 		rotation = mesh.rotation;
 		scale = mesh.scale;
 		position = mesh.position;
-		meshBounds = bvh.bounds;
+		meshBounds = mesh.bvh.bounds;
 		meshIdx = mIdx;
 		materialIdx = matIdx;
 	}
