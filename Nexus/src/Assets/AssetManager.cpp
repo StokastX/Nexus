@@ -26,7 +26,7 @@ uint32_t AssetManager::AddMesh(Mesh&& mesh)
 uint32_t AssetManager::AddMesh(const std::string name, uint32_t materialIdx, const std::vector<NXB::Triangle>& triangles, const std::vector<TriangleData>& triangleData)
 {
 	NXB::BVHBuilder builder;
-	m_Meshes.push_back(Mesh(name, triangles, triangleData));
+	m_Meshes.push_back(Mesh(name, triangles, triangleData, materialIdx));
 	Mesh& newMesh = m_Meshes.back();
 	newMesh.BuildBVH();
 

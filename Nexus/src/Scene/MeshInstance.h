@@ -58,6 +58,7 @@ struct MeshInstance
 		deviceInstance.transform = transformationMatrix;
 		deviceInstance.invTransform = transformationMatrix.Inverted();
 		deviceInstance.bounds = *(D_AABB*)&meshInstance.GetBounds();
+		return deviceInstance;
 	}
 
 	std::string name;

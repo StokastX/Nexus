@@ -149,8 +149,11 @@ void SceneHierarchyPanel::DrawProperties(int selectionContext)
 		}
 		else
 		{
-			if (ImGui::Combo("Id", &meshInstance.materialIdx, materialsString.c_str()))
+			int materialIdx = meshInstance.materialIdx;
+			if (ImGui::Combo("Id", &materialIdx, materialsString.c_str()))
 				m_Context->InvalidateMeshInstance(selectionContext);
+
+			meshInstance.materialIdx = materialIdx;
 
 			Material& material = materials[meshInstance.materialIdx];
 			int type = (int)material.type;

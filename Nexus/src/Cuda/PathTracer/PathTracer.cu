@@ -11,6 +11,8 @@
 #include "Cuda/Scene/Scene.cuh"
 #include "Cuda/Scene/Camera.cuh"
 #include "Cuda/Sampler.cuh"
+#include "BVHBuilder.h"
+#include "Cuda/BVH/BVH2Traversal.cuh"
 
 __device__ __constant__ uint32_t frameNumber;
 __device__ __constant__ uint32_t bounce;
@@ -123,12 +125,13 @@ __global__ void GenerateKernel()
 
 __global__ void TraceKernel()
 {
-	BVH8Trace(traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	//BVH8Trace(traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	BVH2Trace(meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
 }
 
 __global__ void TraceShadowKernel()
 {
-	BVH8TraceShadow(shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
+	//BVH8TraceShadow(shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
 }
 
 

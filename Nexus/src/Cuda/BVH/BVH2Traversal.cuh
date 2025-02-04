@@ -8,7 +8,10 @@
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Cuda/Geometry/Ray.cuh"
 
-inline __device__ void BVH2Trace(NXB::BVH tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
+
+__device__ __constant__ NXB::BVH tlas;
+
+inline __device__ void BVH2Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
 {
 	D_Mesh mesh;
 	NXB::BVH::Node node;
@@ -63,7 +66,7 @@ inline __device__ void BVH2Trace(NXB::BVH tlas, D_Mesh* meshes, D_MeshInstance* 
 			else
 			{
 				uint32_t triangleIdx = mesh.bvh.primIdx[node.rightChild];
-				NXB::Triangle triangle = mesh.triangles[mesh.bvh.primIdx[node.rightChild]];
+				NXB::Triangle triangle = mesh.triangles[triangleIdx];
 				TriangleTrace(triangle, ray, intersection, instanceIdx, triangleIdx);
 				if (stackPtr == 0)
 				{
@@ -76,10 +79,11 @@ inline __device__ void BVH2Trace(NXB::BVH tlas, D_Mesh* meshes, D_MeshInstance* 
 					ray = backupRay;
 
 					mesh.bvh = tlas;
-					instanceStackDepth = -1;
+					instanceStackDepth = INVALID_IDX;
 				}
 				node = mesh.bvh.nodes[stack[--stackPtr]];
 			}
+			continue;
 		}
 
 		NXB::BVH::Node leftChild = mesh.bvh.nodes[node.leftChild];
@@ -107,7 +111,7 @@ inline __device__ void BVH2Trace(NXB::BVH tlas, D_Mesh* meshes, D_MeshInstance* 
 				ray = backupRay;
 
 				mesh.bvh = tlas;
-				instanceStackDepth = -1;
+				instanceStackDepth = INVALID_IDX;
 			}
 			node = mesh.bvh.nodes[stack[--stackPtr]];
 		}
@@ -121,7 +125,7 @@ inline __device__ void BVH2Trace(NXB::BVH tlas, D_Mesh* meshes, D_MeshInstance* 
 	}
 }
 
-inline __device__ void BVH2TraceShadow()
+inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
 {
 	D_Mesh mesh;
 	NXB::BVH::Node node;

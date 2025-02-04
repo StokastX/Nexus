@@ -4,6 +4,7 @@
 #include <device_launch_parameters.h>
 #include <cuda_runtime_api.h>
 #include "Ray.cuh"
+#include "Geometry/BVH/BVH.h"
 
 
 struct D_Triangle_SOA
@@ -46,6 +47,9 @@ struct D_Triangle
 
 	__device__ D_Triangle(float3 p0, float3 p1, float3 p2)
 		: pos0(p0), pos1(p1), pos2(p2) { }
+
+	__device__ D_Triangle(const NXB::Triangle& triangle)
+		: pos0(triangle.v0), pos1(triangle.v1), pos2(triangle.v2) { }
 
 	// Möller-Trumbore intersection algorithm. See https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 	inline __device__ void Trace(D_Ray& r, D_Intersection& intersection, const uint32_t instIdx, const uint32_t primIdx)

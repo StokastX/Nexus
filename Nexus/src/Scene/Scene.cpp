@@ -67,6 +67,7 @@ MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)
 
 	MeshInstance meshInstance(mesh, meshId, mesh.materialIdx);
 	m_MeshInstances.push_back(meshInstance);
+	m_DeviceMeshInstances.PushBack(meshInstance);
 
 	const size_t instanceId = m_MeshInstances.size() - 1;
 

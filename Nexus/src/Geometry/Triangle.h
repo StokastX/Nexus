@@ -27,6 +27,7 @@ struct Triangle
 
 struct TriangleData
 {
+	TriangleData() = default;
 	TriangleData(float3 n0, float3 n1, float3 n2, float2 t0, float2 t1, float2 t2)
 		: normal0(n0), normal1(n1), normal2(n2), texCoord0(t0), texCoord1(t1), texCoord2(t2) { }
 

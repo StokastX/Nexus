@@ -5,6 +5,7 @@
 #include "Math/Mat4.h"
 #include "Geometry/AABB.h"
 #include "Cuda/BVH/BVHInstance.cuh"
+#include "Geometry/BVH/BVH8.h"
 
 class BVHInstance
 {
