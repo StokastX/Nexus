@@ -49,9 +49,9 @@ public:
 	}
 
 	// Sample a triangle uniformly based on the triangle count, then sample a point uniformly on the surface of this triangle
-	inline __device__ static void UniformSampleMesh(const D_BVH8& bvh8, uint32_t& rngState, uint32_t& triangleIdx, float2& uv)
+	inline __device__ static void UniformSampleMesh(uint32_t primCount, uint32_t& rngState, uint32_t& triangleIdx, float2& uv)
 	{
-		triangleIdx = Uniform(bvh8.triCount, rngState);
+		triangleIdx = Uniform(primCount, rngState);
 		uv = UniformSampleTriangle(rngState);
 	}
 

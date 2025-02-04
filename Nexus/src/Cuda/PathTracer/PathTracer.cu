@@ -8,7 +8,6 @@
 #include "Utils/cuda_math.h"
 #include "Utils/Utils.h"
 #include "texture_indirect_functions.h"
-#include "Cuda/BVH/BVH8Traversal.cuh"
 #include "Cuda/Scene/Scene.cuh"
 #include "Cuda/Scene/Camera.cuh"
 #include "Cuda/Sampler.cuh"
@@ -20,6 +19,7 @@ __device__ __constant__ float3* accumulationBuffer;
 __device__ __constant__ uint32_t* renderBuffer;
 
 __device__ __constant__ D_Scene scene;
+__device__ __constant__ D_Mesh* meshes;
 __device__ __constant__ D_PathStateSOA pathState;
 __device__ __constant__ D_TraceRequestSOA traceRequest;
 __device__ __constant__ D_ShadowTraceRequestSOA shadowTraceRequest;
@@ -173,7 +173,7 @@ __global__ void LogicKernel()
 	else
 		return;
 
-	const D_BVHInstance instance = blas[intersection.instanceIdx];
+	const D_MeshInstance instance = scene.meshInstances[intersection.instanceIdx];
 	const D_Material material = scene.materials[instance.materialIdx];
 
 	int32_t requestIdx;
@@ -225,20 +225,21 @@ inline __device__ void NextEventEstimation(
 
 	if (light.type == D_Light::Type::MESH_LIGHT)
 	{
-		D_BVHInstance instance = blas[light.mesh.meshId];
+		D_MeshInstance instance = scene.meshInstances[light.mesh.meshId];
 
 		uint32_t triangleIdx;
 		float2 uv;
-		Sampler::UniformSampleMesh(bvhs[instance.bvhIdx], rngState, triangleIdx, uv);
+		Sampler::UniformSampleMesh(meshes[instance.meshIdx].bvh.primCount, rngState, triangleIdx, uv);
 
-		D_Triangle triangle = bvhs[instance.bvhIdx].triangles[triangleIdx];
+		D_Triangle triangle = meshes[instance.meshIdx].triangles[triangleIdx];
+		D_TriangleData triangleData = meshes[instance.meshIdx].triangleData[triangleIdx];
 
 		float3 p = Barycentric(triangle.pos0, triangle.pos1, triangle.pos2, uv);
 		p = instance.transform.TransformPoint(p);
 
 		const float3 lightGNormal = normalize(instance.invTransform.Transposed().TransformVector(triangle.Normal()));
 
-		float3 lightNormal = Barycentric(triangle.normal0, triangle.normal1, triangle.normal2, uv);
+		float3 lightNormal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
 		lightNormal = normalize(instance.invTransform.Transposed().TransformVector(lightNormal));
 
 		D_Ray shadowRay;
@@ -268,7 +269,7 @@ inline __device__ void NextEventEstimation(
 			instance.transform.TransformPoint(triangle.pos2)
 		);
 
-		float lightPdf = 1.0f / (scene.lightCount * bvhs[instance.bvhIdx].triCount * triangleTransformed.Area());
+		float lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());
 		// Transform pdf over an area to pdf over directions
 		lightPdf *= dSquared / cosThetaO;
 
@@ -290,7 +291,7 @@ inline __device__ void NextEventEstimation(
 		float3 emissive;
 		if (lightMaterial.emissiveMapId != -1)
 		{
-			float2 texUv = Barycentric(triangle.texCoord0, triangle.texCoord1, triangle.texCoord2, uv);
+			float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
 			emissive = make_float3(tex2D<float4>(scene.emissiveMaps[lightMaterial.emissiveMapId], texUv.x, texUv.y));
 		}
 		else
@@ -324,8 +325,9 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
 	uint32_t rngState = Random::InitRNG(index, scene.camera.resolution, frameNumber);
 
-	const D_BVHInstance instance = blas[intersection.instanceIdx];
-	const D_Triangle triangle = bvhs[instance.bvhIdx].triangles[intersection.triIdx];
+	const D_MeshInstance instance = scene.meshInstances[intersection.instanceIdx];
+	const D_Triangle triangle = meshes[instance.meshIdx].triangles[intersection.triIdx];
+	const D_TriangleData triangleData = meshes[instance.meshIdx].triangleData[intersection.triIdx];
 
 	D_Material material = scene.materials[instance.materialIdx];
 
@@ -334,8 +336,8 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	float3 p = Barycentric(triangle.pos0, triangle.pos1, triangle.pos2, uv);
 	p = instance.transform.TransformPoint(p);
 
-	float3 normal = Barycentric(triangle.normal0, triangle.normal1, triangle.normal2, uv);
-	float2 texUv = Barycentric(triangle.texCoord0, triangle.texCoord1, triangle.texCoord2, uv);
+	float3 normal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
+	float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
 
 	// We use the transposed of the inverse matrix to transform normals.
 	// See https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals.html
@@ -371,7 +373,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 				instance.transform.TransformPoint(triangle.pos2)
 			);
 
-			float lightPdf = 1.0f / (scene.lightCount * bvhs[instance.bvhIdx].triCount * triangleTransformed.Area());
+			float lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());
 			// Transform pdf over an area to pdf over directions
 			lightPdf *= dSquared / cosThetaO;
 
@@ -536,17 +538,10 @@ D_BVH* GetDeviceTLASAddress()
 	return target;
 }
 
-D_BVH** GetDeviceBVHAddress()
+D_Mesh** GetDeviceMeshesAdress()
 {
-	D_BVH** target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, bvhs));
-	return target;
-}
-
-D_BVHInstance** GetDeviceBLASAddress()
-{
-	D_BVHInstance** target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, blas));
+	D_Mesh** target;
+	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, meshes));
 	return target;
 }
 

@@ -57,4 +57,5 @@ private:
 	DeviceVector<Texture, cudaTextureObject_t> m_DeviceDiffuseMaps;
 	DeviceVector<Texture, cudaTextureObject_t> m_DeviceEmissiveMaps;
 	DeviceVector<Mesh, D_Mesh> m_DeviceMeshes;
+	DeviceInstance<D_Mesh*> m_DeviceMeshesAdress;
 };

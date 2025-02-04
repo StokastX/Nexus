@@ -135,3 +135,71 @@ struct D_Triangle
 		return 0.5f * length(normal);
 	}
 };
+
+// Möller-Trumbore intersection algorithm. See https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+inline __device__ void TriangleTrace(const NXB::Triangle& triangle, D_Ray& r, D_Intersection& intersection, const uint32_t instIdx, const uint32_t primIdx)
+{
+	const float3 edge0 = triangle.v1 - triangle.v0;
+	const float3 edge1 = triangle.v2 - triangle.v0;
+
+	const float3 rayCrossEdge1 = cross(r.direction, edge1);
+	const float det = dot(edge0, rayCrossEdge1);
+
+	const float invDet = 1.0f / det;
+
+	const float3 s = r.origin - triangle.v0;
+
+	const float u = invDet * dot(s, rayCrossEdge1);
+
+	if (u < 0.0f || u > 1.0f)
+		return;
+
+	const float3 sCrossEdge0 = cross(s, edge0);
+	const float v = invDet * dot(r.direction, sCrossEdge0);
+
+	if (v < 0.0f || u + v > 1.0f)
+		return;
+
+	const float t = invDet * dot(edge1, sCrossEdge0);
+
+	if (t > 0.0f && t < intersection.hitDistance)
+	{
+		intersection.hitDistance = t;
+		intersection.u = u;
+		intersection.v = v;
+		intersection.instanceIdx = instIdx;
+		intersection.triIdx = primIdx;
+	}
+}
+
+// true if any hit, else false
+inline __device__ bool ShadowTrace(const NXB::Triangle& triangle, D_Ray& r, float hitDistance)
+{
+	const float3 edge0 = triangle.v1 - triangle.v0;
+	const float3 edge1 = triangle.v2 - triangle.v0;
+
+	const float3 rayCrossEdge1 = cross(r.direction, edge1);
+	const float det = dot(edge0, rayCrossEdge1);
+
+	const float invDet = 1.0f / det;
+
+	const float3 s = r.origin - triangle.v0;
+
+	const float u = invDet * dot(s, rayCrossEdge1);
+
+	if (u < 0.0f || u > 1.0f)
+		return false;
+
+	const float3 sCrossEdge0 = cross(s, edge0);
+	const float v = invDet * dot(r.direction, sCrossEdge0);
+
+	if (v < 0.0f || u + v > 1.0f)
+		return false;
+
+	const float t = invDet * dot(edge1, sCrossEdge0);
+
+	if (t > 0.0f && t < hitDistance)
+		return true;
+
+	return false;
+}

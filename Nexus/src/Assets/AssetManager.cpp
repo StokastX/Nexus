@@ -3,9 +3,7 @@
 #include "IMGLoader.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
 
-AssetManager::AssetManager()
-{
-}
+AssetManager::AssetManager() : m_DeviceMeshesAdress(GetDeviceMeshesAdress()) { }
 
 void AssetManager::Reset()
 {
@@ -33,6 +31,7 @@ uint32_t AssetManager::AddMesh(const std::string name, uint32_t materialIdx, con
 	newMesh.BuildBVH();
 
 	m_DeviceMeshes.PushBack(newMesh);
+	m_DeviceMeshesAdress = m_DeviceMeshes.Data();
 
 	return m_Meshes.size() - 1;
 }

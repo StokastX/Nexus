@@ -6,6 +6,6 @@
 struct D_Mesh
 {
 	NXB::BVH bvh;
-	D_Triangle* triangles;
+	NXB::Triangle* triangles;
 	D_TriangleData* triangleData;
 };
