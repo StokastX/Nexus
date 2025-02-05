@@ -39,7 +39,7 @@ inline __device__ void BVH2Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, 
 				return;
 
 			mesh.bvh = tlas;
-			node = tlas.nodes[mesh.bvh.nodeCount - 1];
+			node = mesh.bvh.nodes[mesh.bvh.nodeCount - 1];
 			ray = traceRequest.ray.Get(rayIndex);
 			backupRay = ray;
 			intersection.hitDistance = 1e30f;
@@ -51,7 +51,7 @@ inline __device__ void BVH2Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, 
 			// Reached a mesh instance
 			if (instanceStackDepth == INVALID_IDX)
 			{
-				instanceIdx = mesh.bvh.primIdx[node.rightChild];
+				instanceIdx = node.rightChild;
 				instanceStackDepth = stackPtr;
 
 				const D_MeshInstance& meshInstance = meshInstances[instanceIdx];
@@ -65,7 +65,7 @@ inline __device__ void BVH2Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, 
 			// Reached a primitive
 			else
 			{
-				uint32_t triangleIdx = mesh.bvh.primIdx[node.rightChild];
+				uint32_t triangleIdx = node.rightChild;
 				NXB::Triangle triangle = mesh.triangles[triangleIdx];
 				TriangleTrace(triangle, ray, intersection, instanceIdx, triangleIdx);
 				if (stackPtr == 0)
@@ -95,6 +95,7 @@ inline __device__ void BVH2Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, 
 		{
 			Utils::Swap(dist1, dist2);
 			Utils::Swap(leftChild, rightChild);
+			Utils::Swap(node.rightChild, node.leftChild);
 		}
 
 		if (dist1 == 1e30f)

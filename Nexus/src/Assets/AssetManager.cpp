@@ -30,7 +30,8 @@ uint32_t AssetManager::AddMesh(const std::string name, uint32_t materialIdx, con
 	Mesh& newMesh = m_Meshes.back();
 	newMesh.BuildBVH();
 
-	m_DeviceMeshes.PushBack(newMesh);
+	// TODO: move this to a separate function
+	m_DeviceMeshes = m_Meshes;
 	m_DeviceMeshesAdress = m_DeviceMeshes.Data();
 
 	return m_Meshes.size() - 1;

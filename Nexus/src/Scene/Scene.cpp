@@ -35,6 +35,8 @@ void Scene::Update()
 		for (uint32_t i : m_InvalidMeshInstances)
 		{
 			MeshInstance& meshInstance = m_MeshInstances[i];
+			m_DeviceMeshInstances[i] = meshInstance;
+
 			if (meshInstance.materialIdx != -1)
 				UpdateInstanceLighting(i);
 		}
@@ -82,8 +84,8 @@ void Scene::CreateMeshInstanceFromFile(const std::string& path, const std::strin
 {
 	OBJLoader::LoadOBJ(path, fileName, this, &m_AssetManager);
 
-	if (m_MeshInstances.size() > 0)
-		BuildTLAS();
+	//if (m_MeshInstances.size() > 0)
+	//	BuildTLAS();
 }
 
 void Scene::AddHDRMap(const std::string& filePath, const std::string& fileName)

@@ -44,8 +44,11 @@ struct MeshInstance
 		Mat4 transformationMatrix = GetTransfromationMatrix();
 		NXB::AABB bounds;
 		bounds.Clear();
-		bounds.Grow(transformationMatrix.TransformPoint(meshBounds.bMin));
-		bounds.Grow(transformationMatrix.TransformPoint(meshBounds.bMax));
+		for (int i = 0; i < 8; i++)
+		{
+			bounds.Grow(transformationMatrix.TransformPoint(make_float3(i & 1 ? meshBounds.bMax.x : meshBounds.bMin.x,
+				i & 2 ? meshBounds.bMax.y : meshBounds.bMin.y, i & 4 ? meshBounds.bMax.z : meshBounds.bMin.z)));
+		}
 		return bounds;
 	}
 
