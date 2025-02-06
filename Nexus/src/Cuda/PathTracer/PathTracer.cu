@@ -132,6 +132,7 @@ __global__ void TraceKernel()
 __global__ void TraceShadowKernel()
 {
 	//BVH8TraceShadow(shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
+	BVH2TraceShadow(meshes, scene.meshInstances, shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
 }
 
 

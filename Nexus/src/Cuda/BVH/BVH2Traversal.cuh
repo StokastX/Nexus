@@ -126,11 +126,10 @@ inline __device__ void BVH2Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, 
 	}
 }
 
-inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
+inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInstances, D_ShadowTraceRequestSOA shadowTraceRequest, int32_t traceSize, int32_t* traceCount, float3* pathRadiance)
 {
 	D_Mesh mesh;
 	NXB::BVH::Node node;
-	D_Intersection intersection;
 
 	uint32_t stack[32];
 	uint32_t stackPtr = 0;
@@ -140,11 +139,18 @@ inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInsta
 
 	D_Ray ray, backupRay;
 	int32_t rayIndex;
+	float3 radiance;
+	float hitDistance;
+	uint32_t pixelIdx;
 
+	bool anyHit = true;
 	bool shouldFetchNewRay = true;
 
 	while (true)
 	{
+		if (!anyHit && shouldFetchNewRay)
+			pathRadiance[pixelIdx] += radiance;
+
 		if (shouldFetchNewRay)
 		{
 			shouldFetchNewRay = false;
@@ -154,11 +160,14 @@ inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInsta
 				return;
 
 			mesh.bvh = tlas;
-			node = tlas.nodes[mesh.bvh.nodeCount - 1];
-			ray = traceRequest.ray.Get(rayIndex);
+			node = mesh.bvh.nodes[mesh.bvh.nodeCount - 1];
+			ray = shadowTraceRequest.ray.Get(rayIndex);
 			backupRay = ray;
-			intersection.hitDistance = 1e30f;
+			hitDistance = shadowTraceRequest.hitDistance[rayIndex];
+			pixelIdx = shadowTraceRequest.pixelIdx[rayIndex];
+			radiance = shadowTraceRequest.radiance[rayIndex];
 			instanceStackDepth = INVALID_IDX;
+			anyHit = false;
 		}
 
 		if (node.leftChild == INVALID_IDX)
@@ -166,7 +175,7 @@ inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInsta
 			// Reached a mesh instance
 			if (instanceStackDepth == INVALID_IDX)
 			{
-				instanceIdx = mesh.bvh.primIdx[node.rightChild];
+				instanceIdx = node.rightChild;
 				instanceStackDepth = stackPtr;
 
 				const D_MeshInstance& meshInstance = meshInstances[instanceIdx];
@@ -180,12 +189,16 @@ inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInsta
 			// Reached a primitive
 			else
 			{
-				uint32_t triangleIdx = mesh.bvh.primIdx[node.rightChild];
-				NXB::Triangle triangle = mesh.triangles[mesh.bvh.primIdx[node.rightChild]];
-				TriangleTrace(triangle, ray, intersection, instanceIdx, triangleIdx);
+				uint32_t triangleIdx = node.rightChild;
+				NXB::Triangle triangle = mesh.triangles[triangleIdx];
+				if (TriangleTraceShadow(triangle, ray, hitDistance))
+				{
+					anyHit = true;
+					shouldFetchNewRay = true;
+					continue;
+				}
 				if (stackPtr == 0)
 				{
-					traceRequest.intersection.Set(rayIndex, intersection);
 					shouldFetchNewRay = true;
 					continue;
 				}
@@ -194,28 +207,29 @@ inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInsta
 					ray = backupRay;
 
 					mesh.bvh = tlas;
-					instanceStackDepth = -1;
+					instanceStackDepth = INVALID_IDX;
 				}
 				node = mesh.bvh.nodes[stack[--stackPtr]];
 			}
+			continue;
 		}
 
 		NXB::BVH::Node leftChild = mesh.bvh.nodes[node.leftChild];
 		NXB::BVH::Node rightChild = mesh.bvh.nodes[node.rightChild];
-		float dist1 = AABBTrace(ray, intersection.hitDistance, leftChild.bounds);
-		float dist2 = AABBTrace(ray, intersection.hitDistance, rightChild.bounds);
+		float dist1 = AABBTrace(ray, hitDistance, leftChild.bounds);
+		float dist2 = AABBTrace(ray, hitDistance, rightChild.bounds);
 
 		if (dist1 > dist2)
 		{
 			Utils::Swap(dist1, dist2);
 			Utils::Swap(leftChild, rightChild);
+			Utils::Swap(node.rightChild, node.leftChild);
 		}
 
 		if (dist1 == 1e30f)
 		{
 			if (stackPtr == 0)
 			{
-				traceRequest.intersection.Set(rayIndex, intersection);
 				shouldFetchNewRay = true;
 				continue;
 			}
@@ -225,7 +239,7 @@ inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInsta
 				ray = backupRay;
 
 				mesh.bvh = tlas;
-				instanceStackDepth = -1;
+				instanceStackDepth = INVALID_IDX;
 			}
 			node = mesh.bvh.nodes[stack[--stackPtr]];
 		}
