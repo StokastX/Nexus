@@ -2,7 +2,7 @@
 #include <vector>
 #include "Assets/Mesh.h"
 #include "Cuda/Scene/MeshInstance.cuh"
-#include "BVHBuilder.h"
+#include "NXB/BVHBuilder.h"
 #include "Geometry/BVH/BVH.h"
 
 struct MeshInstance

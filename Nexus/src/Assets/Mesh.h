@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include "BVHBuilder.h"
+#include "NXB/BVHBuilder.h"
 #include "Math/Mat4.h"
 #include "Cuda/Scene/Mesh.cuh"
 #include "Geometry/Triangle.h"
@@ -28,9 +28,25 @@ struct Mesh
 	void BuildBVH()
 	{
 		NXB::BVHBuilder builder;
-		NXB::BVH* deviceBvh = builder.BuildBinary((NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size());
+		NXB::BVH* deviceBvh;
+
+		// Benchmarking BVH build
+		//NXB::BVHBuildMetrics buildMetrics = NXB::BenchmarkBuild(
+		//	[&builder](NXB::Triangle* triangles, uint32_t count, NXB::BVHBuildMetrics* metrics) {
+		//		return builder.BuildBinary(triangles, count, metrics);
+		//	},
+		//	30, 100, (NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size());
+
+		std::cout << std::endl << "========== Building BVH for mesh " << name << " ==========" << std::endl << std::endl;
+
+		deviceBvh = builder.BuildBinary((NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size());
 		CudaMemory::Copy(&bvh, deviceBvh, 1, cudaMemcpyDeviceToHost);
 		bounds = bvh.bounds;
+
+		std::cout << "Triangle count: " << bvh.primCount << std::endl;
+		std::cout << "Node count: " << bvh.nodeCount << std::endl;
+
+		std::cout << std::endl << "========== Building done ==========" << std::endl << std::endl;
 	}
 
 	static D_Mesh ToDevice(const Mesh& mesh)

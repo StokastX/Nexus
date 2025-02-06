@@ -1,5 +1,5 @@
 #pragma once
-#include "BVHBuilder.h"
+#include "NXB/BVHBuilder.h"
 
 namespace NXB {
 	using BVH = BVH2;

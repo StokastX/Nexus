@@ -1,7 +1,7 @@
 #pragma once
 #include "Cuda/BVH/BVH.cuh"
 #include "Cuda/Geometry/Triangle.cuh"
-#include "BVH/BVH.h"
+#include "Geometry/BVH/BVH.h"
 
 struct D_Mesh
 {

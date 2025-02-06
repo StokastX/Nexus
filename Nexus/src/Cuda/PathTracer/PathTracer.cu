@@ -11,7 +11,7 @@
 #include "Cuda/Scene/Scene.cuh"
 #include "Cuda/Scene/Camera.cuh"
 #include "Cuda/Sampler.cuh"
-#include "BVHBuilder.h"
+#include "NXB/BVHBuilder.h"
 #include "Cuda/BVH/BVH2Traversal.cuh"
 
 __device__ __constant__ uint32_t frameNumber;

@@ -46,7 +46,6 @@ set (include_files
 	vendor/imgui
 	vendor/imgui/backends
 	vendor/stb
-	vendor/NexusBVH/src
 )
 
 add_executable(Nexus ${src_files})
