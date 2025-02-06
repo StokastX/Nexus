@@ -216,6 +216,7 @@ __global__ void LogicKernel()
 template<typename BSDF>
 inline __device__ void NextEventEstimation(
 	const float3 wi,
+	const float3 rayDirection,
 	const D_Material& material,
 	const D_Intersection& intersection,
 	const float3 hitPoint,
@@ -249,6 +250,12 @@ inline __device__ void NextEventEstimation(
 		D_Ray shadowRay;
 
 		float3 toLight = p - hitPoint;
+
+		// Early stopping if shadow ray is occluded by hitpoint's triangle
+		// (ie incoming ray and shadow ray are similarly oriented with respect to hit normal)
+		if (dot(hitGNormal, rayDirection) * dot(hitGNormal,  toLight) >= 0)
+			return;
+
 		float offsetDirection = Utils::SgnE(dot(toLight, normal));
 		shadowRay.origin = OffsetRay(hitPoint, hitGNormal * offsetDirection);
 
@@ -434,7 +441,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	else
 	{
 		if (scene.renderSettings.useMIS)
-			NextEventEstimation<BSDF>(wi, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
+			NextEventEstimation<BSDF>(wi, rayDirection, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
 
 		float pdf;
 		float3 sampleThroughput;

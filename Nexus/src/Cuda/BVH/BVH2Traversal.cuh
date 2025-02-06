@@ -193,6 +193,7 @@ inline __device__ void BVH2TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInsta
 				NXB::Triangle triangle = mesh.triangles[triangleIdx];
 				if (TriangleTraceShadow(triangle, ray, hitDistance))
 				{
+					stackPtr = 0;
 					anyHit = true;
 					shouldFetchNewRay = true;
 					continue;
