@@ -8,8 +8,6 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "FileDialog.h"
-//#include <thrust/sort.h>
-//#include <cub/device/device_radix_sort.cuh>
 
 
 Renderer::Renderer(uint32_t width, uint32_t height, GLFWwindow* window, Scene* scene)
@@ -21,11 +19,16 @@ Renderer::Renderer(uint32_t width, uint32_t height, GLFWwindow* window, Scene* s
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-	io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", 16.0f);
+
+	float xscale, yscale;
+	glfwGetWindowContentScale(window, &xscale, &yscale);
+
+	io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", 16.0f * xscale);
+	ImGui::GetStyle().ScaleAllSizes(xscale);
+
     ImGui::StyleColorsCustomDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
-	//cub::DeviceRadixSort::SortPairs()
 }
 
 Renderer::~Renderer()
@@ -43,10 +46,6 @@ void Renderer::Reset()
 
 void Renderer::Render(Scene& scene, float deltaTime)
 { 
-	//float dpi = ImGui::GetWindowDpiScale();
-	//ImGuiStyle& style = ImGui::GetStyle();
-	//style.ScaleAllSizes(dpi);
-
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -65,15 +64,11 @@ void Renderer::Render(Scene& scene, float deltaTime)
 	// Launch cuda path tracing kernel, writes the viewport into the pixelbuffer
 	if (!scene.IsEmpty())
 	{
-		//if (m_FrameNumber < 24)
-		//{
 		m_PathTracer.UpdateDeviceScene(*m_Scene);
 		m_PathTracer.Render(scene);
 
 		// Unpack the pixel buffer written by cuda to the renderer texture
 		UnpackToTexture();
-		//}
-
 	}
 	else
 		m_PathTracer.ResetFrameNumber();

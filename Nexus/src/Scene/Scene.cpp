@@ -56,8 +56,7 @@ void Scene::BuildTLAS()
 
 	DeviceVector<NXB::AABB> deviceBounds = instancesBounds;
 
-	NXB::BVHBuilder builder;
-	NXB::BVH* deviceTlas = builder.BuildBinary(deviceBounds.Data(), instancesBounds.size());
+	NXB::BVH* deviceTlas = NXB::BuildBinary(deviceBounds.Data(), instancesBounds.size());
 	NXB::BVH tlas;
 	CudaMemory::Copy(&tlas, deviceTlas, 1, cudaMemcpyDeviceToHost);
 	m_DeviceTlas = tlas;
@@ -83,9 +82,6 @@ MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)
 void Scene::CreateMeshInstanceFromFile(const std::string& path, const std::string& fileName)
 {
 	OBJLoader::LoadOBJ(path, fileName, this, &m_AssetManager);
-
-	//if (m_MeshInstances.size() > 0)
-	//	BuildTLAS();
 }
 
 void Scene::AddHDRMap(const std::string& filePath, const std::string& fileName)

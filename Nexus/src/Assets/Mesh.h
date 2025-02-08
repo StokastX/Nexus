@@ -27,19 +27,18 @@ struct Mesh
 
 	void BuildBVH()
 	{
-		NXB::BVHBuilder builder;
 		NXB::BVH* deviceBvh;
 
 		// Benchmarking BVH build
-		//NXB::BVHBuildMetrics buildMetrics = NXB::BenchmarkBuild(
-		//	[&builder](NXB::Triangle* triangles, uint32_t count, NXB::BVHBuildMetrics* metrics) {
-		//		return builder.BuildBinary(triangles, count, metrics);
-		//	},
-		//	30, 100, (NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size());
+		NXB::BVHBuildMetrics buildMetrics = NXB::BenchmarkBuild(
+			[](NXB::Triangle* triangles, uint32_t count, NXB::BVHBuildMetrics* metrics) {
+				return NXB::BuildBinary(triangles, count, metrics);
+			},
+			80, 100, (NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size());
 
 		std::cout << std::endl << "========== Building BVH for mesh " << name << " ==========" << std::endl << std::endl;
 
-		deviceBvh = builder.BuildBinary((NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size());
+		deviceBvh = NXB::BuildBinary((NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size());
 		CudaMemory::Copy(&bvh, deviceBvh, 1, cudaMemcpyDeviceToHost);
 		bounds = bvh.bounds;
 
