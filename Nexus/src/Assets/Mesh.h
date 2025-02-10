@@ -27,20 +27,17 @@ struct Mesh
 
 	void BuildBVH()
 	{
-		NXB::BVH* deviceBvh;
+		NXB::BuildConfig buildConfig;
+		buildConfig.prioritizeSpeed = true;
 
 		// Benchmarking BVH build
 		NXB::BVHBuildMetrics buildMetrics = NXB::BenchmarkBuild(
-			[](NXB::Triangle* triangles, uint32_t count, NXB::BVHBuildMetrics* metrics) {
-				return NXB::BuildBinary(triangles, count, metrics);
-			},
-			80, 100, (NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size());
+			NXB::BuildBinary<NXB::Triangle>,
+			80, 100, (NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size(), buildConfig);
 
 		std::cout << std::endl << "========== Building BVH for mesh " << name << " ==========" << std::endl << std::endl;
 
-		deviceBvh = NXB::BuildBinary((NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size());
-		CudaMemory::Copy(&bvh, deviceBvh, 1, cudaMemcpyDeviceToHost);
-		bounds = bvh.bounds;
+		bvh = NXB::BuildBinary((NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size(), buildConfig);
 
 		std::cout << "Triangle count: " << bvh.primCount << std::endl;
 		std::cout << "Node count: " << bvh.nodeCount << std::endl;

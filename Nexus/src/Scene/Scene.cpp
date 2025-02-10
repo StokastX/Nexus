@@ -56,10 +56,7 @@ void Scene::BuildTLAS()
 
 	DeviceVector<NXB::AABB> deviceBounds = instancesBounds;
 
-	NXB::BVH* deviceTlas = NXB::BuildBinary(deviceBounds.Data(), instancesBounds.size());
-	NXB::BVH tlas;
-	CudaMemory::Copy(&tlas, deviceTlas, 1, cudaMemcpyDeviceToHost);
-	m_DeviceTlas = tlas;
+	m_DeviceTlas = NXB::BuildBinary(deviceBounds.Data(), instancesBounds.size());
 }
 
 MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)
