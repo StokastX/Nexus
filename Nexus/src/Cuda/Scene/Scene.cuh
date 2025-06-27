@@ -10,6 +10,8 @@
 struct D_RenderSettings
 {
 	bool useMIS;
+	bool visualizeBvh;
+	bool wireFrameBvh;
 	unsigned char pathLength;
 
 	float3 backgroundColor;

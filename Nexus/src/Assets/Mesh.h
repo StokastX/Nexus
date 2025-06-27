@@ -28,12 +28,12 @@ struct Mesh
 	void BuildBVH()
 	{
 		NXB::BuildConfig buildConfig;
-		buildConfig.prioritizeSpeed = true;
+		buildConfig.prioritizeSpeed = false;
 
 		// Benchmarking BVH build
 		NXB::BVHBuildMetrics buildMetrics = NXB::BenchmarkBuild(
 			NXB::BuildBinary<NXB::Triangle>,
-			80, 100, (NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size(), buildConfig);
+			0, 1, (NXB::Triangle*)deviceTriangles.Data(), deviceTriangles.Size(), buildConfig);
 
 		std::cout << std::endl << "========== Building BVH for mesh " << name << " ==========" << std::endl << std::endl;
 

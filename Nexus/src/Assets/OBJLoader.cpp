@@ -223,7 +223,7 @@ void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Sc
 
 	// Pretransform all meshes for simplicity, but this will need to be removed
 	// in the future to implement proper scene hierarchy
-	const aiScene* objScene = m_Importer.ReadFile(filePath, aiProcess_CalcTangentSpace | aiProcess_Triangulate
+	const aiScene* objScene = m_Importer.ReadFile(filePath, aiProcess_GenNormals | aiProcess_CalcTangentSpace | aiProcess_Triangulate
 		| aiProcess_FlipUVs);
 
 	std::vector<Mesh> meshes;

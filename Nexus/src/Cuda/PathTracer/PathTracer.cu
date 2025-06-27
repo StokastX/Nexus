@@ -126,7 +126,12 @@ __global__ void GenerateKernel()
 __global__ void TraceKernel()
 {
 	//BVH8Trace(traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
-	BVH2Trace(meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	if (!scene.renderSettings.visualizeBvh)
+		BVH2Trace(meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	else if (!scene.renderSettings.wireFrameBvh)
+		BVH2TraceVisualize(meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	else
+		BVH2TraceVisualizeWireframe(meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
 }
 
 __global__ void TraceShadowKernel()
@@ -154,14 +159,17 @@ __global__ void LogicKernel()
 	// If no intersection, sample background
 	if (intersection.hitDistance == 1e30f)
 	{
-		float3 backgroundColor = SampleBackground(scene, ray.direction);
-		if (bounce == 1)
-			pathState.radiance[pixelIdx] = throughput * backgroundColor;
-		else
-			pathState.radiance[pixelIdx] += throughput * backgroundColor;
+		if (!scene.renderSettings.visualizeBvh)
+		{
+			float3 backgroundColor = SampleBackground(scene, ray.direction);
+			if (bounce == 1)
+				pathState.radiance[pixelIdx] = throughput * backgroundColor;
+			else
+				pathState.radiance[pixelIdx] += throughput * backgroundColor;
 
-		if (bounce == 1 && pixelQuery.pixelIdx == pixelIdx)
-			pixelQuery.instanceIdx = -1;
+			if (bounce == 1 && pixelQuery.pixelIdx == pixelIdx)
+				pixelQuery.instanceIdx = -1;
+		}
 
 		return;
 	}
