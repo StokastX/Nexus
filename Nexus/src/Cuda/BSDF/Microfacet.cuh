@@ -3,7 +3,7 @@
 #include <cuda_runtime_api.h>
 #include "Utils/Utils.h"
 #include "Utils/cuda_math.h"
-#include "CUDA/Random.cuh"
+#include "Cuda/Random.cuh"
 #include "Cuda/Utils.cuh"
 
 class Microfacet 

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 project("Nexus")
 
 enable_language(CUDA)
+include_directories("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -20,6 +21,7 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "GLFW lib only")
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "GLFW lib only")
 set(GLFW_INSTALL OFF CACHE BOOL "GLFW lib only")
+set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "GLFW lib only")
 add_subdirectory(vendor/GLFW)
 
 set(BUILD_UTILS OFF CACHE BOOL "GLEW lib only")

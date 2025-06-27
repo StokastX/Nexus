@@ -1,5 +1,5 @@
 #include "Scene.h"
-#include "Cuda/PathTracer/Pathtracer.cuh"
+#include "Cuda/PathTracer/PathTracer.cuh"
 #include "Utils/cuda_math.h"
 #include "Assets/IMGLoader.h"
 #include "Geometry/BVH/TLASBuilder.h"
