@@ -78,10 +78,7 @@ target_compile_options(Nexus PRIVATE
 
 # CUDA device link-time optimization (DLTO)
 target_link_options(Nexus PRIVATE
-  $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CUDA>>:>
-  $<$<AND:$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>,$<COMPILE_LANGUAGE:CUDA>>:
-    --dlink-time-opt
-  >
+  $<$<CONFIG:Release>:$<DEVICE_LINK:--dlink-time-opt>>
 )
 
 # Set Nexus as startup project in Visual Studio
