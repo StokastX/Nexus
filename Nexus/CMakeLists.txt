@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
-project("Nexus")
+project(Nexus LANGUAGES C CXX CUDA)
 
-enable_language(CUDA)
+find_package(CUDAToolkit REQUIRED)
+find_package(OpenGL)
+
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -31,6 +33,7 @@ set(GLM_BUILD_TESTS OFF CACHE BOOL "GLM lib only")
 add_subdirectory(vendor/glm)
 
 add_subdirectory(vendor/imgui)
+add_subdirectory(vendor/tinyfiledialogs)
 
 set(NEXUSBVH_BUILD_TESTS OFF CACHE BOOL "NexusBVH lib only")
 add_subdirectory(vendor/NexusBVH)
@@ -44,6 +47,7 @@ set (include_files
 	vendor/GLEW/include
 	vendor/glm
 	vendor/imgui
+	vendor/tinyfiledialogs
 	vendor/imgui/backends
 	vendor/stb
 )
@@ -55,24 +59,31 @@ target_link_libraries(Nexus
 	glew
 	assimp
 	imgui
+	tinyfiledialogs
 	NexusBVH
 )
 
 target_include_directories(Nexus
 	PUBLIC
 	${include_files}
+	${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+	${OPENGL_INCLUDE_DIR}
 )
 
 # CUDA optimizations
-target_compile_options(Nexus PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
-	--use_fast_math
-	-rdc=true
->)
+target_compile_options(Nexus PRIVATE
+  $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:
+    --use_fast_math -G -g -lineinfo -rdc=true
+  >
+  $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>>:
+    --use_fast_math -rdc=true
+  >
+)
 
 # CUDA device link-time optimization (DLTO)
-target_link_options(Nexus PRIVATE $<DEVICE_LINK:
-	--dlink-time-opt
->)
+target_link_options(Nexus PRIVATE
+  $<$<CONFIG:Release>:$<DEVICE_LINK:--dlink-time-opt>>
+)
 
 # Set Nexus as startup project in Visual Studio
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Nexus)

@@ -1,48 +1,30 @@
 #include "FileDialog.h"
 
-#include <Windows.h>
-#include <commdlg.h>
-#include "RayTracerApplication.h"
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
+#include "tinyfiledialogs.h"
 
-std::string FileDialog::OpenFile(const char* filter)
+std::string FileDialog::OpenFile(const std::vector<const char*>& filters, const char* description)
 {
-	OPENFILENAMEA ofn;
-	CHAR szFile[260] = { 0 };
-	ZeroMemory(&ofn, sizeof(OPENFILENAME));
-	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.hwndOwner = glfwGetWin32Window(RayTracerApplication::GetNativeWindow());
-	ofn.lpstrFile = szFile;
-	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = filter;
-	ofn.nFilterIndex = 1;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+    const char* file = tinyfd_openFileDialog(
+        "Open File",
+        "../",
+        filters.size(),
+        filters.data(),
+        description,
+        0
+    );
 
-	if (GetOpenFileNameA(&ofn) == TRUE)
-		return ofn.lpstrFile;
-
-	// If cancelled, return empty string
-	return std::string();
+    return file ? std::string(file) : std::string();
 }
 
-std::string FileDialog::SaveFile(const char* filter)
+std::string FileDialog::SaveFile(const std::vector<const char*>& filters, const char* description)
 {
-	OPENFILENAMEA ofn;
-	CHAR szFile[260] = { 0 };
-	ZeroMemory(&ofn, sizeof(OPENFILENAME));
-	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.hwndOwner = glfwGetWin32Window(RayTracerApplication::GetNativeWindow());
-	ofn.lpstrFile = szFile;
-	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = filter;
-	ofn.nFilterIndex = 1;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+    const char* file = tinyfd_saveFileDialog(
+        "Save File",
+        "../",
+        filters.size(),
+        filters.data(),
+        description
+    );
 
-	if (GetSaveFileNameA(&ofn) == TRUE)
-		return ofn.lpstrFile;
-
-	// If cancelled, return empty string
-	return std::string();
+    return file ? std::string(file) : std::string();
 }

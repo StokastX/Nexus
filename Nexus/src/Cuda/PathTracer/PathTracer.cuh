@@ -12,7 +12,7 @@
 
 #define WARP_SIZE 32	// Same size for all NVIDIA GPUs
 
-#define PATH_MAX_LENGTH 500
+#define PATH_MAX_LENGTH 255
 
 
 // Size is the number of pixels on the screen

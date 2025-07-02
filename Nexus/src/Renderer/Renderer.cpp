@@ -88,9 +88,8 @@ void Renderer::RenderUI(Scene& scene)
 		{
 			if (ImGui::MenuItem("Open...", "Ctrl+O"))
 			{
-				std::string fullPath = FileDialog::OpenFile(
-					"3D model (*.obj;*.ply;*.stl;*.glb;*.gltf;*.fbx;*.3ds;*.max;*.blend;*.dae)\0*.obj;*.ply;*.stl;*.glb;*.gltf;*.fbx;*.3ds;*.max;*.x3d;*.blend;*.dae\0"
-				);
+				std::vector<const char*> filters = { "*.obj", "*.ply", "*.stl", "*.glb", "*.gltf", "*.fbx", "*.3ds" };
+				std::string fullPath = FileDialog::OpenFile(filters, "Scene File");
 				if (!fullPath.empty())
 				{
 					CheckCudaErrors(cudaDeviceSynchronize());
@@ -106,9 +105,8 @@ void Renderer::RenderUI(Scene& scene)
 
 			if (ImGui::MenuItem("Load HDR map", "Ctrl+H"))
 			{
-				std::string fullPath = FileDialog::OpenFile(
-					"HDR file (*.hdr)\0*.hdr;*.exr\0"
-				);
+				std::vector<const char*> filters = { "*.hdr", "*.exr" };
+				std::string fullPath = FileDialog::OpenFile(filters, "HDR File");
 				if (!fullPath.empty())
 				{
 					std::string fileName, filePath;
@@ -194,9 +192,8 @@ void Renderer::SaveScreenshot()
 
 	stbi_flip_vertically_on_write(1);
 
-	std::string filepath = FileDialog::SaveFile(
-		"PNG image (*.png)\0*.png\0"
-	);
+	std::vector<const char*> filters = { "*.png" };
+	std::string filepath = FileDialog::SaveFile(filters, "PNG Image");
 
 	const std::string extension = ".png";
 
