@@ -60,7 +60,8 @@ struct MeshInstance
 		deviceInstance.materialIdx = meshInstance.materialIdx;
 		deviceInstance.transform = transformationMatrix;
 		deviceInstance.invTransform = transformationMatrix.Inverted();
-		deviceInstance.bounds = *(D_AABB*)&meshInstance.GetBounds();
+		NXB::AABB bounds = meshInstance.GetBounds();
+		std::memcpy(&deviceInstance.bounds, &bounds, sizeof(bounds));
 		return deviceInstance;
 	}
 
