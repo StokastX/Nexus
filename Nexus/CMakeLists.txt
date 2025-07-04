@@ -1,10 +1,11 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.24)
 project(Nexus LANGUAGES C CXX CUDA)
 
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenGL)
 
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+set(CMAKE_CUDA_ARCHITECTURES native)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -54,6 +55,8 @@ set (include_files
 )
 
 add_executable(Nexus ${src_files})
+
+set_target_properties(Nexus PROPERTIES CUDA_ARCHITECTURES native)
 
 target_link_libraries(Nexus
 	glfw
