@@ -12,7 +12,7 @@
 #include "Cuda/Scene/Camera.cuh"
 #include "Cuda/Sampler.cuh"
 #include "NXB/BVHBuilder.h"
-#include "Cuda/BVH/BVH2Traversal.cuh"
+#include "Cuda/BVH/BVH8Traversal.cuh"
 
 __device__ __constant__ uint32_t frameNumber;
 __device__ __constant__ uint32_t bounce;
@@ -125,19 +125,19 @@ __global__ void GenerateKernel()
 
 __global__ void TraceKernel()
 {
-	//BVH8Trace(traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
-	if (!scene.renderSettings.visualizeBvh)
-		BVH2Trace(meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
-	else if (!scene.renderSettings.wireFrameBvh)
-		BVH2TraceVisualize(meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
-	else
-		BVH2TraceVisualizeWireframe(meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	BVH8Trace(meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	//if (!scene.renderSettings.visualizeBvh)
+	//	BVH2Trace(meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	//else if (!scene.renderSettings.wireFrameBvh)
+	//	BVH2TraceVisualize(meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	//else
+	//	BVH2TraceVisualizeWireframe(meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
 }
 
 __global__ void TraceShadowKernel()
 {
-	//BVH8TraceShadow(shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
-	BVH2TraceShadow(meshes, scene.meshInstances, shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
+	BVH8TraceShadow(meshes, scene.meshInstances, shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
+	//BVH2TraceShadow(meshes, scene.meshInstances, shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
 }
 
 

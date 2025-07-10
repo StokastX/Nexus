@@ -2,5 +2,5 @@
 #include "NXB/BVHBuilder.h"
 
 namespace NXB {
-	using BVH = BVH2;
+	using BVH = BVH8;
 }

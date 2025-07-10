@@ -56,7 +56,7 @@ void Scene::BuildTLAS()
 
 	DeviceVector<NXB::AABB> deviceBounds = instancesBounds;
 
-	m_DeviceTlas = NXB::BuildBVH2(deviceBounds.Data(), instancesBounds.size());
+	m_DeviceTlas = NXB::BuildBVH8(deviceBounds.Data(), instancesBounds.size());
 }
 
 MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)

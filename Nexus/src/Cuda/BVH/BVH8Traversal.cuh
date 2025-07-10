@@ -1,11 +1,13 @@
 #pragma once
 
-#include <cudart_platform.h>
-#include <device_launch_parameters.h>
+#include <cuda_runtime_api.h>
+#include "Utils/Utils.h"
+#include "Geometry/BVH/BVH.h"
+#include "Cuda/Scene/MeshInstance.cuh"
+#include "Cuda/Scene/Mesh.cuh"
 #include "Cuda/PathTracer/PathTracer.cuh"
+#include "Cuda/Geometry/Ray.cuh"
 #include "Cuda/Utils.cuh"
-#include "BVH8.cuh"
-#include "BVHInstance.cuh"
 
 // If the ratio of active threads in a warp is less than POSTPONE_RATIO_THRESHOLD, postpone triangle intersection
 #define POSTPONE_RATIO_THRESHOLD 0.2
@@ -17,9 +19,7 @@
 #define TRAVERSAL_STACK_SIZE 32
 #define SHARED_STACK_SIZE 8
 
-__device__ __constant__ D_BVH8 tlas;
-__device__ __constant__ D_BVHInstance* blas;
-__device__ __constant__ D_BVH8* bvhs;
+__device__ __constant__ NXB::BVH tlas;
 
 inline __device__ uint32_t Octant(const float3& a)
 {
@@ -53,7 +53,7 @@ inline __device__ void StackPush(
 
 
 __forceinline__ __device__ void ChildTrace(
-	const D_BVH8Node* nodes,
+	const NXB::BVH::Node* nodes,
 	const uint32_t nodeIdx,
 	const D_Ray& ray,
 	const uint32_t invOctant4,
@@ -145,7 +145,7 @@ __forceinline__ __device__ void ChildTrace(
 	triangleEntry.y = (hitMask & 0x00ffffff);
 }
 
-inline __device__ void BVH8Trace(D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
+inline __device__ void BVH8Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
 {
 	__shared__ uint2 sharedStack[BLOCK_SIZE * SHARED_STACK_SIZE];
 	uint2 stack[TRAVERSAL_STACK_SIZE - SHARED_STACK_SIZE];
@@ -157,13 +157,14 @@ inline __device__ void BVH8Trace(D_TraceRequestSOA traceRequest, int32_t traceSi
 
 	uint32_t instanceIdx;
 	char instanceStackDepth;
-	D_BVH8 bvh;
+	NXB::BVH bvh;
+	D_Mesh mesh;
 
 	uint2 nodeEntry;
 	uint2 triangleEntry;
 	uint32_t invOctant, invOctant4;
 
-	D_BVH8Node* nodes;
+	NXB::BVH::Node* nodes;
 
 	unsigned char lostWork;
 	bool shouldFetchNewRay = true;
@@ -216,7 +217,7 @@ inline __device__ void BVH8Trace(D_TraceRequestSOA traceRequest, int32_t traceSi
 				// index is thus the number of neighboring internal nodes stored in the lower child slots
 				const int relativeNodeIdx = __popc(nodeEntry.y & ~(0xffffffff << nodeSlot));
 
-				assert(nodeEntry.x + relativeNodeIdx < bvh.nodesUsed);
+				assert(nodeEntry.x + relativeNodeIdx < bvh.nodeCount);
 
 				ChildTrace(nodes, nodeEntry.x + relativeNodeIdx, ray, invOctant4, intersection.hitDistance, nodeEntry, triangleEntry);
 			}
@@ -238,7 +239,7 @@ inline __device__ void BVH8Trace(D_TraceRequestSOA traceRequest, int32_t traceSi
 					// Set the hits bit of the selected triangle to 0
 					triangleEntry.y &= ~(1 << (triangleOffset));
 
-					instanceIdx = tlas.triangleIdx[triangleEntry.x + triangleOffset];
+					instanceIdx = tlas.primIdx[triangleEntry.x + triangleOffset];
 
 					// If some leaf entries are remaining in TLAS
 					if (triangleEntry.y)
@@ -250,8 +251,9 @@ inline __device__ void BVH8Trace(D_TraceRequestSOA traceRequest, int32_t traceSi
 
 					instanceStackDepth = stackPtr;
 
-					const D_BVHInstance& bvhInstance = blas[instanceIdx];
-					bvh = bvhs[bvhInstance.bvhIdx];
+					const D_MeshInstance& bvhInstance = meshInstances[instanceIdx];
+					mesh = meshes[bvhInstance.meshIdx];
+					bvh = mesh.bvh;
 					nodes = bvh.nodes;
 
 					nodeEntry = make_uint2(0, 0x80000000);
@@ -282,12 +284,13 @@ inline __device__ void BVH8Trace(D_TraceRequestSOA traceRequest, int32_t traceSi
 				triangleEntry.y &= ~(1 << (triangleOffset));
 
 				// Fetch the triangle index
-				const uint32_t triangleIdx = bvh.triangleIdx[triangleEntry.x + triangleOffset];
+				const uint32_t triangleIdx = bvh.primIdx[triangleEntry.x + triangleOffset];
 
-				assert(triangleIdx < bvh.triCount);
+				assert(triangleIdx < bvh.primCount);
 
 				// Ray triangle intersection
-				bvh.triangles[triangleIdx].Trace(ray, intersection, instanceIdx, triangleIdx);
+				NXB::Triangle triangle = mesh.triangles[triangleIdx];
+				TriangleTrace(triangle, ray, intersection, instanceIdx, triangleIdx);
 			}
 
 			// If the node entry is empty (hits field equals 0), pop from the stack
@@ -323,7 +326,7 @@ inline __device__ void BVH8Trace(D_TraceRequestSOA traceRequest, int32_t traceSi
 
 
 // Shadow ray tracing: true if any hit
-inline __device__ void BVH8TraceShadow(D_ShadowTraceRequestSOA shadowTraceRequest, int32_t traceSize, int32_t* traceCount, float3* pathRadiance)
+inline __device__ void BVH8TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInstances, D_ShadowTraceRequestSOA shadowTraceRequest, int32_t traceSize, int32_t* traceCount, float3* pathRadiance)
 {
 	__shared__ uint2 sharedStack[BLOCK_SIZE * SHARED_STACK_SIZE];
 	uint2 stack[TRAVERSAL_STACK_SIZE - SHARED_STACK_SIZE];
@@ -338,13 +341,14 @@ inline __device__ void BVH8TraceShadow(D_ShadowTraceRequestSOA shadowTraceReques
 
 	uint32_t instanceIdx;
 	char instanceStackDepth;
-	D_BVH8 bvh;
+	NXB::BVH bvh;
+	D_Mesh mesh;
 
 	uint2 nodeEntry;
 	uint2 triangleEntry;
 	uint32_t invOctant, invOctant4;
 
-	D_BVH8Node* nodes;
+	NXB::BVH::Node* nodes;
 
 	unsigned char lostWork;
 	bool shouldFetchNewRay = true;
@@ -399,7 +403,7 @@ inline __device__ void BVH8TraceShadow(D_ShadowTraceRequestSOA shadowTraceReques
 				// index is thus the number of neighboring internal nodes stored in the lower child slots
 				const int relativeNodeIdx = __popc(nodeEntry.y & ~(0xffffffff << nodeSlot));
 
-				assert(nodeEntry.x + relativeNodeIdx < bvh.nodesUsed);
+				assert(nodeEntry.x + relativeNodeIdx < bvh.nodeCount);
 
 				ChildTrace(nodes, nodeEntry.x + relativeNodeIdx, ray, invOctant4, hitDistance, nodeEntry, triangleEntry);
 			}
@@ -421,7 +425,7 @@ inline __device__ void BVH8TraceShadow(D_ShadowTraceRequestSOA shadowTraceReques
 					// Set the hits bit of the selected triangle to 0
 					triangleEntry.y &= ~(1 << (triangleOffset));
 
-					instanceIdx = tlas.triangleIdx[triangleEntry.x + triangleOffset];
+					instanceIdx = tlas.primIdx[triangleEntry.x + triangleOffset];
 
 					// If some leaf entries are remaining in TLAS
 					if (triangleEntry.y)
@@ -433,8 +437,9 @@ inline __device__ void BVH8TraceShadow(D_ShadowTraceRequestSOA shadowTraceReques
 
 					instanceStackDepth = stackPtr;
 
-					const D_BVHInstance& bvhInstance = blas[instanceIdx];
-					bvh = bvhs[bvhInstance.bvhIdx];
+					const D_MeshInstance& bvhInstance = meshInstances[instanceIdx];
+					mesh = meshes[bvhInstance.meshIdx];
+					bvh = mesh.bvh;
 					nodes = bvh.nodes;
 
 					nodeEntry = make_uint2(0, 0x80000000);
@@ -465,12 +470,13 @@ inline __device__ void BVH8TraceShadow(D_ShadowTraceRequestSOA shadowTraceReques
 				triangleEntry.y &= ~(1 << (triangleOffset));
 
 				// Fetch the triangle index
-				const uint32_t triangleIdx = bvh.triangleIdx[triangleEntry.x + triangleOffset];
+				const uint32_t triangleIdx = bvh.primIdx[triangleEntry.x + triangleOffset];
+				NXB::Triangle triangle = mesh.triangles[triangleIdx];
 
-				assert(triangleIdx < bvh.triCount);
+				assert(triangleIdx < bvh.primCount);
 
 				// Ray triangle intersection
-				if (bvh.triangles[triangleIdx].ShadowTrace(ray, hitDistance))
+				if (TriangleTraceShadow(triangle, ray, hitDistance))
 				{
 					anyHit = true;
 					break;
