@@ -71,5 +71,5 @@ private:
 	cudaTextureObject_t m_DeviceHdrMap;
 	DeviceVector<MeshInstance, D_MeshInstance> m_DeviceMeshInstances;
 	DeviceVector<Light, D_Light> m_DeviceLights;
-	DeviceInstance<NXB::BVH, D_BVH> m_DeviceTlas;
+	DeviceInstance<NXB::BVH> m_DeviceTlas;
 };

@@ -550,9 +550,9 @@ uint32_t* GetDeviceBounceAddress()
 	return target;
 }
 
-D_BVH* GetDeviceTLASAddress()
+NXB::BVH* GetDeviceTLASAddress()
 {
-	D_BVH* target;
+	NXB::BVH* target;
 	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, tlas));
 	return target;
 }
