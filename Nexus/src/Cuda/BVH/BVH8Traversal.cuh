@@ -19,8 +19,6 @@
 #define TRAVERSAL_STACK_SIZE 32
 #define SHARED_STACK_SIZE 8
 
-__device__ __constant__ NXB::BVH tlas;
-
 inline __device__ uint32_t Octant(const float3& a)
 {
 	return ((a.x < 0 ? 1 : 0) << 2) | ((a.y < 0 ? 1 : 0) << 1) | ((a.z < 0 ? 1 : 0));
@@ -51,9 +49,10 @@ inline __device__ void StackPush(
 	stackPtr++;
 }
 
+#ifdef USE_BVH8
 
 __forceinline__ __device__ void ChildTrace(
-	const NXB::BVH::Node* nodes,
+	const NXB::BVH8::Node* nodes,
 	const uint32_t nodeIdx,
 	const D_Ray& ray,
 	const uint32_t invOctant4,
@@ -145,7 +144,7 @@ __forceinline__ __device__ void ChildTrace(
 	triangleEntry.y = (hitMask & 0x00ffffff);
 }
 
-inline __device__ void BVH8Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
+inline __device__ void BVH8Trace(const NXB::BVH8& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
 {
 	__shared__ uint2 sharedStack[BLOCK_SIZE * SHARED_STACK_SIZE];
 	uint2 stack[TRAVERSAL_STACK_SIZE - SHARED_STACK_SIZE];
@@ -157,14 +156,14 @@ inline __device__ void BVH8Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, 
 
 	uint32_t instanceIdx;
 	char instanceStackDepth;
-	NXB::BVH bvh;
+	NXB::BVH8 bvh;
 	D_Mesh mesh;
 
 	uint2 nodeEntry;
 	uint2 triangleEntry;
 	uint32_t invOctant, invOctant4;
 
-	NXB::BVH::Node* nodes;
+	NXB::BVH8::Node* nodes;
 
 	unsigned char lostWork;
 	bool shouldFetchNewRay = true;
@@ -326,7 +325,7 @@ inline __device__ void BVH8Trace(D_Mesh* meshes, D_MeshInstance* meshInstances, 
 
 
 // Shadow ray tracing: true if any hit
-inline __device__ void BVH8TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInstances, D_ShadowTraceRequestSOA shadowTraceRequest, int32_t traceSize, int32_t* traceCount, float3* pathRadiance)
+inline __device__ void BVH8TraceShadow(const NXB::BVH8& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_ShadowTraceRequestSOA shadowTraceRequest, int32_t traceSize, int32_t* traceCount, float3* pathRadiance)
 {
 	__shared__ uint2 sharedStack[BLOCK_SIZE * SHARED_STACK_SIZE];
 	uint2 stack[TRAVERSAL_STACK_SIZE - SHARED_STACK_SIZE];
@@ -341,14 +340,14 @@ inline __device__ void BVH8TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInsta
 
 	uint32_t instanceIdx;
 	char instanceStackDepth;
-	NXB::BVH bvh;
+	NXB::BVH8 bvh;
 	D_Mesh mesh;
 
 	uint2 nodeEntry;
 	uint2 triangleEntry;
 	uint32_t invOctant, invOctant4;
 
-	NXB::BVH::Node* nodes;
+	NXB::BVH8::Node* nodes;
 
 	unsigned char lostWork;
 	bool shouldFetchNewRay = true;
@@ -522,3 +521,5 @@ inline __device__ void BVH8TraceShadow(D_Mesh* meshes, D_MeshInstance* meshInsta
 			pathRadiance[pixelIdx] += radiance;
 	}
 }
+
+#endif

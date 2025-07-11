@@ -37,7 +37,11 @@ struct Mesh
 
 		std::cout << std::endl << "========== Building BVH for mesh " << name << " ==========" << std::endl << std::endl;
 
+#ifdef USE_BVH8
 		bvh = NXB::BuildBVH8<NXB::Triangle>(deviceTriangles.Data(), deviceTriangles.Size(), buildConfig);
+#else
+		bvh = NXB::BuildBVH2<NXB::Triangle>(deviceTriangles.Data(), deviceTriangles.Size(), buildConfig);
+#endif
 
 		std::cout << "Triangle count: " << bvh.primCount << std::endl;
 		std::cout << "Node count: " << bvh.nodeCount << std::endl;
