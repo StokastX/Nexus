@@ -130,14 +130,13 @@ __global__ void TraceKernel()
 #ifdef USE_BVH8
 	BVH8Trace(tlas, meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
 #else
-	BVH2Trace(tlas, meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	if (!scene.renderSettings.visualizeBvh)
+		BVH2Trace(tlas, meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	else if (!scene.renderSettings.wireFrameBvh)
+		BVH2TraceVisualize(tlas, meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	else
+		BVH2TraceVisualizeWireframe(tlas, meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
 #endif
-	// if (!scene.renderSettings.visualizeBvh)
-	//	BVH2Trace(meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
-	// else if (!scene.renderSettings.wireFrameBvh)
-	//	BVH2TraceVisualize(meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
-	// else
-	//	BVH2TraceVisualizeWireframe(meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
 }
 
 __global__ void TraceShadowKernel()
