@@ -5,7 +5,6 @@
 #include <assimp/postprocess.h>
 
 #include "Geometry/Triangle.h"
-#include "Geometry/BVH/BVH.h"
 #include "Assets/Mesh.h"
 #include "Assets/AssetManager.h"
 #include "Scene/Scene.h"

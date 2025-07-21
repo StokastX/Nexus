@@ -10,6 +10,8 @@
 struct D_RenderSettings
 {
 	bool useMIS;
+	bool visualizeBvh;
+	bool wireFrameBvh;
 	unsigned char pathLength;
 
 	float3 backgroundColor;
@@ -31,6 +33,8 @@ struct D_Scene
 
 	D_Material* materials;
 	D_Camera camera;
+
+	D_MeshInstance* meshInstances;
 
 	D_RenderSettings renderSettings;
 };

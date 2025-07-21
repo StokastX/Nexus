@@ -12,7 +12,7 @@
 
 #define WARP_SIZE 32	// Same size for all NVIDIA GPUs
 
-#define PATH_MAX_LENGTH 100
+#define PATH_MAX_LENGTH 255
 
 
 // Size is the number of pixels on the screen
@@ -88,9 +88,8 @@ float3** GetDeviceAccumulationBufferAddress();
 uint32_t** GetDeviceRenderBufferAddress();
 uint32_t* GetDeviceFrameNumberAddress();
 uint32_t* GetDeviceBounceAddress();
-D_BVH8* GetDeviceTLASAddress();
-D_BVH8** GetDeviceBVHAddress();
-D_BVHInstance** GetDeviceBLASAddress();
+NXB::BVH* GetDeviceTLASAddress();
+D_Mesh** GetDeviceMeshesAdress();
 
 D_PathStateSOA* GetDevicePathStateAddress();
 D_ShadowTraceRequestSOA* GetDeviceShadowTraceRequestAddress();

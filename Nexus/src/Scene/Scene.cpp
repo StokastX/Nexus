@@ -2,19 +2,16 @@
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Utils/cuda_math.h"
 #include "Assets/IMGLoader.h"
-#include "Geometry/BVH/TLASBuilder.h"
 #include "Assets/OBJLoader.h"
 
 
 Scene::Scene(uint32_t width, uint32_t height)
-	:m_Camera(std::make_shared<Camera>(make_float3(0.0f, 4.0f, 14.0f), make_float3(0.0f, 0.0f, -1.0f), 60.0f, width, height, 5.0f, 0.0f))
-{
-}
+	:m_Camera(std::make_shared<Camera>(make_float3(0.0f, 4.0f, 14.0f), make_float3(0.0f, 0.0f, -1.0f), 60.0f,
+		width, height, 5.0f, 0.0f)), m_DeviceTlas(GetDeviceTLASAddress()) { }
 
 void Scene::Reset()
 {
 	m_Invalid = true;
-	m_BVHInstances.clear();
 	m_InvalidMeshInstances.clear();
 	m_MeshInstances.clear();
 	m_AssetManager.Reset();
@@ -34,20 +31,16 @@ void Scene::Update()
 
 	if (m_InvalidMeshInstances.size() != 0)
 	{
-		for (int i : m_InvalidMeshInstances)
+		for (uint32_t i : m_InvalidMeshInstances)
 		{
 			MeshInstance& meshInstance = m_MeshInstances[i];
-			m_BVHInstances[meshInstance.bvhInstanceIdx].SetTransform(meshInstance.position, meshInstance.rotation, meshInstance.scale);
-			if (meshInstance.materialId != -1)
-			{
-				m_BVHInstances[meshInstance.bvhInstanceIdx].AssignMaterial(meshInstance.materialId);
+			m_DeviceMeshInstances[i] = meshInstance;
+
+			if (meshInstance.materialIdx != -1)
 				UpdateInstanceLighting(i);
-			}
 		}
-		m_Tlas->SetBVHInstances(m_BVHInstances);
-		m_Tlas->Build();
-		m_Tlas->Convert();
-		m_Tlas->UpdateDeviceData();
+
+		BuildTLAS();
 
 		m_InvalidMeshInstances.clear();
 	}
@@ -56,20 +49,26 @@ void Scene::Update()
 
 void Scene::BuildTLAS()
 {
-	m_Tlas = std::make_shared<TLAS>(m_BVHInstances, m_AssetManager.GetBVHs());
-	m_Tlas->Build();
-	m_Tlas->UpdateDeviceData();
+	std::vector<NXB::AABB> instancesBounds(m_MeshInstances.size());
+	for (uint32_t i = 0; i < m_MeshInstances.size(); i++)
+		instancesBounds[i] = m_MeshInstances[i].GetBounds();
+
+	DeviceVector<NXB::AABB> deviceBounds = instancesBounds;
+
+	#ifdef USE_BVH8
+		m_DeviceTlas = NXB::BuildBVH8<NXB::AABB>(deviceBounds.Data(), instancesBounds.size());
+	#else
+		m_DeviceTlas = NXB::BuildBVH2<NXB::AABB>(deviceBounds.Data(), instancesBounds.size());
+	#endif
 }
 
 MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)
 {
 	Mesh& mesh = m_AssetManager.GetMeshes()[meshId];
-	BVH8& bvh8 = m_AssetManager.GetBVHs()[mesh.bvhId];
 
-	m_BVHInstances.push_back(BVHInstance(meshId, &bvh8));
-
-	MeshInstance meshInstance(mesh, m_BVHInstances.size() - 1, mesh.materialId);
+	MeshInstance meshInstance(mesh, meshId, mesh.materialIdx);
 	m_MeshInstances.push_back(meshInstance);
+	m_DeviceMeshInstances.PushBack(meshInstance);
 
 	const size_t instanceId = m_MeshInstances.size() - 1;
 
@@ -83,11 +82,6 @@ MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)
 void Scene::CreateMeshInstanceFromFile(const std::string& path, const std::string& fileName)
 {
 	OBJLoader::LoadOBJ(path, fileName, this, &m_AssetManager);
-
-	m_AssetManager.InitDeviceData();
-
-	if (m_MeshInstances.size() > 0)
-		BuildTLAS();
 }
 
 void Scene::AddHDRMap(const std::string& filePath, const std::string& fileName)
@@ -123,6 +117,7 @@ D_Scene Scene::ToDevice(const Scene& scene)
 	deviceScene.diffuseMaps = deviceDiffuseMaps.Data();
 	deviceScene.emissiveMaps = deviceEmissiveMaps.Data();
 	deviceScene.materials = deviceMaterials.Data();
+	deviceScene.meshInstances = scene.m_DeviceMeshInstances.Data();
 	deviceScene.lights = scene.m_DeviceLights.Data();
 	deviceScene.lightCount = scene.m_DeviceLights.Size();
 
@@ -133,9 +128,6 @@ D_Scene Scene::ToDevice(const Scene& scene)
 	deviceScene.hdrMap = scene.m_DeviceHdrMap;
 	deviceScene.camera = Camera::ToDevice(*scene.m_Camera);
 
-	//deviceScene.tlas = TLAS::ToDevice(*scene.m_Tlas);
-	//D_BVH8* deviceTlas = GetDeviceTLASAddress();
-
 	return deviceScene;
 }
 
@@ -143,10 +135,10 @@ void Scene::UpdateInstanceLighting(size_t index)
 {
 	const MeshInstance& meshInstance = m_MeshInstances[index];
 
-	if (meshInstance.materialId == -1)
+	if (meshInstance.materialIdx == -1)
 		return;
 
-	const Material& material = m_AssetManager.GetMaterials()[meshInstance.materialId];
+	const Material& material = m_AssetManager.GetMaterials()[meshInstance.materialIdx];
 
 	// If light already in the scene, return or remove light
 	for (size_t i = 0; i < m_Lights.size(); i++)

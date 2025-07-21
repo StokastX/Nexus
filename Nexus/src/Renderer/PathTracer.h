@@ -30,6 +30,7 @@ private:
 	CUDAKernel m_GenerateKernel;
 	CUDAKernel m_LogicKernel;
 	CUDAKernel m_TraceKernel;
+	CUDAKernel m_TraceVisualizeBvhKernel;
 	CUDAKernel m_TraceShadowKernel;
 	CUDAKernel m_DiffuseMaterialKernel;
 	CUDAKernel m_PlasticMaterialKernel;

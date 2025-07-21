@@ -7,6 +7,7 @@
 #define PI  3.14159265358979323846
 #define INV_PI 0.31830988618f
 #define TWO_TIMES_PI 6.28318530718f
+#define INVALID_IDX (uint32_t)(-1)
 
 #define CheckCudaErrors(val) check_cuda( (val), #val, __FILE__, __LINE__ )
 

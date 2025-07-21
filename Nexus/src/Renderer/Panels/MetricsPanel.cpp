@@ -70,6 +70,11 @@ void MetricsPanel::OnImGuiRender(uint32_t frameNumber)
 	ImGui::Text("Render settings");
 	if (ImGui::Checkbox("Use MIS", &renderSettings.useMIS))
 		m_Context->Invalidate();
+	if (ImGui::Checkbox("Vizualize BVH", &renderSettings.visualizeBvh))
+		m_Context->Invalidate();
+	if (renderSettings.visualizeBvh)
+		if (ImGui::Checkbox("Wireframe", &renderSettings.wireframeBvh))
+			m_Context->Invalidate();
 
 	int pathLength = renderSettings.pathLength;
 

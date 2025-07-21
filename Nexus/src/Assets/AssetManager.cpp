@@ -3,10 +3,7 @@
 #include "IMGLoader.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
 
-AssetManager::AssetManager()
-	: m_DeviceBvhsAddress(GetDeviceBVHAddress())
-{
-}
+AssetManager::AssetManager() : m_DeviceMeshesAdress(GetDeviceMeshesAdress()) { }
 
 void AssetManager::Reset()
 {
@@ -20,32 +17,23 @@ void AssetManager::Reset()
 	m_Meshes.clear();
 }
 
-int32_t AssetManager::CreateBVH(const std::vector<Triangle>& triangles)
-{
-	BVH8 bvh8;
-	std::cout << "Triangle count: " << triangles.size() << std::endl;
-
-	BVH8Builder builder(triangles);
-	builder.Init();
-	bvh8 = builder.Build();
-	bvh8.InitDeviceData();
-
-	std::cout << "BVH8 successfully built" << std::endl << std::endl;
-
-	m_Bvhs.push_back(std::move(bvh8));
-	return m_Bvhs.size() - 1;
-}
-
-int32_t  AssetManager::AddMesh(Mesh&& mesh)
+uint32_t AssetManager::AddMesh(Mesh&& mesh)
 {
 	m_Meshes.push_back(std::move(mesh));
 	return m_Meshes.size() - 1;
 }
 
-void AssetManager::InitDeviceData()
+uint32_t AssetManager::AddMesh(const std::string name, uint32_t materialIdx, const std::vector<NXB::Triangle>& triangles, const std::vector<TriangleData>& triangleData)
 {
-	m_DeviceBvhs = m_Bvhs;
-	m_DeviceBvhsAddress = m_DeviceBvhs.Data();
+	m_Meshes.push_back(Mesh(name, triangles, triangleData, materialIdx));
+	Mesh& newMesh = m_Meshes.back();
+	newMesh.BuildBVH();
+
+	// TODO: move this to a separate function
+	m_DeviceMeshes = m_Meshes;
+	m_DeviceMeshesAdress = m_DeviceMeshes.Data();
+
+	return m_Meshes.size() - 1;
 }
 
 void AssetManager::AddMaterial()
@@ -55,11 +43,11 @@ void AssetManager::AddMaterial()
 	AddMaterial(material);
 }
 
-int AssetManager::AddMaterial(const Material& material)
+uint32_t AssetManager::AddMaterial(const Material& material)
 {
 	m_Materials.push_back(material);
 	m_DeviceMaterials.PushBack(material);
-	Material& m = m_Materials[m_Materials.size() - 1];
+	Material& m = m_Materials.back();
 	return m_Materials.size() - 1;
 }
 
@@ -89,10 +77,10 @@ int AssetManager::AddTexture(const Texture& texture)
 	}
 }
 
-void AssetManager::ApplyTextureToMaterial(int materialId, int diffuseMapId)
+void AssetManager::ApplyTextureToMaterial(int materialIdx, int diffuseMapId)
 {
-	m_Materials[materialId].diffuseMapId = diffuseMapId;
-	InvalidateMaterial(materialId);
+	m_Materials[materialIdx].diffuseMapId = diffuseMapId;
+	InvalidateMaterial(materialIdx);
 }
 
 bool AssetManager::SendDataToDevice()

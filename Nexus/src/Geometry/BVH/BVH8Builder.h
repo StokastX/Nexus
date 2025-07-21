@@ -1,15 +1,14 @@
 #pragma once
-#include "BVH8.h"
 
 #include <iostream>
-
+#include <vector>
 #include "BVH.h"
 
 class BVH8Builder
 {
 public:
 
-	BVH8Builder(const std::vector<Triangle>& triangles);
+	BVH8Builder(const std::vector<NXB::Triangle>& triangles);
 
 	enum struct Decision
 	{
@@ -31,34 +30,34 @@ public:
 		int leftCount, rightCount;
 	};
 
-	BVH8 Build();
+	NXB::BVH8 Build();
 	int ComputeNodeTriCount(int nodeIdx, int triBaseIdx);
 	float ComputeNodeCost(uint32_t nodeIdx, int i);
 	void Init();
 
-	void CollapseNode(BVH8& bvh8, uint32_t nodeIdxBvh2, uint32_t nodeIdxBvh8);
+	void CollapseNode(NXB::BVH8& bvh8, uint32_t nodeIdxBvh2, uint32_t nodeIdxBvh8);
 
 private:
 
 	// Cleaf(n)
-	inline float CLeaf(const BVH2Node& node, int triCount);
+	inline float CLeaf(const NXB::BVH2::Node& node, int triCount);
 
 	// Cinternal(n)
-	float CInternal(const BVH2Node& node, int& leftCount, int& rightCount);
+	float CInternal(const NXB::BVH2::Node& node, int& leftCount, int& rightCount);
 
 	// Cdistribute(n, j)
-	float CDistribute(const BVH2Node& node, int j, int& leftCount, int& rightCount);
+	float CDistribute(const NXB::BVH2::Node& node, int j, int& leftCount, int& rightCount);
 
 	// Returns the indices of the node's children
 	void GetChildrenIndices(uint32_t nodeIdxBvh2, int *indices, int i, int& indicesCount);
 
-	int CountTriangles(BVH8& bvh8, uint32_t nodeIdxBvh2);
+	int CountTriangles(NXB::BVH8& bvh8, uint32_t nodeIdxBvh2);
 
 	// Order the children in a given node
 	void OrderChildren(uint32_t nodeIdxBvh2, int* childrenIndices);
 
 private:
-	BVH2 m_Bvh2;
+	NXB::BVH2 m_Bvh2;
 
 	// Optimal SAH cost C(n, i) with decisions
 	std::vector<std::vector<NodeEval>> m_Evals;

@@ -17,7 +17,7 @@ template<typename THost, typename TDevice = THost>
 class DeviceInstance
 {
 public:
-	DeviceInstance() = delete;
+	DeviceInstance() = default;
 
 	DeviceInstance(TDevice* devicePtr)
 		: m_DevicePtr(devicePtr), m_OwnsPtr(false)

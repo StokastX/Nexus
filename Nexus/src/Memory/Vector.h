@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <cstring>
 #include "Memory/Allocators/Allocator.h"
 #include <string.h>
 

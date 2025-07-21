@@ -8,10 +8,12 @@
 #include "Utils/cuda_math.h"
 #include "Utils/Utils.h"
 #include "texture_indirect_functions.h"
-#include "Cuda/BVH/BVH8Traversal.cuh"
 #include "Cuda/Scene/Scene.cuh"
 #include "Cuda/Scene/Camera.cuh"
 #include "Cuda/Sampler.cuh"
+#include "NXB/BVHBuilder.h"
+#include "Cuda/BVH/BVH2Traversal.cuh"
+#include "Cuda/BVH/BVH8Traversal.cuh"
 
 __device__ __constant__ uint32_t frameNumber;
 __device__ __constant__ uint32_t bounce;
@@ -20,6 +22,8 @@ __device__ __constant__ float3* accumulationBuffer;
 __device__ __constant__ uint32_t* renderBuffer;
 
 __device__ __constant__ D_Scene scene;
+__device__ __constant__ NXB::BVH tlas;
+__device__ __constant__ D_Mesh* meshes;
 __device__ __constant__ D_PathStateSOA pathState;
 __device__ __constant__ D_TraceRequestSOA traceRequest;
 __device__ __constant__ D_ShadowTraceRequestSOA shadowTraceRequest;
@@ -123,14 +127,26 @@ __global__ void GenerateKernel()
 
 __global__ void TraceKernel()
 {
-	BVH8Trace(traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+#ifdef USE_BVH8
+	BVH8Trace(tlas, meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+#else
+	if (!scene.renderSettings.visualizeBvh)
+		BVH2Trace(tlas, meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	else if (!scene.renderSettings.wireFrameBvh)
+		BVH2TraceVisualize(tlas, meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	else
+		BVH2TraceVisualizeWireframe(tlas, meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+#endif
 }
 
 __global__ void TraceShadowKernel()
 {
-	BVH8TraceShadow(shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
+#ifdef USE_BVH8
+	BVH8TraceShadow(tlas, meshes, scene.meshInstances, shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
+#else
+	BVH2TraceShadow(tlas, meshes, scene.meshInstances, shadowTraceRequest, queueSize.traceShadowSize[bounce], &queueSize.traceShadowCount[bounce], pathState.radiance);
+#endif
 }
-
 
 __global__ void LogicKernel()
 {
@@ -150,14 +166,17 @@ __global__ void LogicKernel()
 	// If no intersection, sample background
 	if (intersection.hitDistance == 1e30f)
 	{
-		float3 backgroundColor = SampleBackground(scene, ray.direction);
-		if (bounce == 1)
-			pathState.radiance[pixelIdx] = throughput * backgroundColor;
-		else
-			pathState.radiance[pixelIdx] += throughput * backgroundColor;
+		if (!scene.renderSettings.visualizeBvh)
+		{
+			float3 backgroundColor = SampleBackground(scene, ray.direction);
+			if (bounce == 1)
+				pathState.radiance[pixelIdx] = throughput * backgroundColor;
+			else
+				pathState.radiance[pixelIdx] += throughput * backgroundColor;
 
-		if (bounce == 1 && pixelQuery.pixelIdx == pixelIdx)
-			pixelQuery.instanceIdx = -1;
+			if (bounce == 1 && pixelQuery.pixelIdx == pixelIdx)
+				pixelQuery.instanceIdx = -1;
+		}
 
 		return;
 	}
@@ -173,8 +192,8 @@ __global__ void LogicKernel()
 	else
 		return;
 
-	const D_BVHInstance instance = blas[intersection.instanceIdx];
-	const D_Material material = scene.materials[instance.materialId];
+	const D_MeshInstance instance = scene.meshInstances[intersection.instanceIdx];
+	const D_Material material = scene.materials[instance.materialIdx];
 
 	int32_t requestIdx;
 	switch (material.type)
@@ -212,6 +231,7 @@ __global__ void LogicKernel()
 template<typename BSDF>
 inline __device__ void NextEventEstimation(
 	const float3 wi,
+	const float3 rayDirection,
 	const D_Material& material,
 	const D_Intersection& intersection,
 	const float3 hitPoint,
@@ -225,25 +245,32 @@ inline __device__ void NextEventEstimation(
 
 	if (light.type == D_Light::Type::MESH_LIGHT)
 	{
-		D_BVHInstance instance = blas[light.mesh.meshId];
+		D_MeshInstance instance = scene.meshInstances[light.mesh.meshId];
 
 		uint32_t triangleIdx;
 		float2 uv;
-		Sampler::UniformSampleMesh(bvhs[instance.bvhIdx], rngState, triangleIdx, uv);
+		Sampler::UniformSampleMesh(meshes[instance.meshIdx].bvh.primCount, rngState, triangleIdx, uv);
 
-		D_Triangle triangle = bvhs[instance.bvhIdx].triangles[triangleIdx];
+		NXB::Triangle triangle = meshes[instance.meshIdx].triangles[triangleIdx];
+		D_TriangleData triangleData = meshes[instance.meshIdx].triangleData[triangleIdx];
 
-		float3 p = Barycentric(triangle.pos0, triangle.pos1, triangle.pos2, uv);
+		float3 p = Barycentric(triangle.v0, triangle.v1, triangle.v2, uv);
 		p = instance.transform.TransformPoint(p);
 
 		const float3 lightGNormal = normalize(instance.invTransform.Transposed().TransformVector(triangle.Normal()));
 
-		float3 lightNormal = Barycentric(triangle.normal0, triangle.normal1, triangle.normal2, uv);
+		float3 lightNormal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
 		lightNormal = normalize(instance.invTransform.Transposed().TransformVector(lightNormal));
 
 		D_Ray shadowRay;
 
 		float3 toLight = p - hitPoint;
+
+		// Early stopping if shadow ray is occluded by hitpoint's triangle
+		// (ie incoming ray and shadow ray are similarly oriented with respect to hit normal)
+		if (dot(hitGNormal, rayDirection) * dot(hitGNormal,  toLight) >= 0)
+			return;
+
 		float offsetDirection = Utils::SgnE(dot(toLight, normal));
 		shadowRay.origin = OffsetRay(hitPoint, hitGNormal * offsetDirection);
 
@@ -262,20 +289,20 @@ inline __device__ void NextEventEstimation(
 
 		const float dSquared = dot(toLight, toLight);
 
-		const D_Triangle triangleTransformed(
-			instance.transform.TransformPoint(triangle.pos0),
-			instance.transform.TransformPoint(triangle.pos1),
-			instance.transform.TransformPoint(triangle.pos2)
+		const NXB::Triangle triangleTransformed(
+			instance.transform.TransformPoint(triangle.v0),
+			instance.transform.TransformPoint(triangle.v1),
+			instance.transform.TransformPoint(triangle.v2)
 		);
 
-		float lightPdf = 1.0f / (scene.lightCount * bvhs[instance.bvhIdx].triCount * triangleTransformed.Area());
+		float lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());
 		// Transform pdf over an area to pdf over directions
 		lightPdf *= dSquared / cosThetaO;
 
 		if (!Sampler::IsPdfValid(lightPdf))
 			return;
 
-		const D_Material lightMaterial = scene.materials[instance.materialId];
+		const D_Material lightMaterial = scene.materials[instance.materialIdx];
 
 		float3 sampleThroughput;
 		float bsdfPdf;
@@ -290,7 +317,7 @@ inline __device__ void NextEventEstimation(
 		float3 emissive;
 		if (lightMaterial.emissiveMapId != -1)
 		{
-			float2 texUv = Barycentric(triangle.texCoord0, triangle.texCoord1, triangle.texCoord2, uv);
+			float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
 			emissive = make_float3(tex2D<float4>(scene.emissiveMaps[lightMaterial.emissiveMapId], texUv.x, texUv.y));
 		}
 		else
@@ -324,18 +351,19 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	uint32_t index = blockIdx.x * blockDim.x + threadIdx.x;
 	uint32_t rngState = Random::InitRNG(index, scene.camera.resolution, frameNumber);
 
-	const D_BVHInstance instance = blas[intersection.instanceIdx];
-	const D_Triangle triangle = bvhs[instance.bvhIdx].triangles[intersection.triIdx];
+	const D_MeshInstance instance = scene.meshInstances[intersection.instanceIdx];
+	const NXB::Triangle triangle = meshes[instance.meshIdx].triangles[intersection.triIdx];
+	const D_TriangleData triangleData = meshes[instance.meshIdx].triangleData[intersection.triIdx];
 
-	D_Material material = scene.materials[instance.materialId];
+	D_Material material = scene.materials[instance.materialIdx];
 
 	const float2 uv = make_float2(intersection.u, intersection.v);
 
-	float3 p = Barycentric(triangle.pos0, triangle.pos1, triangle.pos2, uv);
+	float3 p = Barycentric(triangle.v0, triangle.v1, triangle.v2, uv);
 	p = instance.transform.TransformPoint(p);
 
-	float3 normal = Barycentric(triangle.normal0, triangle.normal1, triangle.normal2, uv);
-	float2 texUv = Barycentric(triangle.texCoord0, triangle.texCoord1, triangle.texCoord2, uv);
+	float3 normal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
+	float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
 
 	// We use the transposed of the inverse matrix to transform normals.
 	// See https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals.html
@@ -365,13 +393,13 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 			const float dSquared = Square(length(p - pathState.rayOrigin[pixelIdx]));
 
-			const D_Triangle triangleTransformed(
-				instance.transform.TransformPoint(triangle.pos0),
-				instance.transform.TransformPoint(triangle.pos1),
-				instance.transform.TransformPoint(triangle.pos2)
+			const NXB::Triangle triangleTransformed(
+				instance.transform.TransformPoint(triangle.v0),
+				instance.transform.TransformPoint(triangle.v1),
+				instance.transform.TransformPoint(triangle.v2)
 			);
 
-			float lightPdf = 1.0f / (scene.lightCount * bvhs[instance.bvhIdx].triCount * triangleTransformed.Area());
+			float lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());
 			// Transform pdf over an area to pdf over directions
 			lightPdf *= dSquared / cosThetaO;
 
@@ -428,7 +456,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	else
 	{
 		if (scene.renderSettings.useMIS)
-			NextEventEstimation<BSDF>(wi, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
+			NextEventEstimation<BSDF>(wi, rayDirection, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
 
 		float pdf;
 		float3 sampleThroughput;
@@ -529,24 +557,17 @@ uint32_t* GetDeviceBounceAddress()
 	return target;
 }
 
-D_BVH8* GetDeviceTLASAddress()
+NXB::BVH* GetDeviceTLASAddress()
 {
-	D_BVH8* target;
+	NXB::BVH* target;
 	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, tlas));
 	return target;
 }
 
-D_BVH8** GetDeviceBVHAddress()
+D_Mesh** GetDeviceMeshesAdress()
 {
-	D_BVH8** target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, bvhs));
-	return target;
-}
-
-D_BVHInstance** GetDeviceBLASAddress()
-{
-	D_BVHInstance** target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, blas));
+	D_Mesh** target;
+	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, meshes));
 	return target;
 }
 

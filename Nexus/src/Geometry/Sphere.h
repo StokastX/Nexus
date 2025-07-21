@@ -7,8 +7,8 @@
 struct Sphere
 {
 	__host__ __device__ Sphere() { };
-	__host__ __device__ Sphere(float radius, float3 position, uint32_t materialId)
-		:radius(radius), position(position), materialId(materialId) { }
+	__host__ __device__ Sphere(float radius, float3 position, uint32_t materialIdx)
+		:radius(radius), position(position), materialIdx(materialIdx) { }
 
 	inline __host__ __device__ bool Hit(const Ray& r, float& t)
 	{
@@ -41,7 +41,7 @@ struct Sphere
 
 	float radius;
 	float3 position;
-	int materialId;
+	int materialIdx;
 };
 
 

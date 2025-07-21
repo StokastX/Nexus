@@ -10,7 +10,6 @@
 #include "Assets/AssetManager.h"
 #include "Scene/MeshInstance.h"
 #include "Cuda/Scene/Material.cuh"
-#include "Cuda/BVH/BVHInstance.cuh"
 #include "Cuda/Scene/Scene.cuh"
 #include "Cuda/Scene/Light.cuh"
 
@@ -25,7 +24,7 @@ public:
 	void AddMaterial(Material& material);
 	std::vector<Material>& GetMaterials() { return m_AssetManager.GetMaterials(); }
 	AssetManager& GetAssetManager() { return m_AssetManager; }
-	std::shared_ptr<TLAS> GetTLAS() { return m_Tlas; }
+	NXB::BVH& GetTLAS() { return m_Tlas; }
 	const RenderSettings& GetRenderSettings() const { return m_RenderSettings; }
 	RenderSettings& GetRenderSettings() { return m_RenderSettings; }
 
@@ -54,12 +53,11 @@ private:
 private:
 	std::shared_ptr<Camera> m_Camera;
 
-	std::vector<BVHInstance> m_BVHInstances;
 	std::vector<MeshInstance> m_MeshInstances;
 	std::vector<Light> m_Lights;
 
 	std::set<uint32_t> m_InvalidMeshInstances;
-	std::shared_ptr<TLAS> m_Tlas;
+	NXB::BVH m_Tlas;
 
 	Texture m_HdrMap;
 
@@ -71,6 +69,7 @@ private:
 
 	// Device members
 	cudaTextureObject_t m_DeviceHdrMap;
-	DeviceVector<BVHInstance, D_BVHInstance> m_DeviceBVHInstances;
+	DeviceVector<MeshInstance, D_MeshInstance> m_DeviceMeshInstances;
 	DeviceVector<Light, D_Light> m_DeviceLights;
+	DeviceInstance<NXB::BVH> m_DeviceTlas;
 };

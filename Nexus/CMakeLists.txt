@@ -1,9 +1,11 @@
-cmake_minimum_required(VERSION 3.22)
-project("Nexus")
+cmake_minimum_required(VERSION 3.24)
+project(Nexus LANGUAGES C CXX CUDA)
 
-enable_language(CUDA)
-include_directories("${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}")
+find_package(CUDAToolkit REQUIRED)
+find_package(OpenGL)
+
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+set(CMAKE_CUDA_ARCHITECTURES native)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -33,6 +35,7 @@ set(GLM_BUILD_TESTS OFF CACHE BOOL "GLM lib only")
 add_subdirectory(vendor/glm)
 
 add_subdirectory(vendor/imgui)
+add_subdirectory(vendor/tinyfiledialogs)
 
 set(NEXUSBVH_BUILD_TESTS OFF CACHE BOOL "NexusBVH lib only")
 add_subdirectory(vendor/NexusBVH)
@@ -46,24 +49,29 @@ set (include_files
 	vendor/GLEW/include
 	vendor/glm
 	vendor/imgui
+	vendor/tinyfiledialogs
 	vendor/imgui/backends
 	vendor/stb
-	vendor/NexusBVH/src
 )
 
 add_executable(Nexus ${src_files})
+
+set_target_properties(Nexus PROPERTIES CUDA_ARCHITECTURES native)
 
 target_link_libraries(Nexus
 	glfw
 	glew
 	assimp
 	imgui
+	tinyfiledialogs
 	NexusBVH
 )
 
 target_include_directories(Nexus
 	PUBLIC
 	${include_files}
+	${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+	${OPENGL_INCLUDE_DIR}
 )
 
 # CUDA optimizations
