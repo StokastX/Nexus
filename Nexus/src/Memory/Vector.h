@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstring>
 #include "Memory/Allocators/Allocator.h"
+#include <string.h>
 
 /*
  * Vector class based on The Cherno's video. See https://www.youtube.com/watch?v=ryRf4Jh_YC0

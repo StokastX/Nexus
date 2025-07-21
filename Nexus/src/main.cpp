@@ -12,7 +12,10 @@ int main(void)
     GLFWwindow* window;
 
     if (!glfwInit())
+    {
+        std::cout << "Error initializing glfw" << std::endl;
         return -1;
+    }
 
     window = glfwCreateWindow(WIDTH, HEIGHT, "Nexus", NULL, NULL);
     if (!window)
