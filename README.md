@@ -34,6 +34,7 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
 - BVH:
    - Standard SAH-based BVH (BVH2) using binned building
    - Compressed-wide BVH (BVH8), see [Ylitie et al. 2017](https://research.nvidia.com/sites/default/files/publications/ylitie2017hpg-paper.pdf). BVH2 is collapsed into an 8-ary BVH. Nodes are compressed to 80 bytes encoding the child nodes' bounding boxes to limit memory bandwidth on the GPU.
+   - GPU builder: implements the H-PLOC algorithm proposed by [Benthin et al. 2024](https://dl.acm.org/doi/10.1145/3675377), a high-performance GPU-oriented BVH construction method. H-PLOC builds high-quality BVHs through hierarchical clustering of spatially nearby primitives. The full algorithm is implemented in my [NexusBVH](https://github.com/StokastX/NexusBVH) library.
 - The BVH is split into two parts: a top level structure (TLAS) and a bottom level structure (BLAS). This allows for multiple instances of the same mesh as well as dynamic scenes using object transforms.
 - Model loader: obj, ply, fbx, glb, gltf, 3ds, blend with Assimp
 - Materials:
@@ -47,30 +48,36 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
 - HDR environment maps.
 
 ## Prerequisites
-Nexus requires the following:
-- Microsoft Visual Studio
-- Nvidia's [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads)
-- [CMake](https://cmake.org/download/) 3.22 or higher
+Nexus is a CMake-based project and requires the following dependencies:
+
+- [CUDA Toolkit](https://developer.nvidia.com/cuda-downloads) (from NVIDIA)
+- [CMake](https://cmake.org/download/) version 3.22 or higher
+
+The project has been tested on both **Windows** (with Visual Studio) and **Ubuntu**.
 
 ## Build
-- Clone the repository
-   ```sh
+
+1. **Clone the repository with submodules**:
+
+   ``` sh
    git clone --recurse-submodules https://github.com/StokastX/Nexus
    ```
-- Launch the setup.bat script. It will generate a Visual Studio solution in the build folder
 
-  Alternatively, you can generate the solution via cmake:
-  ```sh
-  mkdir build
-  cd build
-  cmake ..
-  ```
-- Open the Visual Studio solution. Right click on the Nexus solution and set it as startup project. Press F5 to build the project
+2. **Generate the solution via cmake**:
 
-## Usage
-- Go to file -> open to load a new scene. The model loading is not multithreaded and the BVH construction might take some time depending on the model size
-- Controls: hold right click and use WASD keys to move and the mouse to change the camera orientation
-- You can change the meshes and camera properties in the UI
+   ``` sh
+   mkdir build
+   cd build
+   cmake ..
+   ```
+
+3. **Build the project**:
+- On Linux: Use ```make``` on your preferred build system:
+
+   ``` sh
+   make -j
+   ```
+- On Windows (Visual Studio): Open the generated solution file in Visual Studio. Right-click on the Nexus target, set it as the startup project, and press F5 to build and run.
 
 ## Resources
 Here are the main resources I used for this project.
@@ -113,6 +120,7 @@ I also had a look at other renderer implementations such as Blender's [cycles](h
 - [Assimp](https://github.com/assimp/assimp) for model loading
 - [ImGui](https://github.com/ocornut/imgui) for user interface
 - [stb](https://github.com/nothings/stb) for importing and exporting images
+- [tinyfiledialogs](https://sourceforge.net/projects/tinyfiledialogs/)
 
 ## Models
 - [LuxCore example scenes](https://luxcorerender.org/example-scenes/)
@@ -122,6 +130,3 @@ I also had a look at other renderer implementations such as Blender's [cycles](h
 - [Bedroom](https://www.blendswap.com/blend/3391) by [SlykDrako](https://www.blendswap.com/profile/324)
 - [Bathroom](https://www.blendswap.com/blend/12584) by [nacimus](https://www.blendswap.com/profile/72536)
 - [Piano](https://blendswap.com/blend/29080) by [Roy](https://blendswap.com/profile/1508348)
-- [Iphone 15 Pro Max](https://sketchfab.com/3d-models/free-iphone15-pro-max-ultra-high-quality-1fb1717d5e204302bfe9969ea77293a4) by [Navarion](https://sketchfab.com/Navarion)
-- [Lamp](https://www.blendswap.com/blend/6885) by [UP3D](https://www.blendswap.com/profile/4758)
-- [Coffee Maker](https://blendswap.com/blend/16368) by [cekuhnen](https://blendswap.com/profile/13522)
