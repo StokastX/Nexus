@@ -13,5 +13,5 @@ struct D_MeshInstance
 
 	Mat4 transform;
 	Mat4 invTransform;
-	D_AABB bounds;
+	NXB::AABB bounds;
 };

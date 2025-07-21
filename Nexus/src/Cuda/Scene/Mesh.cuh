@@ -1,5 +1,4 @@
 #pragma once
-#include "Cuda/BVH/BVH.cuh"
 #include "Cuda/Geometry/Triangle.cuh"
 #include "Geometry/BVH/BVH.h"
 

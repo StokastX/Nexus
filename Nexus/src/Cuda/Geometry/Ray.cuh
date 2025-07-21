@@ -82,11 +82,3 @@ struct D_RaySOA
 	}
 };
 
-struct D_HitResult
-{
-	float3 p;
-	D_Ray rIn;
-	float3 albedo;
-	float3 normal;
-	D_Material material;
-};

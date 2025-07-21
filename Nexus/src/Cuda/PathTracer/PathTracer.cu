@@ -251,10 +251,10 @@ inline __device__ void NextEventEstimation(
 		float2 uv;
 		Sampler::UniformSampleMesh(meshes[instance.meshIdx].bvh.primCount, rngState, triangleIdx, uv);
 
-		D_Triangle triangle = meshes[instance.meshIdx].triangles[triangleIdx];
+		NXB::Triangle triangle = meshes[instance.meshIdx].triangles[triangleIdx];
 		D_TriangleData triangleData = meshes[instance.meshIdx].triangleData[triangleIdx];
 
-		float3 p = Barycentric(triangle.pos0, triangle.pos1, triangle.pos2, uv);
+		float3 p = Barycentric(triangle.v0, triangle.v1, triangle.v2, uv);
 		p = instance.transform.TransformPoint(p);
 
 		const float3 lightGNormal = normalize(instance.invTransform.Transposed().TransformVector(triangle.Normal()));
@@ -289,10 +289,10 @@ inline __device__ void NextEventEstimation(
 
 		const float dSquared = dot(toLight, toLight);
 
-		const D_Triangle triangleTransformed(
-			instance.transform.TransformPoint(triangle.pos0),
-			instance.transform.TransformPoint(triangle.pos1),
-			instance.transform.TransformPoint(triangle.pos2)
+		const NXB::Triangle triangleTransformed(
+			instance.transform.TransformPoint(triangle.v0),
+			instance.transform.TransformPoint(triangle.v1),
+			instance.transform.TransformPoint(triangle.v2)
 		);
 
 		float lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());
@@ -352,14 +352,14 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	uint32_t rngState = Random::InitRNG(index, scene.camera.resolution, frameNumber);
 
 	const D_MeshInstance instance = scene.meshInstances[intersection.instanceIdx];
-	const D_Triangle triangle = meshes[instance.meshIdx].triangles[intersection.triIdx];
+	const NXB::Triangle triangle = meshes[instance.meshIdx].triangles[intersection.triIdx];
 	const D_TriangleData triangleData = meshes[instance.meshIdx].triangleData[intersection.triIdx];
 
 	D_Material material = scene.materials[instance.materialIdx];
 
 	const float2 uv = make_float2(intersection.u, intersection.v);
 
-	float3 p = Barycentric(triangle.pos0, triangle.pos1, triangle.pos2, uv);
+	float3 p = Barycentric(triangle.v0, triangle.v1, triangle.v2, uv);
 	p = instance.transform.TransformPoint(p);
 
 	float3 normal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
@@ -393,10 +393,10 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 			const float dSquared = Square(length(p - pathState.rayOrigin[pixelIdx]));
 
-			const D_Triangle triangleTransformed(
-				instance.transform.TransformPoint(triangle.pos0),
-				instance.transform.TransformPoint(triangle.pos1),
-				instance.transform.TransformPoint(triangle.pos2)
+			const NXB::Triangle triangleTransformed(
+				instance.transform.TransformPoint(triangle.v0),
+				instance.transform.TransformPoint(triangle.v1),
+				instance.transform.TransformPoint(triangle.v2)
 			);
 
 			float lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());

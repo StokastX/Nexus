@@ -8,7 +8,6 @@
 #include "Texture.h"
 #include "Cuda/Scene/Material.cuh"
 #include "Geometry/BVH/BVH.h"
-#include "Cuda/BVH/BVH.cuh"
 #include "Geometry/Triangle.h"
 
 class AssetManager

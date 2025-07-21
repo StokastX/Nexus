@@ -41,31 +41,3 @@ struct D_StackEntry
 		D_Triangle triangle;
 	};
 };
-;
-
-// Compressed BVH8 node
-struct D_BVH8Node
-{
-	// P (12 bytes), e (3 bytes), imask (1 byte)
-	float4 p_e_imask;
-
-	// Child base index (4 bytes), triangle base index (4 bytes), meta (8 bytes)
-	float4 childidx_tridx_meta;
-
-	// qlox (8 bytes), qloy (8 bytes)
-	float4 qlox_qloy;
-
-	// qloz (8 bytes), qlix (8 bytes)
-	float4 qloz_qhix;
-
-	// qliy (8 bytes), qliz (8 bytes)
-	float4 qhiy_qhiz;
-};
-
-struct D_BVH8
-{
-	D_Triangle* triangles;
-	uint32_t* triangleIdx;
-	uint32_t nodesUsed, triCount;
-	D_BVH8Node* nodes;
-};
