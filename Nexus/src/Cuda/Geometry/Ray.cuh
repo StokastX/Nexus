@@ -47,7 +47,7 @@ struct D_IntersectionSOA
 
 struct D_Ray
 {
-	__device__ D_Ray() = default;
+	D_Ray() = default;
 	__device__ D_Ray(float3 o, float3 d)
 		:origin(o), direction(d), invDirection(1.0f / direction) {};
 

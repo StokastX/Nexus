@@ -271,7 +271,6 @@ inline __device__ void BVH2TraceVisualize(const NXB::BVH2& tlas, D_Mesh* meshes,
 
 	bool shouldFetchNewRay = true;
 	float boundsHit = 0;
-	float attenuation = 1;
 
 	while (true)
 	{
@@ -400,7 +399,6 @@ inline __device__ void BVH2TraceVisualizeWireframe(NXB::BVH2& tlas, D_Mesh* mesh
 
 	bool shouldFetchNewRay = true;
 	float boundsHit = 0;
-	float attenuation = 1;
 	bool hitEdge = false;
 	float3 instanceScale = make_float3(1.0f);
 

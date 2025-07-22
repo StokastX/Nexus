@@ -25,9 +25,7 @@ uint32_t AssetManager::AddMesh(Mesh&& mesh)
 
 uint32_t AssetManager::AddMesh(const std::string name, uint32_t materialIdx, const std::vector<NXB::Triangle>& triangles, const std::vector<TriangleData>& triangleData)
 {
-	m_Meshes.push_back(Mesh(name, triangles, triangleData, materialIdx));
-	Mesh& newMesh = m_Meshes.back();
-	newMesh.BuildBVH();
+	m_Meshes.emplace_back(name, triangles, triangleData, materialIdx);
 
 	// TODO: move this to a separate function
 	m_DeviceMeshes = m_Meshes;
@@ -58,7 +56,7 @@ void AssetManager::InvalidateMaterial(uint32_t index)
 
 int AssetManager::AddTexture(const Texture& texture)
 {
-	if (texture.pixels == NULL)
+	if (texture.pixels == nullptr)
 	{
 		return -1;
 	}
@@ -75,6 +73,7 @@ int AssetManager::AddTexture(const Texture& texture)
 		m_DeviceEmissiveMaps.PushBack(texture);
 		return m_EmissiveMaps.size() - 1;
 	}
+	return -1;
 }
 
 void AssetManager::ApplyTextureToMaterial(int materialIdx, int diffuseMapId)

@@ -17,6 +17,7 @@ class Scene
 {
 public:
 	Scene(uint32_t width, uint32_t height);
+	~Scene();
 	void Reset();
 
 	std::shared_ptr<Camera> GetCamera() { return m_Camera; }
@@ -24,7 +25,6 @@ public:
 	void AddMaterial(Material& material);
 	std::vector<Material>& GetMaterials() { return m_AssetManager.GetMaterials(); }
 	AssetManager& GetAssetManager() { return m_AssetManager; }
-	NXB::BVH& GetTLAS() { return m_Tlas; }
 	const RenderSettings& GetRenderSettings() const { return m_RenderSettings; }
 	RenderSettings& GetRenderSettings() { return m_RenderSettings; }
 
@@ -57,7 +57,6 @@ private:
 	std::vector<Light> m_Lights;
 
 	std::set<uint32_t> m_InvalidMeshInstances;
-	NXB::BVH m_Tlas;
 
 	Texture m_HdrMap;
 

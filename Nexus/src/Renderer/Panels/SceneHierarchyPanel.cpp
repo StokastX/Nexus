@@ -27,7 +27,7 @@ void SceneHierarchyPanel::OnImGuiRender()
 		MeshInstance& meshInstance = meshInstances[i];
 		ImGuiTreeNodeFlags flags = (m_SelectionContext == i ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
 		flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
-		bool opened = ImGui::TreeNodeEx((void*)i, flags, meshInstance.name.c_str());
+		bool opened = ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s", meshInstance.name.c_str());
 
 		if (ImGui::IsItemClicked())
 		{
@@ -56,7 +56,7 @@ static bool DrawFloat3Control(const std::string& label, float3& values, float re
 
 	ImGui::Columns(2);
 	ImGui::SetColumnWidth(0, columnWidth);
-	ImGui::Text(label.c_str());
+	ImGui::Text("%s", label.c_str());
 	ImGui::NextColumn();
 
 	ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());

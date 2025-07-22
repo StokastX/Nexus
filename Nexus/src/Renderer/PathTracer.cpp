@@ -21,8 +21,6 @@ PathTracer::PathTracer(uint32_t width, uint32_t height)
 	m_QueueSize(GetDeviceQueueSizeAddress()),
 	m_PixelQuery(GetDevicePixelQueryAddress())
 {
-	m_AccumulationBuffer = CudaMemory::Allocate<float3>(width * height);
-
 	Reset();
 }
 

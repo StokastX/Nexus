@@ -26,8 +26,7 @@ struct D_ConductorBSDF
 
 		const float wiDotM = dot(wi, m);
 
-		float cosThetaT;
-		float3 F = Fresnel::ComplexReflectance(wiDotM,material.conductor.ior, k);
+		float3 F = Fresnel::ComplexReflectance(wiDotM, material.conductor.ior, k);
 
 		wo = reflect(-wi, m);
 

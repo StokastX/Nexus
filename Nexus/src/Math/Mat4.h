@@ -9,7 +9,7 @@
 class Mat4
 {
 public:
-	__device__ __host__ Mat4() = default;
+	Mat4() = default;
 
 	// From aiMatrix4x4
 	__device__ __host__ Mat4(const aiMatrix4x4& mat)

@@ -13,26 +13,23 @@ struct Mesh
 {
 	Mesh() = default;
 	Mesh(const std::string n, const std::vector<NXB::Triangle>& t, const std::vector<TriangleData>& td,
-		uint32_t mId = INVALID_IDX, float3 p = make_float3(0.0f),
-		float3 r = make_float3(0.0f), float3 s = make_float3(1.0f))
+		 uint32_t mId = INVALID_IDX, float3 p = make_float3(0.0f),
+		 float3 r = make_float3(0.0f), float3 s = make_float3(1.0f))
 		: name(n), triangles(t), triangleData(td), materialIdx(mId), position(p), rotation(r), scale(s)
 	{
 		deviceTriangles = triangles;
 		deviceTriangleData = triangleData;
-		bounds.Clear();
-	}
 
-	Mesh(const Mesh& other) = default;
-	Mesh(Mesh&& other) = default;
-
-	void BuildBVH()
-	{
 		NXB::BuildConfig buildConfig;
 		buildConfig.prioritizeSpeed = true;
 
-		// Benchmarking BVH build
-		//NXB::BVHBuildMetrics buildMetrics = NXB::BenchmarkBuild(
-		//	NXB::BuildBVH8<NXB::Triangle>, 50, 100, deviceTriangles.Data(), deviceTriangles.Size(), buildConfig);
+//		NXB::BVHBuildMetrics buildMetrics = NXB::BenchmarkBuild(
+//#ifdef USE_BVH8
+//			NXB::BuildBVH8<NXB::Triangle>,
+//#else
+//			NXB::BuildBVH2<NXB::Triangle>,
+//#endif
+//			20, 20, deviceTriangles.Data(), deviceTriangles.Size(), buildConfig);
 
 		std::cout << std::endl << "========== Building BVH for mesh " << name << " ==========" << std::endl << std::endl;
 
@@ -46,6 +43,35 @@ struct Mesh
 		std::cout << "Node count: " << bvh.nodeCount << std::endl;
 
 		std::cout << std::endl << "========== Building done ==========" << std::endl << std::endl;
+	}
+
+	Mesh(const Mesh& other) = default;
+
+	Mesh(Mesh &&other) noexcept
+		: name(other.name),
+		  position(other.position),
+		  rotation(other.rotation),
+		  scale(other.scale),
+		  materialIdx(other.materialIdx),
+		  triangles(std::move(other.triangles)),
+		  triangleData(std::move(other.triangleData)),
+		  deviceTriangles(std::move(other.deviceTriangles)),
+		  deviceTriangleData(std::move(other.deviceTriangleData))
+	{
+		bvh.bounds = other.bvh.bounds;
+		bvh.nodeCount = other.bvh.nodeCount;
+		bvh.nodes = other.bvh.nodes;
+		bvh.primCount = other.bvh.primCount;
+		other.bvh.nodes = nullptr;
+#ifdef USE_BVH8
+		bvh.primIdx = other.bvh.primIdx;
+		other.bvh.primIdx = nullptr;
+#endif
+	}
+
+	~Mesh()
+	{
+		NXB::FreeDeviceBVH(bvh);
 	}
 
 	static D_Mesh ToDevice(const Mesh& mesh)
@@ -63,7 +89,6 @@ struct Mesh
 	float3 position = make_float3(0.0f);
 	float3 rotation = make_float3(0.0f);
 	float3 scale = make_float3(1.0f);
-	NXB::AABB bounds;
 
 	uint32_t materialIdx = INVALID_IDX;
 

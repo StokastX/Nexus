@@ -6,6 +6,7 @@
 #include "Cuda/BSDF/ConductorBSDF.cuh"
 #include "Cuda/BSDF/BSDF.cuh"
 #include "Utils/cuda_math.h"
+#include "Math/Quat4.h"
 #include "Utils/Utils.h"
 #include "texture_indirect_functions.h"
 #include "Cuda/Scene/Scene.cuh"
@@ -282,8 +283,8 @@ inline __device__ void NextEventEstimation(
 		shadowRay.direction = toLight / distance;
 		shadowRay.invDirection = 1.0f / shadowRay.direction;
 
-		float4 qRotationToZ = getRotationToZAxis(normal);
-		const float3 wo = rotatePoint(qRotationToZ, shadowRay.direction);
+		Quat4 qNormToZ = Quat4::RotationToZAxis(normal).Normalize();
+		const float3 wo = qNormToZ.Rotate(shadowRay.direction);
 
 		const float cosThetaO = fabs(dot(lightNormal, shadowRay.direction));
 
@@ -436,15 +437,15 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 		gNormal = -gNormal;
 	}
 
-	float4 qRotationToZ = getRotationToZAxis(normal);
-	float3 wi = rotatePoint(qRotationToZ, -rayDirection);
+	Quat4 qNormToZ = Quat4::RotationToZAxis(normal).Normalize();
+	float3 wi = qNormToZ.Rotate(-rayDirection);
 
 	float3 wo;
 
 	// Handle texture transparency
 	if (Random::Rand(rngState) > material.opacity || (material.diffuseMapId != -1 && Random::Rand(rngState) > color.w))
 	{
-		wo = normalize(rotatePoint(invertRotation(qRotationToZ), -wi));
+		wo = normalize(qNormToZ.Inverse().Rotate(-wi));
 		const float offsetDirection = Utils::SgnE(dot(wo, normal));
 		const float3 offsetOrigin = OffsetRay(p, gNormal * offsetDirection);
 		const D_Ray scatteredRay = D_Ray(offsetOrigin, wo);
@@ -465,7 +466,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 		if (!scattered)
 			return;
 
-		wo = normalize(rotatePoint(invertRotation(qRotationToZ), wo));
+		wo = normalize(qNormToZ.Inverse().Rotate(wo));
 
 		const float offsetDirection = Utils::SgnE(dot(wo, normal));
 		const float3 offsetOrigin = OffsetRay(p, gNormal * offsetDirection);

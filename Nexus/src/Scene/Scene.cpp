@@ -9,6 +9,11 @@ Scene::Scene(uint32_t width, uint32_t height)
 	:m_Camera(std::make_shared<Camera>(make_float3(0.0f, 4.0f, 14.0f), make_float3(0.0f, 0.0f, -1.0f), 60.0f,
 		width, height, 5.0f, 0.0f)), m_DeviceTlas(GetDeviceTLASAddress()) { }
 
+Scene::~Scene()
+{
+	NXB::FreeDeviceBVH(m_DeviceTlas.Instance());
+}
+
 void Scene::Reset()
 {
 	m_Invalid = true;
@@ -16,6 +21,7 @@ void Scene::Reset()
 	m_MeshInstances.clear();
 	m_AssetManager.Reset();
 	m_Camera->Invalidate();
+	NXB::FreeDeviceBVH(m_DeviceTlas.Instance());
 }
 
 void Scene::AddMaterial(Material& material)

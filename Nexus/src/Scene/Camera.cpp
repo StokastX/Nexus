@@ -2,14 +2,11 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
 #include <math.h>
 
 #include "Utils/Utils.h"
 #include "Utils/cuda_math.h"
+#include "Math/Quat4.h"
 #include "Input.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
 
@@ -88,11 +85,8 @@ void Camera::OnUpdate(float ts)
 		float pitchDelta = delta.y * GetRotationSpeed();
 		float yawDelta = delta.x * GetRotationSpeed();
 
-		glm::vec3 rightDirection(m_RightDirection.x, m_RightDirection.y, m_RightDirection.z);
-		glm::vec3 forwardDirection(m_ForwardDirection.x, m_ForwardDirection.y, m_ForwardDirection.z);
-		glm::quat q = glm::normalize(glm::cross(glm::angleAxis(-pitchDelta, rightDirection),
-			glm::angleAxis(-yawDelta, glm::vec3(0.0f, 1.0f, 0.0f))));
-		m_ForwardDirection = make_float3(glm::normalize(glm::rotate(q, forwardDirection)));
+		Quat4 q = Quat4::AngleAxis(-pitchDelta, m_RightDirection) * Quat4::AngleAxis(-yawDelta, make_float3(0.0f, 1.0f, 0.0f)).Normalize();
+		m_ForwardDirection = q.Rotate(m_ForwardDirection);
 		m_RightDirection = normalize(cross(m_ForwardDirection, upDirection));
 
 		m_Invalid = true;
