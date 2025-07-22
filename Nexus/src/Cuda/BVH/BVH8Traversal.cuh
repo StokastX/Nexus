@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <cuda_runtime_api.h>
 #include "Utils/Utils.h"
 #include "Geometry/BVH/BVH.h"

@@ -4,8 +4,6 @@
 #include "Utils/cuda_math.h"
 #include "OGLTexture.h"
 
-using namespace glm;
-
 OGLTexture::OGLTexture(uint32_t width, uint32_t height)
     :m_Width(width), m_Height(height)
 {

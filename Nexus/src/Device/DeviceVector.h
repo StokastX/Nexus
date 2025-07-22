@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <cassert>
 #include "Allocators/DeviceAllocator.h"
 #include "CudaMemory.h"
 #include "DeviceInstance.h"

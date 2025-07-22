@@ -28,7 +28,6 @@ typedef unsigned short ushort;
 
 #include <vector_types.h>
 #include <vector_functions.h>
-#include <glm/glm.hpp>
 
 #ifndef __CUDACC__
 #include <math.h>
@@ -129,11 +128,6 @@ inline __host__ __device__ float2 make_float2(uint2 a)
     return make_float2(float(a.x), float(a.y));
 }
 
-inline __host__ __device__ float2 make_float2(glm::vec2 a)
-{
-    return make_float2(a.x, a.y);
-}
-
 inline __host__ __device__ int2 make_int2(int s)
 {
     return make_int2(s, s);
@@ -187,11 +181,6 @@ inline __host__ __device__ float3 make_float3(int3 a)
 inline __host__ __device__ float3 make_float3(uint3 a)
 {
     return make_float3(float(a.x), float(a.y), float(a.z));
-}
-
-inline __host__ __device__ float3 make_float3(glm::vec3 a)
-{
-    return make_float3(a.x, a.y, a.z);
 }
 
 inline __host__ __device__ int3 make_int3(int s)
@@ -1509,29 +1498,6 @@ inline __device__ __host__ float4 smoothstep(float4 a, float4 b, float4 x)
 {
     float4 y = clamp((x - a) / (b - a), 0.0f, 1.0f);
     return (y*y*(make_float4(3.0f) - (make_float4(2.0f)*y)));
-}
-
-inline __device__ __host__ float4 getRotationToZAxis(float3 direction)
-{
-	if (direction.z < -0.99999f) return make_float4(1.0f, 0.0f, 0.0f, 0.0f);
-	return normalize(make_float4(direction.y, -direction.x, 0.0f, 1.0f + direction.z));
-}
-
-inline __device__ __host__ float4 getRotationFromZAxis(float3 direction)
-{
-	if (direction.z < -0.99999f) return make_float4(1.0f, 0.0f, 0.0f, 0.0f);
-	return normalize(make_float4(-direction.y, direction.x, 0.0f, 1.0f + direction.z));
-}
-
-inline __device__ __host__ float4 invertRotation(float4 q)
-{
-	return make_float4(-q.x, -q.y, -q.z, q.w);
-}
-
-inline __device__ __host__ float3 rotatePoint(float4 q, float3 v)
-{
-	const float3 qAxis = make_float3(q.x, q.y, q.z);
-	return 2.0f * dot(qAxis, v) * qAxis + (q.w * q.w - dot(qAxis, qAxis)) * v + 2.0f * q.w * cross(qAxis, v);
 }
 
 #endif

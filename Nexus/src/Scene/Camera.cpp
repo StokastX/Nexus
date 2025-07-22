@@ -85,7 +85,7 @@ void Camera::OnUpdate(float ts)
 		float pitchDelta = delta.y * GetRotationSpeed();
 		float yawDelta = delta.x * GetRotationSpeed();
 
-		Quat4 q = Quat4::AngleAxis(-pitchDelta, m_RightDirection) * Quat4::AngleAxis(-yawDelta, make_float3(0.0f, 1.0f, 0.0f)).Normalize();
+		Quat4 q = (Quat4::AngleAxis(-pitchDelta, m_RightDirection) * Quat4::AngleAxis(-yawDelta, make_float3(0.0f, 1.0f, 0.0f))).Normalized();
 		m_ForwardDirection = q.Rotate(m_ForwardDirection);
 		m_RightDirection = normalize(cross(m_ForwardDirection, upDirection));
 

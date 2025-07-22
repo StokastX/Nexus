@@ -114,7 +114,6 @@ I also had a look at other renderer implementations such as Blender's [cycles](h
 
 ## Dependencies
 - [GLFW](https://www.glfw.org) and [GLEW](https://glew.sourceforge.net)
-- [glm](https://github.com/g-truc/glm)
 - [CUDA](https://developer.nvidia.com/cuda-downloads) 12.4
 - [CUDA math helper](https://github.com/NVIDIA/cuda-samples/blob/master/Common/helper_math.h) for common operations on CUDA vector types
 - [Assimp](https://github.com/assimp/assimp) for model loading

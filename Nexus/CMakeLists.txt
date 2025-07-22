@@ -30,10 +30,6 @@ set(BUILD_UTILS OFF CACHE BOOL "GLEW lib only")
 set(GLEW_INSTALL OFF CACHE BOOL "GLEW lib only")
 add_subdirectory(vendor/GLEW/build/cmake)
 
-add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
-set(GLM_BUILD_TESTS OFF CACHE BOOL "GLM lib only")
-add_subdirectory(vendor/glm)
-
 add_subdirectory(vendor/imgui)
 add_subdirectory(vendor/tinyfiledialogs)
 
@@ -47,7 +43,6 @@ set (include_files
 	vendor/assimp/include
 	vendor/GLFW/include
 	vendor/GLEW/include
-	vendor/glm
 	vendor/imgui
 	vendor/tinyfiledialogs
 	vendor/imgui/backends

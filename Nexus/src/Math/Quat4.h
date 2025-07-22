@@ -32,7 +32,12 @@ struct Quat4
         return sqrtf(dot(data, data));
     }
 
-    __host__ __device__ Quat4 Normalize()
+    __host__ __device__ void Normalize()
+    {
+        data /= Norm();
+    }
+
+    __host__ __device__ Quat4 Normalized()
     {
         return Quat4(data / Norm());
     }

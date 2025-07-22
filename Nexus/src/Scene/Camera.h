@@ -1,6 +1,5 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <vector>
 #include <cuda_runtime_api.h>
 #include "Geometry/Ray.h"

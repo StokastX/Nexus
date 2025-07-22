@@ -283,7 +283,7 @@ inline __device__ void NextEventEstimation(
 		shadowRay.direction = toLight / distance;
 		shadowRay.invDirection = 1.0f / shadowRay.direction;
 
-		Quat4 qNormToZ = Quat4::RotationToZAxis(normal).Normalize();
+		Quat4 qNormToZ = Quat4::RotationToZAxis(normal).Normalized();
 		const float3 wo = qNormToZ.Rotate(shadowRay.direction);
 
 		const float cosThetaO = fabs(dot(lightNormal, shadowRay.direction));
@@ -437,7 +437,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 		gNormal = -gNormal;
 	}
 
-	Quat4 qNormToZ = Quat4::RotationToZAxis(normal).Normalize();
+	Quat4 qNormToZ = Quat4::RotationToZAxis(normal).Normalized();
 	float3 wi = qNormToZ.Rotate(-rayDirection);
 
 	float3 wo;
