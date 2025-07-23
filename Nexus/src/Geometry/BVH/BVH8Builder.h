@@ -4,11 +4,16 @@
 #include <vector>
 #include "BVH.h"
 
+#define C_PRIM 0.3f  // Cost of a ray-primitive intersection
+#define C_NODE 1.0f  // Cost of a ray-node intersection
+#define P_MAX  3	 // Maximum allowed leaf size
+#define N_Q 8		 // Number of bits used to store the childs' AABB coordinates
+
 class BVH8Builder
 {
 public:
 
-	BVH8Builder(const std::vector<NXB::Triangle>& triangles);
+	BVH8Builder(const NXB::BVH2& bvh2);
 
 	enum struct Decision
 	{

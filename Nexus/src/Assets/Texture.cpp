@@ -1,6 +1,7 @@
 #include "Texture.h"
 #include <cuda_runtime_api.h>
 #include <cstring>
+#include <cstdint>
 #include "Utils/Utils.h"
 
 

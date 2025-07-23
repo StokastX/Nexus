@@ -2,6 +2,7 @@
 
 #include "Utils/Utils.h"
 #include <cuda_runtime_api.h>
+#include <cstdint>
 
 
 class CudaMemory

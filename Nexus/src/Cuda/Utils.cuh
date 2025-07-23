@@ -72,3 +72,18 @@ inline __device__ float3 OffsetRay(const float3 p, const float3 n)
 		fabs(p.z) < ORIGIN ? p.z + FLOAT_SCALE * n.z : pi.z
 	);
 }
+
+__device__ __forceinline__ float3 HeatmapColor(int boundsHit, int maxHit = 60)
+{
+    float t = fminf((float)boundsHit / maxHit, 1.0f);
+
+    if (t < 0.5f) {
+        // Blue to Green
+        float localT = t * 2.0f;  // remap to [0,1]
+        return make_float3(0.0f, localT, 1.0f - localT);
+    } else {
+        // Green to Red
+        float localT = (t - 0.5f) * 2.0f;  // remap to [0,1]
+        return make_float3(localT, 1.0f - localT, 0.0f);
+    }
+}

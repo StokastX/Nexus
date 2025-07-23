@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <cstdint>
 #include <cuda_runtime_api.h>
 #include "Geometry/Ray.h"
 #include "Cuda/Scene/Camera.cuh"

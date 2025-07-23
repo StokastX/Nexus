@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <cstdint>
 #include <cuda_runtime_api.h>
 #include <Utils/cuda_math.h>
 

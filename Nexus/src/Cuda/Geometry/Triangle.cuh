@@ -20,8 +20,8 @@ struct D_TriangleData
 	float2 texCoord2;
 };
 
-// Möller-Trumbore intersection algorithm. See https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-inline __device__ void TriangleTrace(const NXB::Triangle& triangle, D_Ray& r, D_Intersection& intersection, const uint32_t instIdx, const uint32_t primIdx)
+// Mï¿½ller-Trumbore intersection algorithm. See https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+__device__ __forceinline__ void TriangleTrace(const NXB::Triangle& triangle, D_Ray& r, D_Intersection& intersection, const uint32_t instIdx, const uint32_t primIdx)
 {
 	const float3 edge0 = triangle.v1 - triangle.v0;
 	const float3 edge1 = triangle.v2 - triangle.v0;
@@ -57,7 +57,7 @@ inline __device__ void TriangleTrace(const NXB::Triangle& triangle, D_Ray& r, D_
 }
 
 // true if any hit, else false
-inline __device__ bool TriangleTraceShadow(const NXB::Triangle& triangle, D_Ray& r, float hitDistance)
+__device__ __forceinline__ bool TriangleTraceShadow(const NXB::Triangle& triangle, D_Ray& r, float hitDistance)
 {
 	const float3 edge0 = triangle.v1 - triangle.v0;
 	const float3 edge1 = triangle.v2 - triangle.v0;

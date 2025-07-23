@@ -129,7 +129,10 @@ __global__ void GenerateKernel()
 __global__ void TraceKernel()
 {
 #ifdef USE_BVH8
-	BVH8Trace(tlas, meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	if (!scene.renderSettings.visualizeBvh)
+		BVH8Trace(tlas, meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
+	else
+		BVH8TraceVisualize(tlas, meshes, scene.meshInstances, traceRequest, pathState, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
 #else
 	if (!scene.renderSettings.visualizeBvh)
 		BVH2Trace(tlas, meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);

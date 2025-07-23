@@ -317,7 +317,7 @@ inline __device__ void BVH2TraceVisualize(const NXB::BVH2& tlas, D_Mesh* meshes,
 				{
 					intersection.hitDistance = 1.0e30f;
 					traceRequest.intersection.Set(rayIndex, intersection);
-					pathState.radiance[traceRequest.pixelIdx[rayIndex]] = make_float3(0.0f, boundsHit / 50.0f, max(0.0f, 1.0f - boundsHit / 50.0f));
+					pathState.radiance[traceRequest.pixelIdx[rayIndex]] = HeatmapColor(boundsHit);
 					shouldFetchNewRay = true;
 					continue;
 				}
@@ -351,7 +351,7 @@ inline __device__ void BVH2TraceVisualize(const NXB::BVH2& tlas, D_Mesh* meshes,
 			{
 				intersection.hitDistance = 1.0e30f;
 				traceRequest.intersection.Set(rayIndex, intersection);
-				pathState.radiance[traceRequest.pixelIdx[rayIndex]] = make_float3(0.0f, boundsHit / 50.0f, max(0.0f, 1.0f - boundsHit / 50.0f));
+				pathState.radiance[traceRequest.pixelIdx[rayIndex]] = HeatmapColor(boundsHit);
 				shouldFetchNewRay = true;
 				continue;
 			}
@@ -367,12 +367,10 @@ inline __device__ void BVH2TraceVisualize(const NXB::BVH2& tlas, D_Mesh* meshes,
 		}
 		else
 		{
-			if (stackPtr >= instanceStackDepth)
-				boundsHit += 1;
+			boundsHit += 1;
 			if (dist2 != 1e30f)
 			{
-				if (stackPtr >= instanceStackDepth)
-					boundsHit += 1;
+				boundsHit += 1;
 				stack[stackPtr++] = node.rightChild;
 			}
 
