@@ -14,6 +14,11 @@ struct D_TriangleData
 	float3 normal1;
 	float3 normal2;
 
+	// Tangents
+	float3 tangent0;
+	float3 tangent1;
+	float3 tangent2;
+
 	// Texture coordinates
 	float2 texCoord0;
 	float2 texCoord1;

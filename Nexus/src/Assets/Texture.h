@@ -23,6 +23,7 @@ struct Texture
 	uint32_t width = 0;
 	uint32_t height = 0;
 	uint32_t channels = 0;
+	bool sRGB = true;
 
 	unsigned char* pixels = nullptr;
 	Type type = Type::DIFFUSE;

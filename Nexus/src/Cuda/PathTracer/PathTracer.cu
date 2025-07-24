@@ -367,16 +367,18 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	p = instance.transform.TransformPoint(p);
 
 	float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
-	float3 normal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
+	float3 normal = normalize(Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv));
 
-	//if (material.normalMapId != -1)
-	//{
-	//	float3 texNormal = make_float3(tex2D<float4>(scene.normalMaps[material.normalMapId], texUv.x, texUv.y));
-	//	texNormal = normalize(2.0f * texNormal - 1.0f);
-	//	TangentFrame tangentFrame(normal);
-	//	//TangentFrame tangentFrame(normal, triangle.v0, triangle.v1, triangle.v2, triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2);
-	//	normal = normalize(tangentFrame.LocalToWorld(texNormal));
-	//}
+	if (material.normalMapId != -1)
+	{
+		float4 raw = tex2D<float4>(scene.normalMaps[material.normalMapId], texUv.x, texUv.y);
+		float3 texNormal = make_float3(tex2D<float4>(scene.normalMaps[material.normalMapId], texUv.x, texUv.y));
+		texNormal = normalize(2.0f * texNormal - 1.0f);
+
+		float3 tangent = Barycentric(triangleData.tangent0, triangleData.tangent1, triangleData.tangent2, uv);
+		TangentFrame tangentFrame(normal, tangent);
+		normal = normalize(tangentFrame.LocalToWorld(texNormal));
+	}
 
 	// We use the transposed of the inverse matrix to transform normals.
 	// See https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals.html

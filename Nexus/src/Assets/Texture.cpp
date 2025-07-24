@@ -29,7 +29,7 @@ cudaTextureObject_t Texture::ToDevice(const Texture& texture)
 	memset(&texDesc, 0, sizeof(texDesc));
 	texDesc.addressMode[0] = cudaAddressModeWrap;
 	texDesc.addressMode[1] = cudaAddressModeWrap;
-	texDesc.sRGB = 1;
+	texDesc.sRGB = texture.sRGB;
 	texDesc.filterMode = cudaFilterModeLinear;
 	texDesc.readMode = cudaReadModeNormalizedFloat;
 	texDesc.normalizedCoords = 1;

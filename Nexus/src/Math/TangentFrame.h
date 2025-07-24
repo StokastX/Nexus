@@ -18,17 +18,11 @@ struct TangentFrame
 		bitangent = make_float3(b, sign + n.y * n.y * a, -n.y);
 	}
 
-	__host__ __device__ TangentFrame(float3 n, float3 v0, float3 v1, float3 v2, float2 uv0, float2 uv1, float2 uv2)
-		: normal(normalize(n))
+	__host__ __device__ TangentFrame(float3 n, float3 t)
+		: normal(n)
 	{
-		float3 edge0 = v1 - v0;
-		float3 edge1 = v2 - v0;
-		float2 deltaUV0 = uv1 - uv0;
-		float2 deltaUV1 = uv2 - uv0;
-		float r = 1.0f / (deltaUV0.x * deltaUV1.y - deltaUV1.x * deltaUV0.y);
-		tangent = normalize(r * (deltaUV1.y * edge0 - deltaUV0.y * edge1));
-		bitangent = normalize(r * (-deltaUV1.x * edge0 + deltaUV0.x * edge1));
-		normal = normalize(cross(tangent, bitangent));
+		tangent = normalize(t - dot(t, n) * n);
+		bitangent = cross(normal, tangent);
 	}
 
 	inline __host__ __device__ float3 WorldToLocal(float3 v)

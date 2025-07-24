@@ -14,6 +14,7 @@ static std::tuple<std::vector<NXB::Triangle>, std::vector<TriangleData>> GetTria
 	{
 		float3 pos[3] = { };
 		float3 normal[3] = { };
+		float3 tangent[3] = { };
 		float2 texCoord[3] = { };
 		bool skipFace = false;
 
@@ -40,6 +41,14 @@ static std::tuple<std::vector<NXB::Triangle>, std::vector<TriangleData>> GetTria
 				normal[k].z = v.z;
 			}
 
+			if (mesh->HasTangentsAndBitangents())
+			{
+				v = mesh->mTangents[vertexIndex];
+				tangent[k].x = v.x;
+				tangent[k].y = v.y;
+				tangent[k].z = v.z;
+			}
+
 			// We only deal with one tex coord per vertex for now
 			if (mesh->HasTextureCoords(0))
 			{
@@ -62,6 +71,9 @@ static std::tuple<std::vector<NXB::Triangle>, std::vector<TriangleData>> GetTria
 			normal[0],
 			normal[1],
 			normal[2],
+			tangent[0],
+			tangent[1],
+			tangent[2],
 			texCoord[0],
 			texCoord[1],
 			texCoord[2]
@@ -145,6 +157,9 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 			aiString mPath;
 			if (material->GetTexture(aiTextureType_NORMALS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
+				//aiUVTransform transform;
+				//material->Get(AI_MATKEY_UVTRANSFORM_NORMALS(0), transform);
+
 				Texture newTexture;
 				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
 				if (texture)
@@ -152,6 +167,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					if (texture->mHeight == 0)
 					{
 						newTexture = IMGLoader::LoadIMG(texture);
+						newTexture.sRGB = false;
 					}
 				}
 				else
@@ -246,8 +262,7 @@ void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Sc
 
 	// Pretransform all meshes for simplicity, but this will need to be removed
 	// in the future to implement proper scene hierarchy
-	const aiScene* objScene = m_Importer.ReadFile(filePath, aiProcess_GenNormals | aiProcess_CalcTangentSpace | aiProcess_Triangulate
-		| aiProcess_FlipUVs);
+	const aiScene* objScene = m_Importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 
 	std::vector<Mesh> meshes;
 
