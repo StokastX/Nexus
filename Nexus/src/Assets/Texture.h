@@ -10,7 +10,8 @@ struct Texture
 		DIFFUSE,
 		ROUGHNESS,
 		METALLIC,
-		EMISSIVE
+		EMISSIVE,
+		NORMALS
 	};
 
 	Texture() = default;

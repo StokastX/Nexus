@@ -48,6 +48,7 @@ struct Material
 
 	int diffuseMapId = -1;
 	int emissiveMapId = -1;
+	int normalMapId = -1;
 	Type type;
 
 	//static D_Material ToDevice(const Material& material)

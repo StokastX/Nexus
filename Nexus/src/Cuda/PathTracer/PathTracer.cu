@@ -6,7 +6,7 @@
 #include "Cuda/BSDF/ConductorBSDF.cuh"
 #include "Cuda/BSDF/BSDF.cuh"
 #include "Utils/cuda_math.h"
-#include "Math/Quat4.h"
+#include "Math/TangentFrame.h"
 #include "Utils/Utils.h"
 #include "texture_indirect_functions.h"
 #include "Cuda/Scene/Scene.cuh"
@@ -286,8 +286,8 @@ inline __device__ void NextEventEstimation(
 		shadowRay.direction = toLight / distance;
 		shadowRay.invDirection = 1.0f / shadowRay.direction;
 
-		Quat4 qNormToZ = Quat4::RotationToZAxis(normal).Normalized();
-		const float3 wo = qNormToZ.Rotate(shadowRay.direction);
+		TangentFrame tangentFrame(normal);
+		const float3 wo = tangentFrame.WorldToLocal(shadowRay.direction);
 
 		const float cosThetaO = fabs(dot(lightNormal, shadowRay.direction));
 
@@ -366,8 +366,17 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	float3 p = Barycentric(triangle.v0, triangle.v1, triangle.v2, uv);
 	p = instance.transform.TransformPoint(p);
 
-	float3 normal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
 	float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
+	float3 normal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
+
+	//if (material.normalMapId != -1)
+	//{
+	//	float3 texNormal = make_float3(tex2D<float4>(scene.normalMaps[material.normalMapId], texUv.x, texUv.y));
+	//	texNormal = normalize(2.0f * texNormal - 1.0f);
+	//	TangentFrame tangentFrame(normal);
+	//	//TangentFrame tangentFrame(normal, triangle.v0, triangle.v1, triangle.v2, triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2);
+	//	normal = normalize(tangentFrame.LocalToWorld(texNormal));
+	//}
 
 	// We use the transposed of the inverse matrix to transform normals.
 	// See https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals.html
@@ -440,15 +449,15 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 		gNormal = -gNormal;
 	}
 
-	Quat4 qNormToZ = Quat4::RotationToZAxis(normal).Normalized();
-	float3 wi = qNormToZ.Rotate(-rayDirection);
+	TangentFrame tangentFrame(normal);
+	float3 wi = tangentFrame.WorldToLocal(-rayDirection);
 
 	float3 wo;
 
 	// Handle texture transparency
 	if (Random::Rand(rngState) > material.opacity || (material.diffuseMapId != -1 && Random::Rand(rngState) > color.w))
 	{
-		wo = normalize(qNormToZ.Inverse().Rotate(-wi));
+		wo = tangentFrame.LocalToWorld(-wi);
 		const float offsetDirection = Utils::SgnE(dot(wo, normal));
 		const float3 offsetOrigin = OffsetRay(p, gNormal * offsetDirection);
 		const D_Ray scatteredRay = D_Ray(offsetOrigin, wo);
@@ -469,7 +478,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 		if (!scattered)
 			return;
 
-		wo = normalize(qNormToZ.Inverse().Rotate(wo));
+		wo = tangentFrame.LocalToWorld(wo);
 
 		const float offsetDirection = Utils::SgnE(dot(wo, normal));
 		const float3 offsetOrigin = OffsetRay(p, gNormal * offsetDirection);

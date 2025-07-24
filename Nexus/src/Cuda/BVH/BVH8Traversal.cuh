@@ -216,7 +216,7 @@ inline __device__ void BVH8Trace(const NXB::BVH8& tlas, D_Mesh* meshes, D_MeshIn
 				// index is thus the number of neighboring internal nodes stored in the lower child slots
 				const int relativeNodeIdx = __popc(nodeEntry.y & ~(0xffffffff << nodeSlot));
 
-				assert(nodeEntry.x + relativeNodeIdx < bvh.nodeCount);
+				assert(nodeEntry.x + relativeNodeIdx < mesh.bvh.nodeCount);
 
 				ChildTrace(nodes, nodeEntry.x + relativeNodeIdx, ray, invOctant4, intersection.hitDistance, nodeEntry, triangleEntry);
 			}
@@ -592,7 +592,7 @@ inline __device__ void BVH8TraceVisualize(const NXB::BVH8& tlas, D_Mesh* meshes,
 				// index is thus the number of neighboring internal nodes stored in the lower child slots
 				const int relativeNodeIdx = __popc(nodeEntry.y & ~(0xffffffff << nodeSlot));
 
-				assert(nodeEntry.x + relativeNodeIdx < bvh.nodeCount);
+				assert(nodeEntry.x + relativeNodeIdx < mesh.bvh.nodeCount);
 
 				ChildTrace(nodes, nodeEntry.x + relativeNodeIdx, ray, invOctant4, intersection.hitDistance, nodeEntry, triangleEntry);
 				boundsHit += __popc(nodeEntry.y & 0xff000000);

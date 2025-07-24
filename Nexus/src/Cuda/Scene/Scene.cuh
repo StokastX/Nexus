@@ -25,6 +25,7 @@ struct D_Scene
 
 	cudaTextureObject_t* diffuseMaps;
 	cudaTextureObject_t* emissiveMaps;
+	cudaTextureObject_t* normalMaps;
 
 	//D_TLAS tlas;
 

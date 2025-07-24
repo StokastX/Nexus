@@ -11,8 +11,10 @@ void AssetManager::Reset()
 	m_InvalidMaterials.clear();
 	m_DiffuseMaps.clear();
 	m_EmissiveMaps.clear();
+	m_NormalMaps.clear();
 	m_DeviceDiffuseMaps.Clear();
 	m_DeviceEmissiveMaps.Clear();
+	m_DeviceNormalMaps.Clear();
 	m_DeviceMaterials.Clear();
 	m_Meshes.clear();
 }
@@ -57,9 +59,7 @@ void AssetManager::InvalidateMaterial(uint32_t index)
 int AssetManager::AddTexture(const Texture& texture)
 {
 	if (texture.pixels == nullptr)
-	{
 		return -1;
-	}
 
 	if (texture.type == Texture::Type::DIFFUSE)
 	{
@@ -72,6 +72,12 @@ int AssetManager::AddTexture(const Texture& texture)
 		m_EmissiveMaps.push_back(texture);
 		m_DeviceEmissiveMaps.PushBack(texture);
 		return m_EmissiveMaps.size() - 1;
+	}
+	else if (texture.type == Texture::Type::NORMALS)
+	{
+		m_NormalMaps.push_back(texture);
+		m_DeviceNormalMaps.PushBack(texture);
+		return m_NormalMaps.size() - 1;
 	}
 	return -1;
 }
