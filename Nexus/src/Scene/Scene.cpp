@@ -116,14 +116,10 @@ D_Scene Scene::ToDevice(const Scene& scene)
 {
 	D_Scene deviceScene;
 
-	const DeviceVector<Texture, cudaTextureObject_t>& deviceDiffuseMaps = scene.m_AssetManager.GetDeviceDiffuseMaps();
-	const DeviceVector<Texture, cudaTextureObject_t>& deviceEmissiveMaps = scene.m_AssetManager.GetDeviceEmissiveMaps();
-	const DeviceVector<Texture, cudaTextureObject_t>& deviceNormalMaps = scene.m_AssetManager.GetDeviceNormalMaps();
+	const DeviceVector<Texture, cudaTextureObject_t>& deviceTextures = scene.m_AssetManager.GetDeviceTextures();
 	const DeviceVector<Material, D_Material>& deviceMaterials = scene.m_AssetManager.GetDeviceMaterials();
 
-	deviceScene.diffuseMaps = deviceDiffuseMaps.Data();
-	deviceScene.emissiveMaps = deviceEmissiveMaps.Data();
-	deviceScene.normalMaps = deviceNormalMaps.Data();
+	deviceScene.textures = deviceTextures.Data();
 	deviceScene.materials = deviceMaterials.Data();
 	deviceScene.meshInstances = scene.m_DeviceMeshInstances.Data();
 	deviceScene.lights = scene.m_DeviceLights.Data();

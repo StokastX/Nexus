@@ -322,7 +322,7 @@ inline __device__ void NextEventEstimation(
 		if (lightMaterial.emissiveMapId != -1)
 		{
 			float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
-			emissive = make_float3(tex2D<float4>(scene.emissiveMaps[lightMaterial.emissiveMapId], texUv.x, texUv.y));
+			emissive = make_float3(tex2D<float4>(scene.textures[lightMaterial.emissiveMapId], texUv.x, texUv.y));
 		}
 		else
 			emissive = lightMaterial.emissive;
@@ -371,8 +371,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 	if (material.normalMapId != -1)
 	{
-		float4 raw = tex2D<float4>(scene.normalMaps[material.normalMapId], texUv.x, texUv.y);
-		float3 texNormal = make_float3(tex2D<float4>(scene.normalMaps[material.normalMapId], texUv.x, texUv.y));
+		float3 texNormal = make_float3(tex2D<float4>(scene.textures[material.normalMapId], texUv.x, texUv.y));
 		texNormal = normalize(2.0f * texNormal - 1.0f);
 
 		float3 tangent = Barycentric(triangleData.tangent0, triangleData.tangent1, triangleData.tangent2, uv);
@@ -388,7 +387,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 	if (material.emissiveMapId != -1)
 	{
-		material.emissive = make_float3(tex2D<float4>(scene.emissiveMaps[material.emissiveMapId], texUv.x, texUv.y));
+		material.emissive = make_float3(tex2D<float4>(scene.textures[material.emissiveMapId], texUv.x, texUv.y));
 	}
 
 	bool allowMIS = bounce > 1 && scene.renderSettings.useMIS;
@@ -440,7 +439,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	float4 color = make_float4(1.0f);
 	if (material.diffuseMapId != -1)
 	{
-		color = tex2D<float4>(scene.diffuseMaps[material.diffuseMapId], texUv.x, texUv.y);
+		color = tex2D<float4>(scene.textures[material.diffuseMapId], texUv.x, texUv.y);
 		material.diffuse.albedo = make_float3(color);
 	}
 

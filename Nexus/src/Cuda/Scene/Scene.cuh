@@ -23,9 +23,7 @@ struct D_Scene
 	bool hasHdrMap;
 	cudaTextureObject_t hdrMap;
 
-	cudaTextureObject_t* diffuseMaps;
-	cudaTextureObject_t* emissiveMaps;
-	cudaTextureObject_t* normalMaps;
+	cudaTextureObject_t* textures;
 
 	//D_TLAS tlas;
 
