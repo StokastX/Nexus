@@ -32,10 +32,10 @@ struct D_PlasticBSDF
 		const float wiDotN = wi.z;
 		const float woDotN = wo.z;
 
-		const bool reflected = wiDotN * woDotN > 0.0f;
+		//const bool reflected = wiDotN * woDotN > 0.0f;
 
-		if (!reflected)
-			return false;
+		//if (!reflected)
+		//	return false;
 
 		const float3 m = normalize(wo + wi);
 		float cosThetaT;
@@ -48,16 +48,16 @@ struct D_PlasticBSDF
 		const float3 brdf = make_float3(F * G * D / (4.0f * fabs(wiDotN)));
 
 		// Diffuse bounce
-		const float3 btdf = (1.0f - F) * material.plastic.albedo * INV_PI * wo.z;
+		const float3 btdf = (1.0f - F) * material.plastic.albedo * INV_PI * fabs(wo.z);
 
 		throughput = brdf + btdf;
 
 		// pm * jacobian = pm * || dWhr / dWo ||
 		// We can replace woDotM with wiDotM since for a reflection both are equal
-		const float pdfSpecular = D * m.z / (4.0f * wiDotM);
+		const float pdfSpecular = D * fabs(m.z) / (4.0f * fabs(wiDotM));
 
 		// cos(theta) / PI
-		const float pdfDiffuse = wo.z * INV_PI;
+		const float pdfDiffuse = fabs(wo.z) * INV_PI;
 
 		pdf = F * pdfSpecular + (1.0f - F) * pdfDiffuse;
 		

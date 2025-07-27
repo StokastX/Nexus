@@ -73,7 +73,7 @@ struct D_DielectricBSDF
 		const float wiDotM = dot(wi, m);
 
 		float cosThetaT;
-		const float fr = Fresnel::DieletricReflectance(1.0f /material.dielectric.ior, wiDotM, cosThetaT);
+		const float fr = Fresnel::DieletricReflectance(1.0f / material.dielectric.ior, wiDotM, cosThetaT);
 
 		// Randomly select a reflected or transmitted ray based on Fresnel reflectance
 		if (Random::Rand(rngState) < fr)
