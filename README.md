@@ -13,7 +13,7 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
 
 ## Screenshots
 
-![canelle_et_fromage](https://github.com/user-attachments/assets/aad0c9cc-7de3-4c7d-ad65-8e506db69156)
+![cannelle_et_fromage](https://github.com/user-attachments/assets/e02c6724-e3a1-4fbd-9866-8f13229ce71b)
 ![stormtrooper](https://github.com/user-attachments/assets/e5e1dea7-7232-434c-ac56-114b24f26f67)
 ![glass_of_water](https://github.com/user-attachments/assets/ea53185c-85b2-47a2-b302-dcb7c8b9984f)
 ![kitchen](https://github.com/user-attachments/assets/94eeb762-c1e1-448c-83b4-f7ff83c80ab5)
