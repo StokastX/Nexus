@@ -5,20 +5,25 @@
 #include "Utils/Utils.h"
 
 
-Texture::Texture(uint32_t w, uint32_t h, uint32_t c, unsigned char* d) : width(w), height(h), channels(c), pixels(d)
+Texture::Texture(uint32_t w, uint32_t h, uint32_t c, bool isHDR, void* d) : width(w), height(h), channels(c), HDR(isHDR), pixels(d)
 {
 }
 
 cudaTextureObject_t Texture::ToDevice(const Texture& texture)
 {
 	// Channel descriptor for 4 Channels (RGBA)
-	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(8, 8, 8, 8, cudaChannelFormatKindUnsigned);
+	cudaChannelFormatDesc channelDesc;
+	if (texture.HDR)
+		channelDesc = cudaCreateChannelDesc(32, 32, 32, 32, cudaChannelFormatKindFloat);
+	else
+		channelDesc = cudaCreateChannelDesc(8, 8, 8, 8, cudaChannelFormatKindUnsigned);
 	cudaArray_t cuArray;
 
 	CheckCudaErrors(cudaMallocArray(&cuArray, &channelDesc, texture.width, texture.height));
 
-	const size_t spitch = texture.width * 4 * sizeof(unsigned char);
-	CheckCudaErrors(cudaMemcpy2DToArray(cuArray, 0, 0, texture.pixels, spitch, texture.width * 4 * sizeof(unsigned char), texture.height, cudaMemcpyHostToDevice));
+	uint32_t elementSize = 4 * (texture.HDR ? sizeof(float) : sizeof(unsigned char));
+	const size_t spitch = texture.width * elementSize;
+	CheckCudaErrors(cudaMemcpy2DToArray(cuArray, 0, 0, texture.pixels, spitch, texture.width * elementSize, texture.height, cudaMemcpyHostToDevice));
 
 	cudaResourceDesc resDesc;
 	memset(&resDesc, 0, sizeof(resDesc));
@@ -31,7 +36,7 @@ cudaTextureObject_t Texture::ToDevice(const Texture& texture)
 	texDesc.addressMode[1] = cudaAddressModeWrap;
 	texDesc.sRGB = texture.sRGB;
 	texDesc.filterMode = cudaFilterModeLinear;
-	texDesc.readMode = cudaReadModeNormalizedFloat;
+	texDesc.readMode = texture.HDR ? cudaReadModeElementType : cudaReadModeNormalizedFloat;
 	texDesc.normalizedCoords = 1;
 
 	cudaTextureObject_t texObject = 0;

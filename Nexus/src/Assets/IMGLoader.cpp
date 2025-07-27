@@ -14,12 +14,20 @@ Texture IMGLoader::LoadIMG(const std::string& filepath)
 {
 	int width, height, channels;
 
-	unsigned char* pixels = stbi_load(filepath.c_str(), &width, &height, &channels, 4);
+	void* pixels;
+	bool HDR = false;
+	if (stbi_is_hdr(filepath.c_str()))
+	{
+		HDR = true;
+		pixels = stbi_loadf(filepath.c_str(), &width, &height, &channels, 4);
+	}
+	else
+		pixels = stbi_load(filepath.c_str(), &width, &height, &channels, 4);
 
 	if (pixels == nullptr)
 		std::cout << "IMGLoader: Failed to load texture " << filepath << std::endl;
 
-	return Texture(width, height, channels, pixels);
+	return Texture(width, height, channels, HDR, pixels);
 }
 
 Texture IMGLoader::LoadIMG(const aiTexture* texture)
@@ -30,7 +38,7 @@ Texture IMGLoader::LoadIMG(const aiTexture* texture)
 	if (pixels == nullptr)
 		std::cout << "IMGLoader: Failed to load an embedded texture" << std::endl;
 
-	return Texture(width, height, channels, pixels);
+	return Texture(width, height, channels, false, pixels);
 }
 
 

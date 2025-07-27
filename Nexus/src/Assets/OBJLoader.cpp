@@ -167,7 +167,6 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					if (texture->mHeight == 0)
 					{
 						newTexture = IMGLoader::LoadIMG(texture);
-						newTexture.sRGB = false;
 					}
 				}
 				else
@@ -175,8 +174,33 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					const std::string materialPath = path + mPath.C_Str();
 					newTexture = IMGLoader::LoadIMG(materialPath);
 				}
+				newTexture.sRGB = false;
 				newTexture.type = Texture::Type::NORMALS;
 				newMaterial.normalMapId = assetManager->AddTexture(newTexture);
+			}
+		}
+		if (material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
+		{
+			aiString mPath;
+			if (material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
+			{
+				Texture newTexture;
+				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
+				if (texture)
+				{
+					if (texture->mHeight == 0)
+					{
+						newTexture = IMGLoader::LoadIMG(texture);
+					}
+				}
+				else
+				{
+					const std::string materialPath = path + mPath.C_Str();
+					newTexture = IMGLoader::LoadIMG(materialPath);
+				}
+				newTexture.sRGB = false;
+				newTexture.type = Texture::Type::ROUGHNESS;
+				newMaterial.roughnessMapId = assetManager->AddTexture(newTexture);
 			}
 		}
 		if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0)
