@@ -93,6 +93,7 @@ void Scene::CreateMeshInstanceFromFile(const std::string& path, const std::strin
 void Scene::AddHDRMap(const std::string& filePath, const std::string& fileName)
 {
 	m_HdrMap = IMGLoader::LoadIMG(filePath + fileName);
+	m_HdrMap.sRGB = false;
 	m_DeviceHdrMap = Texture::ToDevice(m_HdrMap);
 }
 

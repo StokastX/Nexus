@@ -79,7 +79,7 @@ inline __device__ float3 SampleBackground(const D_Scene& scene, float3 direction
 		const float u = (theta + PI) * INV_PI * 0.5;
 		const float v = 1.0f - (phi + PI * 0.5f) * INV_PI;
 
-		backgroundColor = make_float3(tex2D<float4>(scene.hdrMap, u, v));
+		backgroundColor = make_float3(tex2D<float4>(scene.hdrMap, u, v)) * scene.renderSettings.backgroundIntensity;
 	}
 	else
 		backgroundColor = scene.renderSettings.backgroundColor * scene.renderSettings.backgroundIntensity;
@@ -270,9 +270,9 @@ inline __device__ void NextEventEstimation(
 
 		float3 toLight = p - hitPoint;
 
-		// Early stopping if shadow ray is occluded by hitpoint's triangle
-		// (ie incoming ray and shadow ray are similarly oriented with respect to hit normal)
-		if (dot(hitGNormal, rayDirection) * dot(hitGNormal,  toLight) >= 0)
+		const bool reflect = dot(-rayDirection, hitGNormal) * dot(toLight, hitGNormal) > 0.0f;
+
+		if (!reflect && material.type != D_Material::D_Type::DIELECTRIC)
 			return;
 
 		float offsetDirection = Utils::SgnE(dot(toLight, normal));
@@ -281,9 +281,9 @@ inline __device__ void NextEventEstimation(
 		offsetDirection = Utils::SgnE(dot(-toLight, lightNormal));
 		p = OffsetRay(p, lightGNormal * offsetDirection);
 
-		toLight = p - shadowRay.origin;
-		const float distance = length(toLight);
-		shadowRay.direction = toLight / distance;
+		float3 offsetRay = p - shadowRay.origin;
+		const float offsetDist = length(offsetRay);
+		shadowRay.direction = offsetRay / offsetDist;
 		shadowRay.invDirection = 1.0f / shadowRay.direction;
 
 		TangentFrame tangentFrame(normal);
@@ -313,6 +313,20 @@ inline __device__ void NextEventEstimation(
 
 		bool sampleIsValid = D_BSDF::Eval<BSDF>(material, wi, wo, sampleThroughput, bsdfPdf);
 
+		//if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
+		//{
+		//if (fminf(sampleThroughput) < 0.0f)
+		//	printf("negative bsdf: %f\n", sampleThroughput.x);
+		//	printf("Normal: %f %f %f\n", normal.x, normal.y, normal.z);
+		//	printf("wi: %f %f %f\n", wi.x, wi.y, wi.z);
+		//	printf("wo: %f %f %f\n", wo.x, wo.y, wo.z);
+		//	printf("ray direction: %f %f %f\n", rayDirection.x, rayDirection.y, rayDirection.z);
+		//	printf("Normal dot -raydirection: %f\n", dot(normal, -rayDirection));
+		//	printf("Pdf: light = %f, bsdf = %f\n", lightPdf, bsdfPdf);
+		//	printf("BSDF: %f %f %f\n", sampleThroughput.x, sampleThroughput.y, sampleThroughput.z);
+		//	printf("Valid: %u\n", sampleIsValid);
+		//}
+
 		if (!sampleIsValid)
 			return;
 
@@ -330,7 +344,7 @@ inline __device__ void NextEventEstimation(
 		const float3 radiance = weight * throughput * sampleThroughput * emissive * lightMaterial.intensity / lightPdf;
 
 		const int32_t index = atomicAdd(&queueSize.traceShadowSize[bounce], 1);
-		shadowTraceRequest.hitDistance[index] = distance;
+		shadowTraceRequest.hitDistance[index] = offsetDist;
 		shadowTraceRequest.radiance[index] = radiance;
 		shadowTraceRequest.ray.Set(index, shadowRay);
 		shadowTraceRequest.pixelIdx[index] = pixelIdx;
@@ -376,7 +390,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 		float3 tangent = Barycentric(triangleData.tangent0, triangleData.tangent1, triangleData.tangent2, uv);
 		TangentFrame tangentFrame(normal, tangent);
-		normal = normalize(tangentFrame.LocalToWorld(texNormal));
+		normal = tangentFrame.LocalToWorld(texNormal);
 	}
 
 	// We use the transposed of the inverse matrix to transform normals.
@@ -386,9 +400,9 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	float3 gNormal = normalize(instance.invTransform.Transposed().TransformVector(triangle.Normal()));
 
 	if (material.emissiveMapId != -1)
-	{
 		material.emissive = make_float3(tex2D<float4>(scene.textures[material.emissiveMapId], texUv.x, texUv.y));
-	}
+	if (material.roughnessMapId != -1)
+		material.plastic.roughness = tex2D<float4>(scene.textures[material.roughnessMapId], texUv.x, texUv.y).x;
 
 	bool allowMIS = bounce > 1 && scene.renderSettings.useMIS;
 
@@ -444,11 +458,19 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	}
 
 	// Invert normals for non transmissive material if the primitive is backfacing the ray
-	if (dot(gNormal, rayDirection) > 0.0f && material.type != D_Material::D_Type::DIELECTRIC)
-	{
-		normal = -normal;
-		gNormal = -gNormal;
-	}
+	//if (dot(gNormal, rayDirection) > 0.0f && material.type != D_Material::D_Type::DIELECTRIC)
+	//{
+	//	if (pixelQuery.pixelIdx == pixelIdx)
+	//	{
+	//		printf("v0: %f %f %f\n", triangle.v0.x, triangle.v0.y, triangle.v0.z);
+	//		printf("v1: %f %f %f\n", triangle.v1.x, triangle.v1.y, triangle.v1.z);
+	//		printf("v2: %f %f %f\n", triangle.v2.x, triangle.v2.y, triangle.v2.z);
+	//		printf("gNormal: %f %f %f\n", gNormal.x, gNormal.y, gNormal.z);
+	//	}
+	//	throughput *= make_float3(100.0f, 0.0f, 0.0f);
+	//	normal = -normal;
+	//	gNormal = -gNormal;
+	//}
 
 	TangentFrame tangentFrame(normal);
 	float3 wi = tangentFrame.WorldToLocal(-rayDirection);
@@ -480,6 +502,11 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 			return;
 
 		wo = tangentFrame.LocalToWorld(wo);
+
+		const bool reflect = dot(-rayDirection, gNormal) * dot(wo, gNormal) > 0.0f;
+
+		if (!reflect && material.type != D_Material::D_Type::DIELECTRIC)
+			return;
 
 		const float offsetDirection = Utils::SgnE(dot(wo, normal));
 		const float3 offsetOrigin = OffsetRay(p, gNormal * offsetDirection);

@@ -279,6 +279,10 @@ void PathTracer::Render(const Scene& scene)
 	{
 		m_PixelQueryPending = false;
 		m_PixelQuery.Synchronize();
+		D_PixelQuery pixelQuery;
+		pixelQuery.pixelIdx = -1;
+		pixelQuery.instanceIdx = m_PixelQuery->instanceIdx;
+		m_PixelQuery = pixelQuery;
 	}
 
 	CheckCudaErrors(cudaGetLastError());

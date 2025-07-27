@@ -8,6 +8,6 @@ struct RenderSettings
 	bool wireframeBvh = false;
 	unsigned char pathLength = 10;
 
-	float3 backgroundColor = make_float3(1.0f);
-	float backgroundIntensity = 0.0f;
+	float3 backgroundColor = make_float3(0.0f);
+	float backgroundIntensity = 1.0f;
 };

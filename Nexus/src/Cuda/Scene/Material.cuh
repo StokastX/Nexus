@@ -48,5 +48,6 @@ struct D_Material
 	int diffuseMapId = -1;
 	int emissiveMapId = -1;
 	int normalMapId = -1;
+	int roughnessMapId = -1;
 	D_Type type;
 };
