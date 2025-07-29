@@ -9,7 +9,8 @@ struct D_Material
 		DIFFUSE,
 		DIELECTRIC,
 		PLASTIC,
-		CONDUCTOR
+		CONDUCTOR,
+		PRINCIPLED
 	};
 
 	union
@@ -39,6 +40,17 @@ struct D_Material
 			float3 k;
 			float roughness;
 		} conductor;
+
+		struct
+		{
+			float3 albedo;
+			float rougness;
+			float ior;
+			float metalness;
+			float transmission;
+			float specularWeight;
+			float3 specularColor;
+		} principled;
 	};
 
 	float3 emissive;
@@ -49,5 +61,6 @@ struct D_Material
 	int emissiveMapId = -1;
 	int normalMapId = -1;
 	int roughnessMapId = -1;
+	int metalnessMapId = -1;
 	D_Type type;
 };

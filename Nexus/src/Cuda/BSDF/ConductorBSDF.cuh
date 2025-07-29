@@ -26,15 +26,13 @@ struct D_ConductorBSDF
 
 		const float wiDotM = dot(wi, m);
 
-		float3 F = Fresnel::ComplexReflectance(wiDotM, material.conductor.ior, k);
+		float3 F82 = material.principled.specularColor * Fresnel::SchlickMetallicReflectance(material.principled.albedo, wiDotM);
+		float3 F = material.principled.specularWeight * Fresnel::SchlickMetallicF82(material.principled.albedo, F82, wiDotM);
+		//float3 F = Fresnel::ComplexReflectance(wiDotM, material.conductor.ior, k);
 
 		wo = reflect(-wi, m);
 
 		const float weight = Microfacet::WeightBeckmannWalter(alpha, abs(wiDotM), abs(wo.z), abs(wi.z), m.z);
-
-		// Handle divisions by zero
-		if (weight > 1.0e10)
-			return false;
 
 		// If the new ray is under the hemisphere, return
 		if (wo.z * wi.z < 0.0f)

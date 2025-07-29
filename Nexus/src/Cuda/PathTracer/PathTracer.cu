@@ -313,20 +313,6 @@ inline __device__ void NextEventEstimation(
 
 		bool sampleIsValid = D_BSDF::Eval<BSDF>(material, wi, wo, sampleThroughput, bsdfPdf);
 
-		//if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
-		//{
-		//if (fminf(sampleThroughput) < 0.0f)
-		//	printf("negative bsdf: %f\n", sampleThroughput.x);
-		//	printf("Normal: %f %f %f\n", normal.x, normal.y, normal.z);
-		//	printf("wi: %f %f %f\n", wi.x, wi.y, wi.z);
-		//	printf("wo: %f %f %f\n", wo.x, wo.y, wo.z);
-		//	printf("ray direction: %f %f %f\n", rayDirection.x, rayDirection.y, rayDirection.z);
-		//	printf("Normal dot -raydirection: %f\n", dot(normal, -rayDirection));
-		//	printf("Pdf: light = %f, bsdf = %f\n", lightPdf, bsdfPdf);
-		//	printf("BSDF: %f %f %f\n", sampleThroughput.x, sampleThroughput.y, sampleThroughput.z);
-		//	printf("Valid: %u\n", sampleIsValid);
-		//}
-
 		if (!sampleIsValid)
 			return;
 
@@ -456,21 +442,6 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 		color = tex2D<float4>(scene.textures[material.diffuseMapId], texUv.x, texUv.y);
 		material.diffuse.albedo = make_float3(color);
 	}
-
-	// Invert normals for non transmissive material if the primitive is backfacing the ray
-	//if (dot(gNormal, rayDirection) > 0.0f && material.type != D_Material::D_Type::DIELECTRIC)
-	//{
-	//	if (pixelQuery.pixelIdx == pixelIdx)
-	//	{
-	//		printf("v0: %f %f %f\n", triangle.v0.x, triangle.v0.y, triangle.v0.z);
-	//		printf("v1: %f %f %f\n", triangle.v1.x, triangle.v1.y, triangle.v1.z);
-	//		printf("v2: %f %f %f\n", triangle.v2.x, triangle.v2.y, triangle.v2.z);
-	//		printf("gNormal: %f %f %f\n", gNormal.x, gNormal.y, gNormal.z);
-	//	}
-	//	throughput *= make_float3(100.0f, 0.0f, 0.0f);
-	//	normal = -normal;
-	//	gNormal = -gNormal;
-	//}
 
 	TangentFrame tangentFrame(normal);
 	float3 wi = tangentFrame.WorldToLocal(-rayDirection);
