@@ -150,65 +150,40 @@ void SceneHierarchyPanel::DrawProperties(int selectionContext)
 		else
 		{
 			int materialIdx = meshInstance.materialIdx;
-			if (ImGui::Combo("Id", &materialIdx, materialsString.c_str()))
-				m_Context->InvalidateMeshInstance(selectionContext);
+			//if (ImGui::Combo("Id", &materialIdx, materialsString.c_str()))
+			//	m_Context->InvalidateMeshInstance(selectionContext);
 
 			meshInstance.materialIdx = materialIdx;
 
-			Material& material = materials[meshInstance.materialIdx];
-			int type = (int)material.type;
+			Material &material = materials[meshInstance.materialIdx];
 
-			if (ImGui::Combo("Type", &type, materialTypes.c_str()))
+			if (ImGui::ColorEdit3("Base color", (float *)&material.baseColor))
 				assetManager.InvalidateMaterial(meshInstance.materialIdx);
-
-			material.type = (Material::Type)type;
-
-			switch (material.type)
-			{
-			case Material::Type::DIFFUSE:
-				if (ImGui::ColorEdit3("Albedo", (float*)&material.diffuse.albedo))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				break;
-			case Material::Type::DIELECTRIC:
-				if (ImGui::ColorEdit3("Albedo", (float*)&material.dielectric.albedo))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::DragFloat("Roughness", &material.dielectric.roughness, 0.01f, 0.0f, 1.0f))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::DragFloat("Refraction index", &material.dielectric.ior, 0.01f, 1.0f, 2.5f))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				break;
-			case Material::Type::PLASTIC:
-				if (ImGui::ColorEdit3("Albedo", (float*)&material.plastic.albedo))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::DragFloat("Roughness", &material.plastic.roughness, 0.01f, 0.0f, 1.0f))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::DragFloat("Refraction index", &material.plastic.ior, 0.01f, 1.0f, 2.5f))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				break;
-			case Material::Type::CONDUCTOR:
-				if (ImGui::DragFloat("Roughness", &material.conductor.roughness, 0.01f, 0.0f, 1.0f))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::DragFloat3("Refraction index", (float*)&material.conductor.ior, 0.01f))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::DragFloat3("k", (float*)&material.conductor.k, 0.01f))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				break;
-			}
-			if (ImGui::ColorEdit3("Emission", (float*)&material.emissive))
+			if (ImGui::DragFloat("Metalness", &material.metalness, 0.01f, 0.0f, 1.0f))
+				assetManager.InvalidateMaterial(meshInstance.materialIdx);
+			if (ImGui::DragFloat("Roughness", &material.roughness, 0.01f, 0.0f, 1.0f))
+				assetManager.InvalidateMaterial(meshInstance.materialIdx);
+			if (ImGui::DragFloat("Specular weight", &material.specularWeight, 0.01f, 0.0f, 1.0f))
+				assetManager.InvalidateMaterial(meshInstance.materialIdx);
+			if (ImGui::ColorEdit3("Specular color", (float *)&material.specularColor))
+				assetManager.InvalidateMaterial(meshInstance.materialIdx);
+			if (ImGui::DragFloat("IOR", &material.ior, 0.01f, 1.0f, 2.5f))
+				assetManager.InvalidateMaterial(meshInstance.materialIdx);
+			if (ImGui::DragFloat("Transmission", &material.transmission, 0.01f, 0.0f, 1.0f))
+				assetManager.InvalidateMaterial(meshInstance.materialIdx);
+			if (ImGui::ColorEdit3("Emission color", (float *)&material.emissionColor))
 			{
 				// Invalidate mesh instance to update lighting
 				m_Context->InvalidateMeshInstance(selectionContext);
 				assetManager.InvalidateMaterial(meshInstance.materialIdx);
 			}
-			if (ImGui::DragFloat("Intensity", (float*)&material.intensity, 0.1f, 0.0f, 1000.0f))
+			if (ImGui::DragFloat("Intensity", (float *)&material.intensity, 0.1f, 0.0f, 1000.0f))
 			{
 				m_Context->InvalidateMeshInstance(selectionContext);
 				assetManager.InvalidateMaterial(meshInstance.materialIdx);
 			}
 			if (ImGui::DragFloat("Opacity", (float*)&material.opacity, 0.01f, 0.0f, 1.0f))
-			{
 				assetManager.InvalidateMaterial(meshInstance.materialIdx);
-			}
 		}
 		ImGui::TreePop();
 	}

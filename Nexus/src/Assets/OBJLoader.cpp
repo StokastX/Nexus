@@ -94,41 +94,35 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 	{
 		aiMaterial* material = scene->mMaterials[i];
 		Material newMaterial;
-		newMaterial.type = Material::Type::PLASTIC;
 
-		aiColor3D diffuse(0.0f);
-		material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
-		newMaterial.plastic.albedo = make_float3(diffuse.r, diffuse.g, diffuse.b);
+		aiColor3D baseColor(0.0f);
+		material->Get(AI_MATKEY_BASE_COLOR, baseColor);
+		newMaterial.baseColor = make_float3(baseColor.r, baseColor.g, baseColor.b);
+		material->Get(AI_MATKEY_METALLIC_FACTOR, newMaterial.metalness);
+		material->Get(AI_MATKEY_ROUGHNESS_FACTOR, newMaterial.roughness);
+		material->Get(AI_MATKEY_SPECULAR_FACTOR, newMaterial.specularWeight);
+
+		aiColor3D specularColor;
+		material->Get(AI_MATKEY_COLOR_SPECULAR, specularColor);
+		newMaterial.specularColor = make_float3(specularColor.r, specularColor.g, specularColor.b);
+
+		material->Get(AI_MATKEY_TRANSMISSION_FACTOR, newMaterial.transmission);
+		material->Get(AI_MATKEY_REFRACTI, newMaterial.ior);
 
 		aiColor3D emission(0.0f);
 		material->Get(AI_MATKEY_COLOR_EMISSIVE, emission);
-		newMaterial.emissive = make_float3(emission.r, emission.g, emission.b);
+		newMaterial.emissionColor = make_float3(emission.r, emission.g, emission.b);
 
-		float intensity = 1.0f;
-		material->Get(AI_MATKEY_EMISSIVE_INTENSITY, intensity);
-		newMaterial.intensity = intensity;
+		material->Get(AI_MATKEY_EMISSIVE_INTENSITY, newMaterial.intensity);
+		material->Get(AI_MATKEY_OPACITY, newMaterial.opacity);
 
-		float opacity = 1.0f;
-		material->Get(AI_MATKEY_OPACITY, opacity);
-		newMaterial.opacity = opacity;
 
-		float transmissionFactor = 0.0f;
-		material->Get(AI_MATKEY_TRANSMISSION_FACTOR, transmissionFactor);
-
-		// We assume every partially transmissive material is a dielectric
-		if (transmissionFactor > 0.0f)
-			newMaterial.type = Material::Type::DIELECTRIC;
-
-		float ior = 1.45f;
-		material->Get(AI_MATKEY_REFRACTI, ior);
-		newMaterial.plastic.ior = ior;
-
-		float shininess = 0.0f;
-		if (AI_SUCCESS != aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess))
-		{
-			shininess = 20.0f;
-		}
-		newMaterial.plastic.roughness = clamp(1.0f - sqrt(shininess) / 31.62278f, 0.0f, 1.0f);
+		//float shininess = 0.0f;
+		//if (AI_SUCCESS != aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess))
+		//{
+		//	shininess = 20.0f;
+		//}
+		//newMaterial.roughness = clamp(1.0f - sqrt(shininess) / 31.62278f, 0.0f, 1.0f);
 
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
 		{
@@ -149,7 +143,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					newTexture = IMGLoader::LoadIMG(materialPath);
 				}
 				newTexture.type = Texture::Type::DIFFUSE;
-				newMaterial.diffuseMapId = assetManager->AddTexture(newTexture);
+				newMaterial.baseColorMapId = assetManager->AddTexture(newTexture);
 			}
 		}
 		if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
@@ -157,9 +151,6 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 			aiString mPath;
 			if (material->GetTexture(aiTextureType_NORMALS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
-				//aiUVTransform transform;
-				//material->Get(AI_MATKEY_UVTRANSFORM_NORMALS(0), transform);
-
 				Texture newTexture;
 				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
 				if (texture)
@@ -201,6 +192,54 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 				newTexture.sRGB = false;
 				newTexture.type = Texture::Type::ROUGHNESS;
 				newMaterial.roughnessMapId = assetManager->AddTexture(newTexture);
+			}
+		}
+		if (material->GetTextureCount(aiTextureType_METALNESS) > 0)
+		{
+			aiString mPath;
+			if (material->GetTexture(aiTextureType_METALNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
+			{
+				Texture newTexture;
+				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
+				if (texture)
+				{
+					if (texture->mHeight == 0)
+					{
+						newTexture = IMGLoader::LoadIMG(texture);
+					}
+				}
+				else
+				{
+					const std::string materialPath = path + mPath.C_Str();
+					newTexture = IMGLoader::LoadIMG(materialPath);
+				}
+				newTexture.sRGB = false;
+				newTexture.type = Texture::Type::METALNESS;
+				newMaterial.metalnessMapId = assetManager->AddTexture(newTexture);
+			}
+		}
+		if (material->GetTextureCount(aiTextureType_GLTF_METALLIC_ROUGHNESS) > 0)
+		{
+			aiString mPath;
+			if (material->GetTexture(aiTextureType_GLTF_METALLIC_ROUGHNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
+			{
+				Texture newTexture;
+				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
+				if (texture)
+				{
+					if (texture->mHeight == 0)
+					{
+						newTexture = IMGLoader::LoadIMG(texture);
+					}
+				}
+				else
+				{
+					const std::string materialPath = path + mPath.C_Str();
+					newTexture = IMGLoader::LoadIMG(materialPath);
+				}
+				newTexture.sRGB = false;
+				newTexture.type = Texture::Type::METALLICROUGHNESS;
+				newMaterial.metallicRoughnessMapId = assetManager->AddTexture(newTexture);
 			}
 		}
 		if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0)

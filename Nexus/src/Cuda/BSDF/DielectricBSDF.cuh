@@ -21,8 +21,8 @@ struct D_DielectricBSDF
 
 	inline __device__ void PrepareBSDFData(const float3& wi,  const D_Material& material)
 	{
-		alpha = clamp((1.2f - 0.2f * sqrtf(fabs(wi.z))) * material.dielectric.roughness * material.dielectric.roughness, 1.0e-4f, 1.0f);
-		eta = wi.z < 0.0f ? material.dielectric.ior : 1 / material.dielectric.ior;
+		alpha = clamp((1.2f - 0.2f * sqrtf(fabs(wi.z))) * material.roughness * material.roughness, 1.0e-4f, 1.0f);
+		eta = wi.z < 0.0f ? material.ior : 1 / material.ior;
 	}
 
 	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& throughput, float& pdf)
@@ -41,7 +41,7 @@ struct D_DielectricBSDF
 		float cosThetaT;
 		const float wiDotM = dot(wi, m);
 		const float woDotM = dot(wo, m);
-		const float F = Fresnel::DieletricReflectance(1.0f / material.dielectric.ior, wiDotM, cosThetaT);
+		const float F = Fresnel::DieletricReflectance(1.0f / material.ior, wiDotM, cosThetaT);
 		const float G = Microfacet::Smith_G2(alpha, fabs(woDotN), fabs(wiDotN));
 		const float D = Microfacet::BeckmannD(alpha, m.z);
 
@@ -57,7 +57,7 @@ struct D_DielectricBSDF
 		}
 		else
 		{
-			const float3 btdf = fabs(wiDotM * woDotM) * (1.0f - F) * G * D / (fabs(wiDotN) * Square(eta * wiDotM + woDotM)) * material.dielectric.albedo;
+			const float3 btdf = fabs(wiDotM * woDotM) * (1.0f - F) * G * D / (fabs(wiDotN) * Square(eta * wiDotM + woDotM)) * material.baseColor;
 			throughput = btdf;
 
 			pdf = (1.0f - F) * D * m.z * fabs(woDotM) / Square(eta * wiDotM + woDotM);
@@ -73,7 +73,7 @@ struct D_DielectricBSDF
 		const float wiDotM = dot(wi, m);
 
 		float cosThetaT;
-		const float fr = Fresnel::DieletricReflectance(1.0f / material.dielectric.ior, wiDotM, cosThetaT);
+		const float fr = Fresnel::DieletricReflectance(1.0f / material.ior, wiDotM, cosThetaT);
 
 		// Randomly select a reflected or transmitted ray based on Fresnel reflectance
 		if (Random::Rand(rngState) < fr)
@@ -107,7 +107,7 @@ struct D_DielectricBSDF
 			if (wo.z * wi.z > 0.0f)
 				return false;
 
-			throughput = material.dielectric.albedo * weight;
+			throughput = material.baseColor * weight;
 			// Same here, we don't need to include the Fresnel term
 			//throughput = throughput * (1.0f - F) / (1.0f - fr)
 			const float woDotM = dot(wo, m);

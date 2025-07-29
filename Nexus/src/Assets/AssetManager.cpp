@@ -35,7 +35,6 @@ uint32_t AssetManager::AddMesh(const std::string name, uint32_t materialIdx, con
 void AssetManager::AddMaterial()
 {
 	Material material;
-	material.diffuse.albedo = make_float3(0.2f, 0.2f, 0.2f);
 	AddMaterial(material);
 }
 
@@ -64,7 +63,7 @@ int AssetManager::AddTexture(const Texture& texture)
 
 void AssetManager::ApplyTextureToMaterial(int materialIdx, int diffuseMapId)
 {
-	m_Materials[materialIdx].diffuseMapId = diffuseMapId;
+	m_Materials[materialIdx].baseColorMapId = diffuseMapId;
 	InvalidateMaterial(materialIdx);
 }
 

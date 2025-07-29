@@ -4,6 +4,7 @@
 #include "Cuda/BSDF/DielectricBSDF.cuh"
 #include "Cuda/BSDF/PlasticBSDF.cuh"
 #include "Cuda/BSDF/ConductorBSDF.cuh"
+#include "Cuda/BSDF/PrincipledBSDF.cuh"
 #include "Cuda/BSDF/BSDF.cuh"
 #include "Utils/cuda_math.h"
 #include "Math/TangentFrame.h"
@@ -29,10 +30,7 @@ __device__ __constant__ D_PathStateSOA pathState;
 __device__ __constant__ D_TraceRequestSOA traceRequest;
 __device__ __constant__ D_ShadowTraceRequestSOA shadowTraceRequest;
 
-__device__ __constant__ D_MaterialRequestSOA diffuseMaterialBuffer;
-__device__ __constant__ D_MaterialRequestSOA plasticMaterialBuffer;
-__device__ __constant__ D_MaterialRequestSOA dielectricMaterialBuffer;
-__device__ __constant__ D_MaterialRequestSOA conductorMaterialBuffer;
+__device__ __constant__ D_MaterialRequestSOA materialRequest;
 
 __device__ D_PixelQuery pixelQuery;
 __device__ D_QueueSize queueSize;
@@ -196,43 +194,14 @@ __global__ void LogicKernel()
 	else
 		return;
 
-	const D_MeshInstance instance = scene.meshInstances[intersection.instanceIdx];
-	const D_Material material = scene.materials[instance.materialIdx];
-
 	int32_t requestIdx;
-	switch (material.type)
-	{
-	case D_Material::D_Type::DIFFUSE:
-		requestIdx = atomicAdd(&queueSize.diffuseSize[bounce], 1);
-		diffuseMaterialBuffer.intersection.Set(requestIdx, intersection);
-		diffuseMaterialBuffer.rayDirection[requestIdx] = ray.direction;
-		diffuseMaterialBuffer.pixelIdx[requestIdx] = pixelIdx;
-		break;
-	case D_Material::D_Type::PLASTIC:
-		requestIdx = atomicAdd(&queueSize.plasticSize[bounce], 1);
-		plasticMaterialBuffer.intersection.Set(requestIdx, intersection);
-		plasticMaterialBuffer.rayDirection[requestIdx] = ray.direction;
-		plasticMaterialBuffer.pixelIdx[requestIdx] = pixelIdx;
-		break;
-	case D_Material::D_Type::DIELECTRIC:
-		requestIdx = atomicAdd(&queueSize.dielectricSize[bounce], 1);
-		dielectricMaterialBuffer.intersection.Set(requestIdx, intersection);
-		dielectricMaterialBuffer.rayDirection[requestIdx] = ray.direction;
-		dielectricMaterialBuffer.pixelIdx[requestIdx] = pixelIdx;
-		break;
-	case D_Material::D_Type::CONDUCTOR:
-		requestIdx = atomicAdd(&queueSize.conductorSize[bounce], 1);
-		conductorMaterialBuffer.intersection.Set(requestIdx, intersection);
-		conductorMaterialBuffer.rayDirection[requestIdx] = ray.direction;
-		conductorMaterialBuffer.pixelIdx[requestIdx] = pixelIdx;
-		break;
-	default:
-		break;
-	}
+	requestIdx = atomicAdd(&queueSize.materialSize[bounce], 1);
+	materialRequest.intersection.Set(requestIdx, intersection);
+	materialRequest.rayDirection[requestIdx] = ray.direction;
+	materialRequest.pixelIdx[requestIdx] = pixelIdx;
 }
 
 
-template<typename BSDF>
 inline __device__ void NextEventEstimation(
 	const float3 wi,
 	const float3 rayDirection,
@@ -272,7 +241,7 @@ inline __device__ void NextEventEstimation(
 
 		const bool reflect = dot(-rayDirection, hitGNormal) * dot(toLight, hitGNormal) > 0.0f;
 
-		if (!reflect && material.type != D_Material::D_Type::DIELECTRIC)
+		if (!reflect && material.transmission == 0.0f)
 			return;
 
 		float offsetDirection = Utils::SgnE(dot(toLight, normal));
@@ -311,7 +280,7 @@ inline __device__ void NextEventEstimation(
 		float3 sampleThroughput;
 		float bsdfPdf;
 
-		bool sampleIsValid = D_BSDF::Eval<BSDF>(material, wi, wo, sampleThroughput, bsdfPdf);
+		bool sampleIsValid = D_PrincipledBSDF::Eval(material, wi, wo, sampleThroughput, bsdfPdf);
 
 		if (!sampleIsValid)
 			return;
@@ -325,7 +294,7 @@ inline __device__ void NextEventEstimation(
 			emissive = make_float3(tex2D<float4>(scene.textures[lightMaterial.emissiveMapId], texUv.x, texUv.y));
 		}
 		else
-			emissive = lightMaterial.emissive;
+			emissive = lightMaterial.emissionColor;
 
 		const float3 radiance = weight * throughput * sampleThroughput * emissive * lightMaterial.intensity / lightPdf;
 
@@ -338,12 +307,11 @@ inline __device__ void NextEventEstimation(
 }
 
 
-template<typename BSDF>
-inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
+__global__ void MaterialKernel()
 {
 	const int32_t requestIdx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (requestIdx >= size)
+	if (requestIdx >= queueSize.materialSize[bounce])
 		return;
 
 	const D_Intersection intersection = materialRequest.intersection.Get(requestIdx);
@@ -385,16 +353,33 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 	float3 gNormal = normalize(instance.invTransform.Transposed().TransformVector(triangle.Normal()));
 
+	if (material.baseColorMapId != -1)
+	{
+		float4 color = tex2D<float4>(scene.textures[material.baseColorMapId], texUv.x, texUv.y);
+		material.baseColor *= make_float3(color);
+		material.opacity *= color.w;
+	}
 	if (material.emissiveMapId != -1)
-		material.emissive = make_float3(tex2D<float4>(scene.textures[material.emissiveMapId], texUv.x, texUv.y));
+		material.emissionColor *= make_float3(tex2D<float4>(scene.textures[material.emissiveMapId], texUv.x, texUv.y));
 	if (material.roughnessMapId != -1)
-		material.plastic.roughness = tex2D<float4>(scene.textures[material.roughnessMapId], texUv.x, texUv.y).x;
+		material.roughness *= tex2D<float4>(scene.textures[material.roughnessMapId], texUv.x, texUv.y).x;
+	if (material.metalnessMapId != -1)
+		material.metalness *= tex2D<float4>(scene.textures[material.metalnessMapId], texUv.x, texUv.y).x;
+	if (material.metallicRoughnessMapId != -1)
+	{
+		float4 c = tex2D<float4>(scene.textures[material.metallicRoughnessMapId], texUv.x, texUv.y);
+		material.roughness *= c.y;
+		material.metalness *= c.z;
+	}
+
+	if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
+		printf("roughness: %f, metalness: %f\n", material.roughness, material.metalness);
 
 	bool allowMIS = bounce > 1 && scene.renderSettings.useMIS;
 
 	float3 radiance = make_float3(0.0f);
 
-	if (fmaxf(material.emissive * material.intensity) > 0.0f)
+	if (fmaxf(material.emissionColor * material.intensity) > 0.0f)
 	{
 		float weight = 1.0f;
 
@@ -422,7 +407,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 			else
 				weight = Sampler::PowerHeuristic(lastPdf, lightPdf);
 		}
-		radiance = weight * material.emissive * material.intensity * throughput;
+		radiance = weight * material.emissionColor * material.intensity * throughput;
 	}
 
 	if (bounce == 1)
@@ -436,20 +421,13 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	if (bounce == 1 && pixelQuery.pixelIdx == pixelIdx)
 		pixelQuery.instanceIdx = intersection.instanceIdx;
 
-	float4 color = make_float4(1.0f);
-	if (material.diffuseMapId != -1)
-	{
-		color = tex2D<float4>(scene.textures[material.diffuseMapId], texUv.x, texUv.y);
-		material.diffuse.albedo = make_float3(color);
-	}
-
 	TangentFrame tangentFrame(normal);
 	float3 wi = tangentFrame.WorldToLocal(-rayDirection);
 
 	float3 wo;
 
 	// Handle texture transparency
-	if (Random::Rand(rngState) > material.opacity || (material.diffuseMapId != -1 && Random::Rand(rngState) > color.w))
+	if (Random::Rand(rngState) > material.opacity)
 	{
 		wo = tangentFrame.LocalToWorld(-wi);
 		const float offsetDirection = Utils::SgnE(dot(wo, normal));
@@ -463,11 +441,11 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	else
 	{
 		if (scene.renderSettings.useMIS)
-			NextEventEstimation<BSDF>(wi, rayDirection, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
+			NextEventEstimation(wi, rayDirection, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
 
 		float pdf;
 		float3 sampleThroughput;
-		const bool scattered = D_BSDF::Sample<BSDF>(material, wi, wo, sampleThroughput, pdf, rngState);
+		const bool scattered = D_PrincipledBSDF::Sample(material, wi, wo, sampleThroughput, pdf, rngState);
 
 		if (!scattered)
 			return;
@@ -476,7 +454,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 		const bool reflect = dot(-rayDirection, gNormal) * dot(wo, gNormal) > 0.0f;
 
-		if (!reflect && material.type != D_Material::D_Type::DIELECTRIC)
+		if (!reflect && material.transmission == 0.0f)
 			return;
 
 		const float offsetDirection = Utils::SgnE(dot(wo, normal));
@@ -494,26 +472,6 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 		pathState.throughput[pixelIdx] = throughput;
 		pathState.lastPdf[pixelIdx] = pdf;
 	}
-}
-
-__global__ void DiffuseMaterialKernel()
-{
-	Shade<D_LambertianBSDF>(diffuseMaterialBuffer, queueSize.diffuseSize[bounce]);
-}
-
-__global__ void PlasticMaterialKernel()
-{
-	Shade<D_PlasticBSDF>(plasticMaterialBuffer, queueSize.plasticSize[bounce]);
-}
-
-__global__ void DielectricMaterialKernel()
-{
-	Shade<D_DielectricBSDF>(dielectricMaterialBuffer, queueSize.dielectricSize[bounce]);
-}
-
-__global__ void ConductorMaterialKernel()
-{
-	//Shade<D_ConductorBSDF>(conductorMaterialBuffer, queueSize.conductorSize[bounce]);
 }
 
 __global__ void AccumulateKernel()
@@ -604,31 +562,10 @@ D_TraceRequestSOA* GetDeviceTraceRequestAddress()
 	return target;
 }
 
-D_MaterialRequestSOA* GetDeviceDiffuseRequestAddress()
+D_MaterialRequestSOA* GetDeviceMaterialRequestAddress()
 {
 	D_MaterialRequestSOA* target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, diffuseMaterialBuffer));
-	return target;
-}
-
-D_MaterialRequestSOA* GetDevicePlasticRequestAddress()
-{
-	D_MaterialRequestSOA* target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, plasticMaterialBuffer));
-	return target;
-}
-
-D_MaterialRequestSOA* GetDeviceDielectricRequestAddress()
-{
-	D_MaterialRequestSOA* target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, dielectricMaterialBuffer));
-	return target;
-}
-
-D_MaterialRequestSOA* GetDeviceConductorRequestAddress()
-{
-	D_MaterialRequestSOA* target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, conductorMaterialBuffer));
+	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, materialRequest));
 	return target;
 }
 

@@ -9,7 +9,8 @@ struct Texture
 	enum struct Type {
 		DIFFUSE,
 		ROUGHNESS,
-		METALLIC,
+		METALNESS,
+		METALLICROUGHNESS,
 		EMISSIVE,
 		NORMALS
 	};

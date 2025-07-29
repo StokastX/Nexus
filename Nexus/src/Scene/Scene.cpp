@@ -151,7 +151,7 @@ void Scene::UpdateInstanceLighting(size_t index)
 		const Light& light = m_Lights[i];
 		if (light.type == Light::Type::MESH_LIGHT && light.mesh.meshId == index)
 		{
-			if (fmaxf(material.intensity * material.emissive) == 0.0f)
+			if (fmaxf(material.intensity * material.emissionColor) == 0.0f)
 			{
 				m_Lights.erase(m_Lights.begin() + i);
 				m_DeviceLights = m_Lights;
@@ -162,7 +162,7 @@ void Scene::UpdateInstanceLighting(size_t index)
 
 	// If mesh has an emissive material, add it to the lights list
 	if (material.emissiveMapId != -1 ||
-		material.intensity * fmaxf(material.emissive) > 0.0f)
+		material.intensity * fmaxf(material.emissionColor) > 0.0f)
 	{
 		Light meshLight;
 		meshLight.type = Light::Type::MESH_LIGHT;

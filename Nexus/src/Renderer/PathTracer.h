@@ -32,10 +32,7 @@ private:
 	CUDAKernel m_TraceKernel;
 	CUDAKernel m_TraceVisualizeBvhKernel;
 	CUDAKernel m_TraceShadowKernel;
-	CUDAKernel m_DiffuseMaterialKernel;
-	CUDAKernel m_PlasticMaterialKernel;
-	CUDAKernel m_DielectricMaterialKernel;
-	CUDAKernel m_ConductorMaterialKernel;
+	CUDAKernel m_MaterialKernel;
 	CUDAKernel m_AccumulateKernel;
 
 	CUDAGraph m_RenderGraph;
@@ -63,9 +60,6 @@ private:
 	DeviceInstance<D_TraceRequestSOA> m_TraceRequest;
 	DeviceInstance<D_ShadowTraceRequestSOA> m_ShadowTraceRequest;
 
-	DeviceInstance<D_MaterialRequestSOA> m_DiffuseMaterialRequest;
-	DeviceInstance<D_MaterialRequestSOA> m_PlasticMaterialRequest;
-	DeviceInstance<D_MaterialRequestSOA> m_DielectricMaterialRequest;
-	DeviceInstance<D_MaterialRequestSOA> m_ConductorMaterialRequest;
+	DeviceInstance<D_MaterialRequestSOA> m_MaterialRequest;
 	DeviceInstance<D_QueueSize> m_QueueSize;
 };

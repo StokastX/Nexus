@@ -65,19 +65,13 @@ struct D_QueueSize
 	int32_t traceShadowSize[PATH_MAX_LENGTH];
 	int32_t traceShadowCount[PATH_MAX_LENGTH];
 
-	int32_t diffuseSize[PATH_MAX_LENGTH];
-	int32_t plasticSize[PATH_MAX_LENGTH];
-	int32_t dielectricSize[PATH_MAX_LENGTH];
-	int32_t conductorSize[PATH_MAX_LENGTH];
+	int32_t materialSize[PATH_MAX_LENGTH];
 };
 
 
 __global__ void GenerateKernel();
 __global__ void LogicKernel();
-__global__ void DiffuseMaterialKernel();
-__global__ void PlasticMaterialKernel();
-__global__ void DielectricMaterialKernel();
-__global__ void ConductorMaterialKernel();
+__global__ void MaterialKernel();
 __global__ void TraceKernel();
 __global__ void TraceShadowKernel();
 __global__ void AccumulateKernel();
@@ -93,9 +87,6 @@ D_Mesh** GetDeviceMeshesAdress();
 D_PathStateSOA* GetDevicePathStateAddress();
 D_ShadowTraceRequestSOA* GetDeviceShadowTraceRequestAddress();
 D_TraceRequestSOA* GetDeviceTraceRequestAddress();
-D_MaterialRequestSOA* GetDeviceDiffuseRequestAddress();
-D_MaterialRequestSOA* GetDevicePlasticRequestAddress();
-D_MaterialRequestSOA* GetDeviceDielectricRequestAddress();
-D_MaterialRequestSOA* GetDeviceConductorRequestAddress();
+D_MaterialRequestSOA* GetDeviceMaterialRequestAddress();
 D_QueueSize* GetDeviceQueueSizeAddress();
 D_PixelQuery* GetDevicePixelQueryAddress();

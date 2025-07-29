@@ -14,10 +14,7 @@ PathTracer::PathTracer(uint32_t width, uint32_t height)
 	m_PathState(GetDevicePathStateAddress()),
 	m_ShadowTraceRequest(GetDeviceShadowTraceRequestAddress()),
 	m_TraceRequest(GetDeviceTraceRequestAddress()),
-	m_DiffuseMaterialRequest(GetDeviceDiffuseRequestAddress()),
-	m_PlasticMaterialRequest(GetDevicePlasticRequestAddress()),
-	m_DielectricMaterialRequest(GetDeviceDielectricRequestAddress()),
-	m_ConductorMaterialRequest(GetDeviceConductorRequestAddress()),
+	m_MaterialRequest(GetDeviceMaterialRequestAddress()),
 	m_QueueSize(GetDeviceQueueSizeAddress()),
 	m_PixelQuery(GetDevicePixelQueryAddress())
 {
@@ -54,37 +51,13 @@ void PathTracer::FreeDeviceBuffers()
 	CudaMemory::FreeAsync(m_ShadowTraceRequest->ray.origin);
 	CudaMemory::FreeAsync(m_ShadowTraceRequest->ray.direction);
 
-	CudaMemory::FreeAsync(m_DiffuseMaterialRequest->intersection.hitDistance);
-	CudaMemory::FreeAsync(m_DiffuseMaterialRequest->intersection.instanceIdx);
-	CudaMemory::FreeAsync(m_DiffuseMaterialRequest->intersection.triIdx);
-	CudaMemory::FreeAsync(m_DiffuseMaterialRequest->intersection.u);
-	CudaMemory::FreeAsync(m_DiffuseMaterialRequest->intersection.v);
-	CudaMemory::FreeAsync(m_DiffuseMaterialRequest->rayDirection);
-	CudaMemory::FreeAsync(m_DiffuseMaterialRequest->pixelIdx);
-
-	CudaMemory::FreeAsync(m_PlasticMaterialRequest->intersection.hitDistance);
-	CudaMemory::FreeAsync(m_PlasticMaterialRequest->intersection.instanceIdx);
-	CudaMemory::FreeAsync(m_PlasticMaterialRequest->intersection.triIdx);
-	CudaMemory::FreeAsync(m_PlasticMaterialRequest->intersection.u);
-	CudaMemory::FreeAsync(m_PlasticMaterialRequest->intersection.v);
-	CudaMemory::FreeAsync(m_PlasticMaterialRequest->rayDirection);
-	CudaMemory::FreeAsync(m_PlasticMaterialRequest->pixelIdx);
-
-	CudaMemory::FreeAsync(m_DielectricMaterialRequest->intersection.hitDistance);
-	CudaMemory::FreeAsync(m_DielectricMaterialRequest->intersection.instanceIdx);
-	CudaMemory::FreeAsync(m_DielectricMaterialRequest->intersection.triIdx);
-	CudaMemory::FreeAsync(m_DielectricMaterialRequest->intersection.u);
-	CudaMemory::FreeAsync(m_DielectricMaterialRequest->intersection.v);
-	CudaMemory::FreeAsync(m_DielectricMaterialRequest->rayDirection);
-	CudaMemory::FreeAsync(m_DielectricMaterialRequest->pixelIdx);
-
-	CudaMemory::FreeAsync(m_ConductorMaterialRequest->intersection.hitDistance);
-	CudaMemory::FreeAsync(m_ConductorMaterialRequest->intersection.instanceIdx);
-	CudaMemory::FreeAsync(m_ConductorMaterialRequest->intersection.triIdx);
-	CudaMemory::FreeAsync(m_ConductorMaterialRequest->intersection.u);
-	CudaMemory::FreeAsync(m_ConductorMaterialRequest->intersection.v);
-	CudaMemory::FreeAsync(m_ConductorMaterialRequest->rayDirection);
-	CudaMemory::FreeAsync(m_ConductorMaterialRequest->pixelIdx);
+	CudaMemory::FreeAsync(m_MaterialRequest->intersection.hitDistance);
+	CudaMemory::FreeAsync(m_MaterialRequest->intersection.instanceIdx);
+	CudaMemory::FreeAsync(m_MaterialRequest->intersection.triIdx);
+	CudaMemory::FreeAsync(m_MaterialRequest->intersection.u);
+	CudaMemory::FreeAsync(m_MaterialRequest->intersection.v);
+	CudaMemory::FreeAsync(m_MaterialRequest->rayDirection);
+	CudaMemory::FreeAsync(m_MaterialRequest->pixelIdx);
 }
 
 void PathTracer::Reset()
@@ -96,10 +69,7 @@ void PathTracer::Reset()
 
 	m_GenerateKernel = CUDAKernel((void*)GenerateKernel, gridSize, blockSize);
 	m_LogicKernel = CUDAKernel((void*)LogicKernel, gridSize, blockSize);
-	m_DiffuseMaterialKernel = CUDAKernel((void*)DiffuseMaterialKernel, gridSize, blockSize);
-	m_PlasticMaterialKernel = CUDAKernel((void*)PlasticMaterialKernel, gridSize, blockSize);
-	m_DielectricMaterialKernel = CUDAKernel((void*)DielectricMaterialKernel, gridSize, blockSize);
-	m_ConductorMaterialKernel = CUDAKernel((void*)ConductorMaterialKernel, gridSize, blockSize);
+	m_MaterialKernel = CUDAKernel((void*)MaterialKernel, gridSize, blockSize);
 	m_TraceKernel = CUDAKernel((void*)TraceKernel);
 	m_TraceShadowKernel = CUDAKernel((void*)TraceShadowKernel);
 	m_AccumulateKernel = CUDAKernel((void*)AccumulateKernel, gridSize, blockSize);
@@ -111,13 +81,10 @@ void PathTracer::Reset()
 
 	m_RenderGraph.Reset();
 	cudaGraphNode_t logicNode = m_RenderGraph.AddKernelNode(m_LogicKernel);
-	cudaGraphNode_t diffuseNode = m_RenderGraph.AddKernelNode(m_DiffuseMaterialKernel, &logicNode, 1);
-	cudaGraphNode_t plasticNode = m_RenderGraph.AddKernelNode(m_PlasticMaterialKernel, &logicNode, 1);
-	cudaGraphNode_t dielectricNode = m_RenderGraph.AddKernelNode(m_DielectricMaterialKernel, &logicNode, 1);
-	cudaGraphNode_t conductorNode = m_RenderGraph.AddKernelNode(m_ConductorMaterialKernel, &logicNode, 1);
-	cudaGraphNode_t materialNodes[4] = { diffuseNode, plasticNode, dielectricNode, conductorNode };
-	cudaGraphNode_t traceNode = m_RenderGraph.AddKernelNode(m_TraceKernel, materialNodes, 4);
-	cudaGraphNode_t traceShadowNode = m_RenderGraph.AddKernelNode(m_TraceShadowKernel, materialNodes, 4);
+	cudaGraphNode_t materialNode = m_RenderGraph.AddKernelNode(m_MaterialKernel, &logicNode, 1);
+	//cudaGraphNode_t materialNodes[4] = { diffuseNode, plasticNode, dielectricNode, conductorNode };
+	cudaGraphNode_t traceNode = m_RenderGraph.AddKernelNode(m_TraceKernel, &materialNode, 1);
+	cudaGraphNode_t traceShadowNode = m_RenderGraph.AddKernelNode(m_TraceShadowKernel, &materialNode, 1);
 
 	m_RenderGraph.BuildGraph();
 
@@ -186,49 +153,7 @@ void PathTracer::Reset()
 	materialRequest.rayDirection = rayDirection;
 	materialRequest.pixelIdx = pixelIdx;
 
-	m_DiffuseMaterialRequest = materialRequest;
-
-	intersectionSOA.hitDistance = CudaMemory::AllocateAsync<float>(count);
-	intersectionSOA.instanceIdx = CudaMemory::AllocateAsync<uint32_t>(count);
-	intersectionSOA.triIdx = CudaMemory::AllocateAsync<uint32_t>(count);
-	intersectionSOA.u = CudaMemory::AllocateAsync<float>(count);
-	intersectionSOA.v = CudaMemory::AllocateAsync<float>(count);
-	rayDirection = CudaMemory::AllocateAsync<float3>(count);
-	pixelIdx = CudaMemory::AllocateAsync<uint32_t>(count);
-
-	materialRequest.intersection = intersectionSOA;
-	materialRequest.rayDirection = rayDirection;
-	materialRequest.pixelIdx = pixelIdx;
-
-	m_PlasticMaterialRequest = materialRequest;
-
-	intersectionSOA.hitDistance = CudaMemory::AllocateAsync<float>(count);
-	intersectionSOA.instanceIdx = CudaMemory::AllocateAsync<uint32_t>(count);
-	intersectionSOA.triIdx = CudaMemory::AllocateAsync<uint32_t>(count);
-	intersectionSOA.u = CudaMemory::AllocateAsync<float>(count);
-	intersectionSOA.v = CudaMemory::AllocateAsync<float>(count);
-	rayDirection = CudaMemory::AllocateAsync<float3>(count);
-	pixelIdx = CudaMemory::AllocateAsync<uint32_t>(count);
-
-	materialRequest.intersection = intersectionSOA;
-	materialRequest.rayDirection = rayDirection;
-	materialRequest.pixelIdx = pixelIdx;
-
-	m_DielectricMaterialRequest = materialRequest;
-
-	intersectionSOA.hitDistance = CudaMemory::AllocateAsync<float>(count);
-	intersectionSOA.instanceIdx = CudaMemory::AllocateAsync<uint32_t>(count);
-	intersectionSOA.triIdx = CudaMemory::AllocateAsync<uint32_t>(count);
-	intersectionSOA.u = CudaMemory::AllocateAsync<float>(count);
-	intersectionSOA.v = CudaMemory::AllocateAsync<float>(count);
-	rayDirection = CudaMemory::AllocateAsync<float3>(count);
-	pixelIdx = CudaMemory::AllocateAsync<uint32_t>(count);
-
-	materialRequest.intersection = intersectionSOA;
-	materialRequest.rayDirection = rayDirection;
-	materialRequest.pixelIdx = pixelIdx;
-
-	m_ConductorMaterialRequest = materialRequest;
+	m_MaterialRequest = materialRequest;
 
 	// Set pixel query index to undefined
 	D_PixelQuery pixelQuery;
