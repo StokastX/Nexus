@@ -54,7 +54,7 @@ inline __device__ float3 Tonemap(float3 color)
 	//float3 x = fmaxf(make_float3(0.0f), color - 0.004f);
 	//return (x * (6.2f * x + 0.5f)) / (x * (6.2f * x + 1.7f) + 0.06f);
 
-	color *= 0.6f; // Exposure
+	//color *= 0.6f; // Exposure
 	const float a = 2.51f;
 	const float b = 0.03f;
 	const float c = 2.43f;
@@ -440,7 +440,7 @@ __global__ void MaterialKernel()
 	}
 	else
 	{
-		if (scene.renderSettings.useMIS)
+		if (scene.renderSettings.useMIS && scene.lightCount > 0)
 			NextEventEstimation(wi, rayDirection, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
 
 		float pdf;

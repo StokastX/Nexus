@@ -151,7 +151,7 @@ void Scene::UpdateInstanceLighting(size_t index)
 		const Light& light = m_Lights[i];
 		if (light.type == Light::Type::MESH_LIGHT && light.mesh.meshId == index)
 		{
-			if (fmaxf(material.intensity * material.emissionColor) == 0.0f)
+			if (material.emissiveMapId == -1 && fmaxf(material.intensity * material.emissionColor) == 0.0f)
 			{
 				m_Lights.erase(m_Lights.begin() + i);
 				m_DeviceLights = m_Lights;

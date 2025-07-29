@@ -58,7 +58,6 @@ public:
 			D_ConductorBSDF bsdf;
 			bsdf.PrepareBSDFData(wi, material);
 			bool scattered = bsdf.Sample(material, wi, wo, throughput, pdf, rngState);
-			throughput /= material.metalness;
 			pdf *= material.metalness;
 			return scattered && Sampler::IsPdfValid(pdf);
 		}
@@ -70,7 +69,6 @@ public:
 				D_DielectricBSDF bsdf;
 				bsdf.PrepareBSDFData(wi, material);
 				bool scattered = bsdf.Sample(material, wi, wo, throughput, pdf, rngState);
-				throughput /= (1.0f - material.metalness) * material.transmission;
 				pdf *= (1.0f - material.metalness) * material.transmission;
 				return scattered && Sampler::IsPdfValid(pdf);
 			}
@@ -79,7 +77,6 @@ public:
 				D_PlasticBSDF bsdf;
 				bsdf.PrepareBSDFData(wi, material);
 				bool scattered = bsdf.Sample(material, wi, wo, throughput, pdf, rngState);
-				throughput /= (1.0f - material.metalness) * (1.0f - material.transmission);
 				pdf *= (1.0f - material.metalness) * (1.0f - material.transmission);
 				return scattered && Sampler::IsPdfValid(pdf);
 			}

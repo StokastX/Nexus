@@ -113,16 +113,10 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 		material->Get(AI_MATKEY_COLOR_EMISSIVE, emission);
 		newMaterial.emissionColor = make_float3(emission.r, emission.g, emission.b);
 
+		if (fmaxf(newMaterial.emissionColor) > 0.0f)
+			newMaterial.intensity = 1.0f;
 		material->Get(AI_MATKEY_EMISSIVE_INTENSITY, newMaterial.intensity);
 		material->Get(AI_MATKEY_OPACITY, newMaterial.opacity);
-
-
-		//float shininess = 0.0f;
-		//if (AI_SUCCESS != aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess))
-		//{
-		//	shininess = 20.0f;
-		//}
-		//newMaterial.roughness = clamp(1.0f - sqrt(shininess) / 31.62278f, 0.0f, 1.0f);
 
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
 		{
