@@ -16,6 +16,8 @@ struct D_RenderSettings
 
 	float3 backgroundColor;
 	float backgroundIntensity;
+	ColorUtils::ToneMapping toneMapping;
+	float exposure;
 };
 
 struct D_Scene

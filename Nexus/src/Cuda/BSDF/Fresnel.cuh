@@ -1,20 +1,8 @@
 #pragma once
 #include <cuda_runtime_api.h>
 #include "Utils/cuda_math.h"
-
-constexpr float muBar = 1.0f / 7.0f;
-
-__device__ constexpr float fifthPower(float x)
-{
-	float r = x * x;
-	return r * r * x;
-}
-
-__device__ constexpr float sixthPower(const float x)
-{
-	float r = x * x;
-	return r * r * r;
-}
+#include "Utils/ColorUtils.h"
+#include "Cuda/Utils.cuh"
 
 class Fresnel
 {
@@ -50,10 +38,10 @@ public:
 		return F0 + (F90 - F0) * fifthPower(1.0f - cosThetaI);
 	}
 
-	// Modified fresnel reflectance at grazing angles (90°) depending on R0. See https://boksajak.github.io/files/CrashCourseBRDF.pdf
+	// Modified fresnel reflectance at grazing angles (90ï¿½) depending on R0. See https://boksajak.github.io/files/CrashCourseBRDF.pdf
 	inline static __device__ float ShadowedF90(const float3& F0) {
 		const float t = (1.0f / 0.04f);
-		return min(1.0f, t * Luminance(F0));
+		return min(1.0f, t * ColorUtils::Luminance(F0));
 	}
 
 	inline static __device__ float3 SchlickMetallicReflectance(const float3& F0, const float cosTheta)
@@ -106,11 +94,4 @@ public:
 	{
 		return make_float3(ComplexReflectance(cosThetaI, eta.x, k.x), ComplexReflectance(cosThetaI, eta.y, k.y), ComplexReflectance(cosThetaI, eta.z, k.z));
 	}
-
-private:
-	inline static __device__ float Luminance(const float3& rgb)
-	{
-		return dot(rgb, make_float3(0.2126f, 0.7152f, 0.0722f));
-	}
-
 };

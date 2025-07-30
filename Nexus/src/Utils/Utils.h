@@ -49,16 +49,6 @@ namespace Utils
 		return angle * 180.0f / PI;
 	}
 
-	inline __host__ __device__ float3 LinearToGamma(const float3& color)
-	{
-		return make_float3(pow(color.x, 0.45454545454), pow(color.y, 0.45454545454), pow(color.z, 0.45454545454));
-	}
-
-	inline __host__ __device__ float3 GammaToLinear(const float3& color)
-	{
-		return make_float3(pow(color.x, 2.2), pow(color.y, 2.2), pow(color.z, 2.2));
-	}
-
 	void GetPathAndFileName(const std::string fullPath, std::string& path, std::string& name);
 }
 

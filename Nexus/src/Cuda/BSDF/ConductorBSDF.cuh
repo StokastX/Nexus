@@ -22,7 +22,6 @@ struct D_ConductorBSDF
 		const float woDotN = wo.z;
 
 		const float3 m = normalize(wo + wi);
-		float cosThetaT;
 		const float wiDotM = dot(wi, m);
 		float3 F82 = material.specularColor * Fresnel::SchlickMetallicReflectance(material.baseColor, fabs(wiDotM));
 		float3 F = material.specularWeight * Fresnel::SchlickMetallicF82(material.baseColor, F82, fabs(wiDotM));

@@ -16,6 +16,7 @@
 #include "NXB/BVHBuilder.h"
 #include "Cuda/BVH/BVH2Traversal.cuh"
 #include "Cuda/BVH/BVH8Traversal.cuh"
+#include "Utils/ColorUtils.h"
 
 __device__ __constant__ uint32_t frameNumber;
 __device__ __constant__ uint32_t bounce;
@@ -34,34 +35,6 @@ __device__ __constant__ D_MaterialRequestSOA materialRequest;
 
 __device__ D_PixelQuery pixelQuery;
 __device__ D_QueueSize queueSize;
-
-
-inline __device__ uint32_t ToColorUInt(float3 color)
-{
-	float4 clamped = clamp(make_float4(color, 1.0f), make_float4(0.0f), make_float4(1.0f));
-	uint8_t red = (uint8_t)(clamped.x * 255.0f);
-	uint8_t green = (uint8_t)(clamped.y * 255.0f);
-	uint8_t blue = (uint8_t)(clamped.z * 255.0f);
-	uint8_t alpha = (uint8_t)(clamped.w * 255.0f);
-	 
-	return alpha << 24 | blue << 16 | green << 8 | red;
-}
-
-// Approximated ACES tonemapping by Krzysztof Narkowicz. See https://graphics-programming.org/resources/tonemapping/index.html
-inline __device__ float3 Tonemap(float3 color)
-{
-	// Tungsten renderer filmic tonemapping to compare my results
-	//float3 x = fmaxf(make_float3(0.0f), color - 0.004f);
-	//return (x * (6.2f * x + 0.5f)) / (x * (6.2f * x + 1.7f) + 0.06f);
-
-	//color *= 0.6f; // Exposure
-	const float a = 2.51f;
-	const float b = 0.03f;
-	const float c = 2.43f;
-	const float d = 0.59f;
-	const float e = 0.14f;
-	return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0f, 1.0f);
-}
 
 // If necessary, sample the HDR map (from spherical to equirectangular projection)
 inline __device__ float3 SampleBackground(const D_Scene& scene, float3 direction)
@@ -488,8 +461,24 @@ __global__ void AccumulateKernel()
 	else
 		accumulationBuffer[index] += (pathState.radiance[index] - accumulationBuffer[index]) / frameNumber;
 
-
-	renderBuffer[index] = ToColorUInt(Utils::LinearToGamma(Tonemap(accumulationBuffer[index])));
+	float3 color = accumulationBuffer[index] * exp2f(scene.renderSettings.exposure);
+	switch (scene.renderSettings.toneMapping)
+	{
+	case ColorUtils::ToneMapping::ACES:
+		color = ColorUtils::ACESToneMapping(color);
+		break;
+	case ColorUtils::ToneMapping::UNCHARTED2:
+		color = ColorUtils::Uncharted2ToneMapping(color);
+		break;
+	case ColorUtils::ToneMapping::AGX_DEFAULT:
+	case ColorUtils::ToneMapping::AGX_GOLDEN:
+	case ColorUtils::ToneMapping::AGX_PUNCHY:
+		color = ColorUtils::AgxToneMapping(color, scene.renderSettings.toneMapping);
+		break;
+	default:
+		break;
+	}
+	renderBuffer[index] = ColorUtils::ToColorUInt(ColorUtils::LinearToGamma(color));
 }
 
 D_Scene* GetDeviceSceneAddress()

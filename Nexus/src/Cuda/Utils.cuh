@@ -7,13 +7,13 @@
 #include "Utils/cuda_math.h"
 
 // Sign extend function. See https://github.com/AlanIWBFT/CWBVH/blob/master/src/TraversalKernelCWBVH.cu
-__device__ __inline__ uint32_t SignExtendS8x4(uint32_t i) 
+inline __device__ uint32_t SignExtendS8x4(uint32_t i) 
 {
 	uint32_t v; asm("prmt.b32 %0, %1, 0x0, 0x0000BA98;" : "=r"(v) : "r"(i)); return v;
 }
 
 // Returns max(a, max(b, c))
-__device__ float vMaxMax(float a, float b, float c)
+inline __device__ float vMaxMax(float a, float b, float c)
 {
 	int result;
 
@@ -23,7 +23,7 @@ __device__ float vMaxMax(float a, float b, float c)
 }
 
 // Returns min(a, min(b, c))
-__device__ float vMinMin(float a, float b, float c)
+inline __device__ float vMinMin(float a, float b, float c)
 {
 	int result;
 
@@ -41,6 +41,18 @@ inline __device__ uint32_t ExtractByte(uint32_t x, uint32_t i)
 inline __device__ float Square(const float x)
 {
 	return x * x;
+}
+
+__device__ constexpr float fifthPower(float x)
+{
+	float r = x * x;
+	return r * r * x;
+}
+
+__device__ constexpr float sixthPower(const float x)
+{
+	float r = x * x;
+	return r * r * r;
 }
 
 template<typename T>
@@ -71,19 +83,4 @@ inline __device__ float3 OffsetRay(const float3 p, const float3 n)
 		fabs(p.y) < ORIGIN ? p.y + FLOAT_SCALE * n.y : pi.y,
 		fabs(p.z) < ORIGIN ? p.z + FLOAT_SCALE * n.z : pi.z
 	);
-}
-
-__device__ __forceinline__ float3 HeatmapColor(int boundsHit, int maxHit = 60)
-{
-    float t = fminf((float)boundsHit / maxHit, 1.0f);
-
-    if (t < 0.5f) {
-        // Blue to Green
-        float localT = t * 2.0f;  // remap to [0,1]
-        return make_float3(0.0f, localT, 1.0f - localT);
-    } else {
-        // Green to Red
-        float localT = (t - 0.5f) * 2.0f;  // remap to [0,1]
-        return make_float3(localT, 1.0f - localT, 0.0f);
-    }
 }
