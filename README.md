@@ -14,18 +14,15 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
 ## Screenshots
 
 ![cannelle_et_fromage](https://github.com/user-attachments/assets/e02c6724-e3a1-4fbd-9866-8f13229ce71b)
-![stormtrooper](https://github.com/user-attachments/assets/e5e1dea7-7232-434c-ac56-114b24f26f67)
+![camera6](https://github.com/user-attachments/assets/dccb6e12-ba0d-4110-b665-d578748ce172)
 ![glass_of_water](https://github.com/user-attachments/assets/ea53185c-85b2-47a2-b302-dcb7c8b9984f)
+![stormtrooper](https://github.com/user-attachments/assets/e5e1dea7-7232-434c-ac56-114b24f26f67)
 ![kitchen](https://github.com/user-attachments/assets/94eeb762-c1e1-448c-83b4-f7ff83c80ab5)
 ![ford_mustang](https://github.com/user-attachments/assets/690fe199-18fb-486a-ac88-7bcc51e3d991)
-![danish_mood](https://github.com/user-attachments/assets/593b537e-eff1-4967-a327-b67fe1bb8e03)
 ![bedroom](https://github.com/user-attachments/assets/d8387785-86cb-4c84-b1c3-0fd949b6b6c1)
 ![spider](https://github.com/user-attachments/assets/354a6c07-e181-4e8a-b3d3-5abd6a2570bf)
 ![bathroom](https://github.com/user-attachments/assets/60188c8e-1729-4d12-9eab-8592b02b38e9)
 ![piano](https://github.com/user-attachments/assets/bef492f7-769e-4966-a6a6-92c0ea2768bf)
-![mis_comparison](https://github.com/user-attachments/assets/214bccc0-1c9f-48f8-ac89-63549ef719f8)
-<p align="center"><em>Left: multiple importance sampling. Right: naive render (BSDF importance sampling). Image rendered at 24 spp.</em></p>
-
 
 ## Features
 - Interactive camera with thin lens approximation: FOV, defocus blur.
@@ -124,6 +121,7 @@ I also had a look at other renderer implementations such as Blender's [cycles](h
 ## Models
 - [LuxCore example scenes](https://luxcorerender.org/example-scenes/)
 - [Blender demo scenes](https://www.blender.org/download/demo-files/)
+- [Camera](https://github.com/LuisaGroup/LuisaRender) from LuisaRender
 - [Stormtrooper](https://www.blendswap.com/blend/13953) by [ScottGraham](https://www.blendswap.com/profile/120125)
 - [Ford mustang](https://sketchfab.com/3d-models/ford-mustang-1965-5f4e3965f79540a9888b5d05acea5943) by [Pooya_dh](https://sketchfab.com/Pooya_dh)
 - [Bedroom](https://www.blendswap.com/blend/3391) by [SlykDrako](https://www.blendswap.com/profile/324)
