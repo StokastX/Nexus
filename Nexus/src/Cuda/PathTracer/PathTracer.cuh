@@ -20,9 +20,6 @@ struct D_PathStateSOA
 	float3* throughput;
 	float3* radiance;
 
-	// Unoccluded ray origin (used for MIS with semi-opaque materials)
-	float3* rayOrigin;
-
 	float* lastPdf;
 	bool* allowMIS;
 };

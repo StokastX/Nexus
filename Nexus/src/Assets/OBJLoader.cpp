@@ -102,7 +102,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 		material->Get(AI_MATKEY_ROUGHNESS_FACTOR, newMaterial.roughness);
 		material->Get(AI_MATKEY_SPECULAR_FACTOR, newMaterial.specularWeight);
 
-		aiColor3D specularColor;
+		aiColor3D specularColor(1.0f);
 		material->Get(AI_MATKEY_COLOR_SPECULAR, specularColor);
 		newMaterial.specularColor = make_float3(specularColor.r, specularColor.g, specularColor.b);
 
@@ -335,6 +335,8 @@ void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Sc
 	
 	std::vector<uint32_t> materialIdx = CreateMaterialsFromAiScene(objScene, assetManager, path);
 	std::vector<uint32_t> meshIdx = CreateMeshesFromScene(objScene, assetManager, materialIdx);
+	for (uint32_t i = 0; i < objScene->mNumLights; i++)
+		std::cout << "Light: " << objScene->mLights[i]->mType << objScene->mLights[i]->mSize.x << " " << objScene->mLights[i]->mSize.y << std::endl;
 	CreateMeshInstancesFromNode(objScene, scene, objScene->mRootNode, aiMatrix4x4(), materialIdx, meshIdx);
 
 	std::cout << "OBJLoader: loaded model " << filePath << " successfully" << std::endl;

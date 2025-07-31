@@ -32,7 +32,6 @@ void PathTracer::FreeDeviceBuffers()
 	CudaMemory::FreeAsync(m_AccumulationBuffer.Instance());
 	CudaMemory::FreeAsync(m_PathState->lastPdf);
 	CudaMemory::FreeAsync(m_PathState->throughput);
-	CudaMemory::FreeAsync(m_PathState->rayOrigin);
 	CudaMemory::FreeAsync(m_PathState->radiance);
 	CudaMemory::FreeAsync(m_PathState->allowMIS);
 
@@ -82,7 +81,6 @@ void PathTracer::Reset()
 	m_RenderGraph.Reset();
 	cudaGraphNode_t logicNode = m_RenderGraph.AddKernelNode(m_LogicKernel);
 	cudaGraphNode_t materialNode = m_RenderGraph.AddKernelNode(m_MaterialKernel, &logicNode, 1);
-	//cudaGraphNode_t materialNodes[4] = { diffuseNode, plasticNode, dielectricNode, conductorNode };
 	cudaGraphNode_t traceNode = m_RenderGraph.AddKernelNode(m_TraceKernel, &materialNode, 1);
 	cudaGraphNode_t traceShadowNode = m_RenderGraph.AddKernelNode(m_TraceShadowKernel, &materialNode, 1);
 
@@ -99,7 +97,6 @@ void PathTracer::Reset()
 	D_PathStateSOA pathState;
 	pathState.lastPdf = lastPdf;
 	pathState.throughput = throughput;
-	pathState.rayOrigin = rayOrigin;
 	pathState.radiance = radiance;
 	pathState.allowMIS = allowMIS;
 

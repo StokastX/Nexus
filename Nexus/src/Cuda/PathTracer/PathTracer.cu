@@ -89,8 +89,6 @@ __global__ void GenerateKernel()
 	if (index == 0)
 		queueSize.traceSize[0] = resolution.x * resolution.y;
 
-	pathState.rayOrigin[index] = ray.origin;
-	pathState.lastPdf[index] = 1.0e10f;
 	traceRequest.ray.origin[index] = ray.origin;
 	traceRequest.ray.direction[index] = ray.direction;
 	traceRequest.pixelIdx[index] = index;
@@ -363,7 +361,7 @@ __global__ void MaterialKernel()
 
 			const float cosThetaO = fabs(dot(normal, rayDirection));
 
-			const float dSquared = Square(length(p - pathState.rayOrigin[pixelIdx]));
+			const float dSquared = Square(intersection.hitDistance);
 
 			const NXB::Triangle triangleTransformed(
 				instance.transform.TransformPoint(triangle.v0),
@@ -441,7 +439,6 @@ __global__ void MaterialKernel()
 		traceRequest.ray.Set(traceRequestIdx, scatteredRay);
 		traceRequest.pixelIdx[traceRequestIdx] = pixelIdx;
 
-		pathState.rayOrigin[pixelIdx] = scatteredRay.origin;
 		pathState.throughput[pixelIdx] = throughput;
 		pathState.lastPdf[pixelIdx] = pdf;
 	}

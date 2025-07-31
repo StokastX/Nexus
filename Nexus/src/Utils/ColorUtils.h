@@ -63,7 +63,7 @@ namespace ColorUtils
     }
 
     template<typename T>
-    static inline __host__ __device__ T Uncharted2ToneMappingPartial(T x)
+    constexpr inline __host__ __device__ T Uncharted2ToneMappingPartial(T x)
     {
         constexpr float a = 0.15f;
         constexpr float b = 0.50f;
@@ -77,7 +77,8 @@ namespace ColorUtils
     inline __host__ __device__ float3 Uncharted2ToneMapping(float3 color)
     {
         constexpr float white = 11.2f;
-        return Uncharted2ToneMappingPartial(1.6f * color) / Uncharted2ToneMappingPartial(white);
+        constexpr float scale = 1.0f / Uncharted2ToneMappingPartial(white);
+        return Uncharted2ToneMappingPartial(1.6f * color) * scale;
     }
 
     // Minimal AgX implementation by Benjamin Wrensch
