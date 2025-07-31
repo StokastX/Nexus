@@ -5,23 +5,35 @@ struct D_Light
 {
 	enum struct Type : char
 	{
-		POINT_LIGHT,
-		AREA_LIGHT,
-		MESH_LIGHT
+		UNDEFINED,
+		POINT,
+		SPOT,
+		DIRECTIONAL,
+		MESH
 	};
 
 	union
 	{
 		struct
 		{
-			uint32_t radius;
-			uint32_t intensity;
+			float3 color;
+			float intensity;
 		} point;
 
 		struct
 		{
-			uint32_t intensity;
-		} area;
+			float3 color;
+			float intensity;
+			float falloffStart;
+			float falloffEnd;
+		} spot;
+
+		struct
+		{
+			float3 color;
+			float3 direction;
+			float intensity;
+		} directional;
 
 		struct
 		{

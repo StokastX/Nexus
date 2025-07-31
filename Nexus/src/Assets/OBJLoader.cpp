@@ -264,6 +264,38 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 	return materialIdx;
 }
 
+static void CreateLightsFromScene(const aiScene* assimpScene, Scene* scene)
+{
+	for (uint32_t i = 0; i < assimpScene->mNumLights; i++)
+	{
+		Light light;
+		switch (assimpScene->mLights[i]->mType)
+		{
+		case aiLightSource_POINT:
+			light.type = Light::Type::POINT;
+			light.point.color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			light.point.intensity = 1.0f / assimpScene->mLights[i]->mAttenuationQuadratic;
+			break;
+		case aiLightSource_SPOT:
+			light.type = Light::Type::SPOT;
+			light.spot.color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			light.spot.intensity = 1.0f / assimpScene->mLights[i]->mAttenuationQuadratic;
+			light.spot.falloffStart = 1.0f / assimpScene->mLights[i]->mAngleInnerCone;
+			light.spot.falloffEnd = 1.0f / assimpScene->mLights[i]->mAngleOuterCone;
+			break;
+		case aiLightSource_DIRECTIONAL:
+			light.type = Light::Type::DIRECTIONAL;
+			light.directional.color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			light.directional.direction = *(float3*)&assimpScene->mLights[i]->mDirection;
+			break;
+		default:
+			break;
+		}
+		if (light.type != Light::Type::UNDEFINED)
+			scene->AddLight(light);
+	}
+}
+
 static std::vector<uint32_t> CreateMeshesFromScene(const aiScene* scene, AssetManager* assetManager, std::vector<uint32_t> materialIdx)
 {
 	std::vector<uint32_t> meshIds;
@@ -335,9 +367,8 @@ void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Sc
 	
 	std::vector<uint32_t> materialIdx = CreateMaterialsFromAiScene(objScene, assetManager, path);
 	std::vector<uint32_t> meshIdx = CreateMeshesFromScene(objScene, assetManager, materialIdx);
-	for (uint32_t i = 0; i < objScene->mNumLights; i++)
-		std::cout << "Light: " << objScene->mLights[i]->mType << objScene->mLights[i]->mSize.x << " " << objScene->mLights[i]->mSize.y << std::endl;
 	CreateMeshInstancesFromNode(objScene, scene, objScene->mRootNode, aiMatrix4x4(), materialIdx, meshIdx);
+	CreateLightsFromScene(objScene, scene);
 
 	std::cout << "OBJLoader: loaded model " << filePath << " successfully" << std::endl;
 }
