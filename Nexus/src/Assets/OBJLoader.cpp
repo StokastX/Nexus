@@ -266,33 +266,51 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 
 static void CreateLightsFromScene(const aiScene* assimpScene, Scene* scene)
 {
+	std::vector<std::string> lightNames;
 	for (uint32_t i = 0; i < assimpScene->mNumLights; i++)
 	{
 		Light light;
+		float3 color;
 		switch (assimpScene->mLights[i]->mType)
 		{
 		case aiLightSource_POINT:
 			light.type = Light::Type::POINT;
-			light.point.color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
-			light.point.intensity = 1.0f / assimpScene->mLights[i]->mAttenuationQuadratic;
+			light.point.position = *(float3*)&assimpScene->mLights[i]->mPosition;
+			color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			light.point.intensity = fmaxf(color);
+			light.point.color = color / light.point.intensity;
+			std::cout << "Added point light of intensity " << light.point.intensity << " and color " << light.point.color.x << " " << light.point.color.y << " " << light.point.color.z << std::endl;
+			std::cout << "Attenuation constant: " << assimpScene->mLights[i]->mAttenuationConstant << ", AttenuationLinear: " << assimpScene->mLights[i]->mAttenuationLinear << std::endl;
 			break;
 		case aiLightSource_SPOT:
 			light.type = Light::Type::SPOT;
-			light.spot.color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
-			light.spot.intensity = 1.0f / assimpScene->mLights[i]->mAttenuationQuadratic;
+			light.spot.position = *(float3*)&assimpScene->mLights[i]->mPosition;
+			light.spot.direction = *(float3*)&assimpScene->mLights[i]->mDirection;
+			color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			light.spot.intensity = fmaxf(color);
+			light.spot.color = color / light.spot.intensity;
 			light.spot.falloffStart = 1.0f / assimpScene->mLights[i]->mAngleInnerCone;
 			light.spot.falloffEnd = 1.0f / assimpScene->mLights[i]->mAngleOuterCone;
+			std::cout << "Added spot light of intensity " << light.spot.intensity << " and color " << light.spot.color.x << " " << light.spot.color.y << " " << light.spot.color.z << std::endl;
+			std::cout << "Attenuation constant: " << assimpScene->mLights[i]->mAttenuationConstant << ", AttenuationLinear: " << assimpScene->mLights[i]->mAttenuationLinear << std::endl;
 			break;
 		case aiLightSource_DIRECTIONAL:
 			light.type = Light::Type::DIRECTIONAL;
-			light.directional.color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			light.directional.intensity = fmaxf(color);
+			light.directional.color = color / light.directional.intensity;
 			light.directional.direction = *(float3*)&assimpScene->mLights[i]->mDirection;
+			std::cout << "Added directional light of intensity " << light.directional.intensity << " and color " << light.directional.color.x << " " << light.directional.color.y << " " << light.directional.color.z << std::endl;
+			std::cout << "Attenuation constant: " << assimpScene->mLights[i]->mAttenuationConstant << ", AttenuationLinear: " << assimpScene->mLights[i]->mAttenuationLinear << std::endl;
 			break;
 		default:
 			break;
 		}
 		if (light.type != Light::Type::UNDEFINED)
+		{
+			lightNames.push_back(assimpScene->mLights[i]->mName.C_Str());
 			scene->AddLight(light);
+		}
 	}
 }
 
@@ -317,13 +335,49 @@ static std::vector<uint32_t> CreateMeshesFromScene(const aiScene* scene, AssetMa
 static void CreateMeshInstancesFromNode(const aiScene* assimpScene, Scene* scene, const aiNode* node, aiMatrix4x4 aiTransform, std::vector<uint32_t>& materialIds, std::vector<uint32_t>& meshIds)
 {
 	aiTransform = aiTransform * node->mTransformation;
+
+	aiVector3D aiPosition, aiRotation, aiScale;
+	aiTransform.Decompose(aiScale, aiRotation, aiPosition);
+
+	aiMatrix4x4 rotationMatrix;
+	rotationMatrix = rotationMatrix.FromEulerAnglesXYZ(aiRotation);
+
+	// For some reason in assimp the transform of a light is given by a node if they both have the same name
+	for (uint32_t i = 0; i < assimpScene->mNumLights; i++)
+	{
+		aiLight* assimpLight = assimpScene->mLights[i];
+		if (node->mName == assimpLight->mName)
+		{
+			Light& light = scene->GetLights()[i];
+			aiVector3D position, direction;
+			switch (light.type)
+			{
+			case Light::Type::POINT:
+				position = aiTransform * assimpLight->mPosition;
+				light.point.position = *(float3*)&position;
+				break;
+			case Light::Type::DIRECTIONAL:
+				direction = rotationMatrix * assimpLight->mDirection;
+				std::cout << "Direction: " << direction.x << " " << direction.y << " " << direction.z << std::endl;
+				light.directional.direction = *(float3*)&direction;
+				break;
+			case Light::Type::SPOT:
+				position = aiTransform * assimpLight->mPosition;
+				direction = rotationMatrix * assimpLight->mDirection;
+				light.spot.position = *(float3*)&position;
+				light.spot.direction = *(float3*)&direction;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
 	for (int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh* mesh = assimpScene->mMeshes[node->mMeshes[i]];
 		int32_t meshId = meshIds[node->mMeshes[i]];
 
-		aiVector3D aiPosition, aiRotation, aiScale;
-		aiTransform.Decompose(aiScale, aiRotation, aiPosition);
 		float3 position = { aiPosition.x, aiPosition.y, aiPosition.z };
 		float3 rotation = { Utils::ToDegrees(aiRotation.x), Utils::ToDegrees(aiRotation.y), Utils::ToDegrees(aiRotation.z) };
 		float3 scale = { aiScale.x, aiScale.y, aiScale.z };
@@ -367,8 +421,8 @@ void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Sc
 	
 	std::vector<uint32_t> materialIdx = CreateMaterialsFromAiScene(objScene, assetManager, path);
 	std::vector<uint32_t> meshIdx = CreateMeshesFromScene(objScene, assetManager, materialIdx);
-	CreateMeshInstancesFromNode(objScene, scene, objScene->mRootNode, aiMatrix4x4(), materialIdx, meshIdx);
 	CreateLightsFromScene(objScene, scene);
+	CreateMeshInstancesFromNode(objScene, scene, objScene->mRootNode, aiMatrix4x4(), materialIdx, meshIdx);
 
 	std::cout << "OBJLoader: loaded model " << filePath << " successfully" << std::endl;
 }

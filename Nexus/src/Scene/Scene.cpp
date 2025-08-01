@@ -50,6 +50,13 @@ void Scene::Update()
 
 		m_InvalidMeshInstances.clear();
 	}
+
+	for (uint32_t i : m_InvalidLights)
+	{
+		m_DeviceLights[i] = m_Lights[i];
+	}
+	m_InvalidLights.clear();
+
 	m_Invalid = false;
 }
 
@@ -102,10 +109,19 @@ void Scene::InvalidateMeshInstance(uint32_t instanceId)
 	m_InvalidMeshInstances.insert(instanceId);
 }
 
+void Scene::InvalidateLight(uint32_t lightIdx)
+{
+	m_InvalidLights.insert(lightIdx);
+}
+
 size_t Scene::AddLight(const Light& light)
 {
 	m_Lights.push_back(light);
-	return m_Lights.size() - 1;
+	m_DeviceLights.PushBack(light);
+	uint32_t lightIdx = m_Lights.size() - 1;
+	InvalidateLight(lightIdx);
+	std::cout << "added light of type " << (int)light.type << std::endl;
+	return lightIdx;
 }
 
 void Scene::RemoveLight(const size_t index)
@@ -149,7 +165,7 @@ void Scene::UpdateInstanceLighting(size_t index)
 	for (size_t i = 0; i < m_Lights.size(); i++)
 	{
 		const Light& light = m_Lights[i];
-		if (light.type == Light::Type::MESH_LIGHT && light.mesh.meshId == index)
+		if (light.type == Light::Type::MESH && light.mesh.meshId == index)
 		{
 			if (material.emissiveMapId == -1 && fmaxf(material.intensity * material.emissionColor) == 0.0f)
 			{
@@ -165,7 +181,7 @@ void Scene::UpdateInstanceLighting(size_t index)
 		material.intensity * fmaxf(material.emissionColor) > 0.0f)
 	{
 		Light meshLight;
-		meshLight.type = Light::Type::MESH_LIGHT;
+		meshLight.type = Light::Type::MESH;
 		meshLight.mesh.meshId = index;
 		m_Lights.push_back(meshLight);
 		m_DeviceLights.PushBack(meshLight);

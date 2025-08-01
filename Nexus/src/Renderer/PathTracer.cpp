@@ -197,16 +197,6 @@ void PathTracer::Render(const Scene& scene)
 
 	m_AccumulateKernel.Launch();
 
-	if (m_PixelQueryPending)
-	{
-		m_PixelQueryPending = false;
-		m_PixelQuery.Synchronize();
-		D_PixelQuery pixelQuery;
-		pixelQuery.pixelIdx = -1;
-		pixelQuery.instanceIdx = m_PixelQuery->instanceIdx;
-		m_PixelQuery = pixelQuery;
-	}
-
 	CheckCudaErrors(cudaGetLastError());
 	CheckCudaErrors(cudaGraphicsUnmapResources(1, &m_PixelBuffer.GetCudaResource(), 0));
 }
@@ -229,6 +219,18 @@ void PathTracer::OnResize(uint32_t width, uint32_t height)
 void PathTracer::UpdateDeviceScene(const Scene& scene)
 {
 	m_Scene = scene;
+}
+
+int32_t PathTracer::SynchronizePixelQuery()
+{
+	m_PixelQueryPending = false;
+	m_PixelQuery.Synchronize();
+	int32_t instanceIdx = m_PixelQuery->instanceIdx;
+	D_PixelQuery pixelQuery;
+	pixelQuery.pixelIdx = -1;
+	pixelQuery.instanceIdx = instanceIdx;
+	m_PixelQuery = pixelQuery;
+	return instanceIdx;
 }
 
 void PathTracer::SetPixelQuery(uint32_t x, uint32_t y)

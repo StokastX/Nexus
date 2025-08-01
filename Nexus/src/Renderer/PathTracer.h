@@ -21,8 +21,10 @@ public:
 	void UpdateDeviceScene(const Scene& scene);
 
 	void SetPixelQuery(uint32_t x, uint32_t y);
+	bool PixelQueryPending() { return m_PixelQueryPending; }
 
 	int32_t GetSelectedInstance() { return m_PixelQuery->instanceIdx; }
+	int32_t SynchronizePixelQuery();
 	uint32_t GetFrameNumber() const { return m_FrameNumber; }
 	const PixelBuffer& GetPixelBuffer() { return m_PixelBuffer; }
 

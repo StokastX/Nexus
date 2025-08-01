@@ -187,7 +187,13 @@ inline __device__ void NextEventEstimation(
 ) {
 	D_Light light = Sampler::UniformSampleLights(scene.lights, scene.lightCount, rngState);
 
-	if (light.type == D_Light::Type::MESH_LIGHT)
+	float weight = 1.0f;
+	float lightPdf, hitDistance;
+	float3 sampleThroughput;
+	float3 emissive;
+	D_Ray shadowRay;
+
+	if (light.type == D_Light::Type::MESH)
 	{
 		D_MeshInstance instance = scene.meshInstances[light.mesh.meshId];
 
@@ -206,8 +212,6 @@ inline __device__ void NextEventEstimation(
 		float3 lightNormal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
 		lightNormal = normalize(instance.invTransform.Transposed().TransformVector(lightNormal));
 
-		D_Ray shadowRay;
-
 		float3 toLight = p - hitPoint;
 
 		const bool reflect = dot(-rayDirection, hitGNormal) * dot(toLight, hitGNormal) > 0.0f;
@@ -222,8 +226,8 @@ inline __device__ void NextEventEstimation(
 		p = OffsetRay(p, lightGNormal * offsetDirection);
 
 		float3 offsetRay = p - shadowRay.origin;
-		const float offsetDist = length(offsetRay);
-		shadowRay.direction = offsetRay / offsetDist;
+		hitDistance = length(offsetRay);
+		shadowRay.direction = offsetRay / hitDistance;
 		shadowRay.invDirection = 1.0f / shadowRay.direction;
 
 		TangentFrame tangentFrame(normal);
@@ -239,7 +243,7 @@ inline __device__ void NextEventEstimation(
 			instance.transform.TransformPoint(triangle.v2)
 		);
 
-		float lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());
+		lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());
 		// Transform pdf over an area to pdf over directions
 		lightPdf *= dSquared / cosThetaO;
 
@@ -248,17 +252,14 @@ inline __device__ void NextEventEstimation(
 
 		const D_Material lightMaterial = scene.materials[instance.materialIdx];
 
-		float3 sampleThroughput;
 		float bsdfPdf;
-
 		bool sampleIsValid = D_PrincipledBSDF::Eval(material, wi, wo, sampleThroughput, bsdfPdf);
 
 		if (!sampleIsValid)
 			return;
 
-		const float weight = Sampler::PowerHeuristic(lightPdf, bsdfPdf);
+		weight = Sampler::PowerHeuristic(lightPdf, bsdfPdf);
 
-		float3 emissive;
 		if (lightMaterial.emissiveMapId != -1)
 		{
 			float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
@@ -267,14 +268,80 @@ inline __device__ void NextEventEstimation(
 		else
 			emissive = lightMaterial.emissionColor;
 
-		const float3 radiance = weight * throughput * sampleThroughput * emissive * lightMaterial.intensity / lightPdf;
-
-		const int32_t index = atomicAdd(&queueSize.traceShadowSize[bounce], 1);
-		shadowTraceRequest.hitDistance[index] = offsetDist;
-		shadowTraceRequest.radiance[index] = radiance;
-		shadowTraceRequest.ray.Set(index, shadowRay);
-		shadowTraceRequest.pixelIdx[index] = pixelIdx;
+		emissive *= lightMaterial.intensity;
 	}
+
+	else if (light.type == D_Light::Type::POINT)
+	{
+		float3 toLight = light.point.position - hitPoint;
+		float dSquared = dot(toLight, toLight);
+		lightPdf = 1.0f / scene.lightCount;
+		lightPdf *= dSquared;
+		if (!Sampler::IsPdfValid(lightPdf))
+			return;
+
+		emissive = light.point.color * light.point.intensity;
+
+		const bool reflect = dot(-rayDirection, hitGNormal) * dot(toLight, hitGNormal) > 0.0f;
+
+		if (!reflect && material.transmission == 0.0f)
+			return;
+
+		float offsetDirection = Utils::SgnE(dot(toLight, normal));
+		shadowRay.origin = OffsetRay(hitPoint, hitGNormal * offsetDirection);
+
+		hitDistance = length(toLight);
+		shadowRay.direction = toLight / hitDistance;
+		shadowRay.invDirection = 1.0f / shadowRay.direction;
+
+		TangentFrame tangentFrame(normal);
+		const float3 wo = tangentFrame.WorldToLocal(shadowRay.direction);
+
+		float bsdfPdf;
+		bool sampleIsValid = D_PrincipledBSDF::Eval(material, wi, wo, sampleThroughput, bsdfPdf);
+
+		if (!sampleIsValid)
+			return;
+	}
+	else if (light.type == D_Light::Type::DIRECTIONAL)
+	{
+		float3 toLight = -light.directional.direction;
+		lightPdf = 1.0f / scene.lightCount;
+		emissive = light.directional.color * light.directional.intensity;
+
+		const bool reflect = dot(-rayDirection, hitGNormal) * dot(toLight, hitGNormal) > 0.0f;
+
+		if (!reflect && material.transmission == 0.0f)
+			return;
+
+		float offsetDirection = Utils::SgnE(dot(toLight, normal));
+		shadowRay.origin = OffsetRay(hitPoint, hitGNormal * offsetDirection);
+		shadowRay.direction = normalize(toLight);
+		shadowRay.invDirection = 1.0f / shadowRay.direction;
+		hitDistance = 1.0e30f;
+
+		TangentFrame tangentFrame(normal);
+		const float3 wo = tangentFrame.WorldToLocal(shadowRay.direction);
+
+		float bsdfPdf;
+		bool sampleIsValid = D_PrincipledBSDF::Eval(material, wi, wo, sampleThroughput, bsdfPdf);
+
+		if (!sampleIsValid)
+			return;
+
+		if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
+			printf("emission: %f, sampleThroughput: %f", fmaxf(emissive), fmaxf(sampleThroughput));
+	}
+	else
+		return;
+
+	const float3 radiance = weight * throughput * sampleThroughput * emissive / lightPdf;
+
+	const int32_t index = atomicAdd(&queueSize.traceShadowSize[bounce], 1);
+	shadowTraceRequest.hitDistance[index] = hitDistance;
+	shadowTraceRequest.radiance[index] = radiance;
+	shadowTraceRequest.ray.Set(index, shadowRay);
+	shadowTraceRequest.pixelIdx[index] = pixelIdx;
 }
 
 

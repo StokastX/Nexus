@@ -30,7 +30,7 @@ public:
 
 	bool IsEmpty() { return m_MeshInstances.size() == 0; }
 	void Invalidate() { m_Invalid = true; }
-	bool IsInvalid() { return m_Invalid || m_InvalidMeshInstances.size() > 0 || m_Camera->IsInvalid() || m_AssetManager.IsInvalid(); }
+	bool IsInvalid() { return m_Invalid || m_InvalidMeshInstances.size() > 0 || m_InvalidLights.size() > 0 || m_Camera->IsInvalid() || m_AssetManager.IsInvalid(); }
 
 	void Update();
 	void BuildTLAS();
@@ -41,6 +41,8 @@ public:
 	void InvalidateMeshInstance(uint32_t instanceId);
 
 	size_t AddLight(const Light& light);
+	void InvalidateLight(uint32_t lightIdx);
+	std::vector<Light> &GetLights() { return m_Lights; }
 	void RemoveLight(const size_t index);
 
 	// Create or update the device scene and returns a D_Scene object
@@ -57,6 +59,7 @@ private:
 	std::vector<Light> m_Lights;
 
 	std::set<uint32_t> m_InvalidMeshInstances;
+	std::set<uint32_t> m_InvalidLights;
 
 	Texture m_HdrMap;
 
