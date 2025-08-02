@@ -49,8 +49,8 @@ public:
 	static D_Scene ToDevice(const Scene& scene);
 
 private:
-	// Check if the instance is a light, and add it to the lights vector if it is
-	void UpdateInstanceLighting(size_t index);
+	// Update the list of lights based on the changed material given by index
+	void UpdateSceneLighting(size_t index);
 
 private:
 	std::shared_ptr<Camera> m_Camera;

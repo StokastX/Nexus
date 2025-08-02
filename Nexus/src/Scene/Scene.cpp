@@ -33,17 +33,12 @@ void Scene::Update()
 {
 	m_Camera->SetInvalid(false);
 
-	m_AssetManager.SendDataToDevice();
-
 	if (m_InvalidMeshInstances.size() != 0)
 	{
 		for (uint32_t i : m_InvalidMeshInstances)
 		{
 			MeshInstance& meshInstance = m_MeshInstances[i];
 			m_DeviceMeshInstances[i] = meshInstance;
-
-			if (meshInstance.materialIdx != -1)
-				UpdateInstanceLighting(i);
 		}
 
 		BuildTLAS();
@@ -51,10 +46,15 @@ void Scene::Update()
 		m_InvalidMeshInstances.clear();
 	}
 
+	for (uint32_t i : m_AssetManager.GetInvalidMaterials())
+		UpdateSceneLighting(i);
+
+	m_AssetManager.SendDataToDevice();
+
+	// Only punctual lights
 	for (uint32_t i : m_InvalidLights)
-	{
 		m_DeviceLights[i] = m_Lights[i];
-	}
+
 	m_InvalidLights.clear();
 
 	m_Invalid = false;
@@ -86,7 +86,7 @@ MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)
 	const size_t instanceId = m_MeshInstances.size() - 1;
 
 	// Create light if needed
-	UpdateInstanceLighting(instanceId);
+	//UpdateInstanceLighting(instanceId);
 	InvalidateMeshInstance(instanceId);
 
 	return m_MeshInstances[instanceId];
@@ -152,38 +152,66 @@ D_Scene Scene::ToDevice(const Scene& scene)
 	return deviceScene;
 }
 
-void Scene::UpdateInstanceLighting(size_t index)
+void Scene::UpdateSceneLighting(size_t index)
 {
-	const MeshInstance& meshInstance = m_MeshInstances[index];
-
-	if (meshInstance.materialIdx == -1)
-		return;
-
-	const Material& material = m_AssetManager.GetMaterials()[meshInstance.materialIdx];
-
-	// If light already in the scene, return or remove light
-	for (size_t i = 0; i < m_Lights.size(); i++)
+	bool lightingChanged = false;
+	Material& material = m_AssetManager.GetMaterials()[index];
+	// Remove lights that do not emit anymore
+	if ((material.emissiveMapId == -1 && fmaxf(material.emissionColor) == 0.0f)
+		|| material.intensity == 0.0f)
 	{
-		const Light& light = m_Lights[i];
-		if (light.type == Light::Type::MESH && light.mesh.meshId == index)
+	int counter = 0;
+		for (uint32_t j = 0; j < m_Lights.size(); j++)
 		{
-			if (material.emissiveMapId == -1 && fmaxf(material.intensity * material.emissionColor) == 0.0f)
+			if (m_Lights[j].type == Light::Type::MESH)
 			{
-				m_Lights.erase(m_Lights.begin() + i);
-				m_DeviceLights = m_Lights;
+				MeshInstance instance = m_MeshInstances[m_Lights[j].mesh.meshId];
+				if (instance.materialIdx == index)
+				{
+					m_Lights.erase(m_Lights.begin() + j);
+					lightingChanged = true;
+					counter++;
+				}
 			}
-			return;
 		}
+	if (counter > 0)
+		std::cout << "Removed " << counter << " lights" << std::endl;
 	}
 
-	// If mesh has an emissive material, add it to the lights list
-	if (material.emissiveMapId != -1 ||
-		material.intensity * fmaxf(material.emissionColor) > 0.0f)
+	// Add potentially new lights
+	else if ((material.emissiveMapId != -1 || fmaxf(material.emissionColor) > 0.0f)
+		&& material.intensity > 0.0f)
 	{
-		Light meshLight;
-		meshLight.type = Light::Type::MESH;
-		meshLight.mesh.meshId = index;
-		m_Lights.push_back(meshLight);
-		m_DeviceLights.PushBack(meshLight);
+	int counter = 0;
+		for (uint32_t j = 0; j < m_MeshInstances.size(); j++)
+		{
+			bool addLight = true;
+			MeshInstance instance = m_MeshInstances[j];
+			if (instance.materialIdx == index)
+			{
+				for (uint32_t k = 0; k < m_Lights.size(); k++)
+				{
+					if (m_Lights[k].type == Light::Type::MESH && m_Lights[k].mesh.meshId == j)
+					{
+						addLight = false;
+						break;
+					}
+				}
+				if (addLight)
+				{
+					Light meshLight;
+					meshLight.type = Light::Type::MESH;
+					meshLight.mesh.meshId = j;
+					m_Lights.push_back(meshLight);
+					lightingChanged = true;
+					counter++;
+				}
+			}
+		}
+	if (counter > 0)
+		std::cout << "Added " << counter << " lights" << std::endl;
 	}
+
+	if (lightingChanged)
+		m_DeviceLights = m_Lights;
 }

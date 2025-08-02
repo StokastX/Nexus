@@ -43,7 +43,11 @@ uint32_t AssetManager::AddMaterial(const Material& material)
 	m_Materials.push_back(material);
 	m_DeviceMaterials.PushBack(material);
 	Material& m = m_Materials.back();
-	return m_Materials.size() - 1;
+	uint32_t idx = m_Materials.size() - 1;
+
+	// To update instances lighting
+	m_InvalidMaterials.insert(idx);
+	return idx;
 }
 
 void AssetManager::InvalidateMaterial(uint32_t index)

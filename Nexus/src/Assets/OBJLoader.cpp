@@ -266,7 +266,6 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 
 static void CreateLightsFromScene(const aiScene* assimpScene, Scene* scene)
 {
-	std::vector<std::string> lightNames;
 	for (uint32_t i = 0; i < assimpScene->mNumLights; i++)
 	{
 		Light light;
@@ -274,6 +273,7 @@ static void CreateLightsFromScene(const aiScene* assimpScene, Scene* scene)
 		switch (assimpScene->mLights[i]->mType)
 		{
 		case aiLightSource_POINT:
+		case aiLightSource_UNDEFINED:
 			light.type = Light::Type::POINT;
 			light.point.position = *(float3*)&assimpScene->mLights[i]->mPosition;
 			color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
@@ -304,11 +304,11 @@ static void CreateLightsFromScene(const aiScene* assimpScene, Scene* scene)
 			std::cout << "Attenuation constant: " << assimpScene->mLights[i]->mAttenuationConstant << ", AttenuationLinear: " << assimpScene->mLights[i]->mAttenuationLinear << std::endl;
 			break;
 		default:
+			std::cout << "Warning: unhandled light type" << std::endl;
 			break;
 		}
 		if (light.type != Light::Type::UNDEFINED)
 		{
-			lightNames.push_back(assimpScene->mLights[i]->mName.C_Str());
 			scene->AddLight(light);
 		}
 	}
@@ -339,6 +339,9 @@ static void CreateMeshInstancesFromNode(const aiScene* assimpScene, Scene* scene
 	aiVector3D aiPosition, aiRotation, aiScale;
 	aiTransform.Decompose(aiScale, aiRotation, aiPosition);
 
+	double scaleFactor = 1.0f;
+	bool result = assimpScene->mMetaData->Get("UnitScaleFactor", scaleFactor);
+
 	aiMatrix4x4 rotationMatrix;
 	rotationMatrix = rotationMatrix.FromEulerAnglesXYZ(aiRotation);
 
@@ -354,17 +357,16 @@ static void CreateMeshInstancesFromNode(const aiScene* assimpScene, Scene* scene
 			{
 			case Light::Type::POINT:
 				position = aiTransform * assimpLight->mPosition;
-				light.point.position = *(float3*)&position;
+				light.point.position = *(float3*)&position / scaleFactor;
 				break;
 			case Light::Type::DIRECTIONAL:
 				direction = rotationMatrix * assimpLight->mDirection;
-				std::cout << "Direction: " << direction.x << " " << direction.y << " " << direction.z << std::endl;
 				light.directional.direction = *(float3*)&direction;
 				break;
 			case Light::Type::SPOT:
 				position = aiTransform * assimpLight->mPosition;
 				direction = rotationMatrix * assimpLight->mDirection;
-				light.spot.position = *(float3*)&position;
+				light.spot.position = *(float3*)&position / scaleFactor;
 				light.spot.direction = *(float3*)&direction;
 				break;
 			default:
@@ -382,8 +384,6 @@ static void CreateMeshInstancesFromNode(const aiScene* assimpScene, Scene* scene
 		float3 rotation = { Utils::ToDegrees(aiRotation.x), Utils::ToDegrees(aiRotation.y), Utils::ToDegrees(aiRotation.z) };
 		float3 scale = { aiScale.x, aiScale.y, aiScale.z };
 
-		double scaleFactor = 1.0f;
-		bool result = assimpScene->mMetaData->Get("UnitScaleFactor", scaleFactor);
 		scale /= scaleFactor;
 		position /= scaleFactor;
 
@@ -417,7 +417,7 @@ void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Sc
 
 	//double factor = 100.0f;
 	//// Fix for assimp scaling FBX with a factor 100
-	//scene->mMetaData->Set("UnitScaleFactor", factor);
+	//objScene->mMetaData->Set("UnitScaleFactor", factor);
 	
 	std::vector<uint32_t> materialIdx = CreateMaterialsFromAiScene(objScene, assetManager, path);
 	std::vector<uint32_t> meshIdx = CreateMeshesFromScene(objScene, assetManager, materialIdx);
