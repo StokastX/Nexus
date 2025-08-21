@@ -52,14 +52,48 @@ namespace ColorUtils
     }
 
     // Approximated ACES tonemapping by Krzysztof Narkowicz. See https://graphics-programming.org/resources/tonemapping/index.html
-    inline __host__ __device__ float3 ACESToneMapping(float3 color)
+    inline __host__ __device__ float3 ACESToneMappingFast(float3 color)
     {
         constexpr float a = 2.51f;
         constexpr float b = 0.03f;
         constexpr float c = 2.43f;
         constexpr float d = 0.59f;
         constexpr float e = 0.14f;
+        color *= 0.6f;
         return (color * (a * color + b)) / (color * (c * color + d) + e);
+    }
+
+	inline __host__ __device__ float3 RRTAndODTFit(float3 v)
+	{
+		float3 a = v * (v + 0.0245786f) - 0.000090537f;
+		float3 b = v * (0.983729f * v + 0.4329510f) + 0.238081f;
+		return a / b;
+	}
+
+    // Approximated ACES tonemapping by Stephen Hill. See https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl
+    inline __host__ __device__ float3 ACESToneMapping(float3 color)
+    {
+        // sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
+        constexpr float3 inputMatRow1 = { 0.59719, 0.35458, 0.04823 };
+        constexpr float3 inputMatRow2 = { 0.07600, 0.90834, 0.01566 };
+        constexpr float3 inputMatRow3 = { 0.02840, 0.13383, 0.83777 };
+
+        // ODT_SAT => XYZ => D60_2_D65 => sRGB
+        constexpr float3 outputMatRow1 = { 1.60475, -0.53108, -0.07367 };
+        constexpr float3 outputMatRow2 = { -0.10208,  1.10813, -0.00605 };
+        constexpr float3 outputMatRow3 = { -0.00327, -0.07276,  1.07602 };
+
+        color = make_float3(dot(inputMatRow1, color), dot(inputMatRow2, color), dot(inputMatRow3, color));
+
+		// Apply RRT and ODT
+		color = RRTAndODTFit(color);
+
+        color = make_float3(dot(outputMatRow1, color), dot(outputMatRow2, color), dot(outputMatRow3, color));
+
+		// Clamp to [0, 1]
+		color = clamp(color, 0.0f, 1.0f);
+
+		return color;
     }
 
     template<typename T>
@@ -96,9 +130,9 @@ namespace ColorUtils
 
     inline __host__ __device__ float3 Agx(float3 val)
     {
-        constexpr float3 agxMatRow1 = {0.842479062253094, 0.0423282422610123, 0.0423756549057051};
-        constexpr float3 agxMatRow2 = {0.0784335999999992, 0.878468636469772, 0.0784336};
-        constexpr float3 agxMatRow3 = {0.0792237451477643, 0.0791661274605434, 0.879142973793104};
+        constexpr float3 agxMatRow1 = { 0.842479062253094, 0.0423282422610123, 0.0423756549057051 };
+        constexpr float3 agxMatRow2 = { 0.0784335999999992, 0.878468636469772, 0.0784336 };
+        constexpr float3 agxMatRow3 = { 0.0792237451477643, 0.0791661274605434, 0.879142973793104 };
 
         constexpr float minEv = -12.47393f;
         constexpr float maxEv = 4.026069f;
@@ -118,9 +152,9 @@ namespace ColorUtils
 
     inline __host__ __device__ float3 AgxEotf(float3 val)
     {
-        constexpr float3 agxMatInvRow1 = {1.19687900512017, -0.0528968517574562, -0.0529716355144438};
-        constexpr float3 agxMatInvRow2 = {-0.0980208811401368, 1.15190312990417, -0.0980434501171241};
-        constexpr float3 agxMatInvRow3 = {-0.0990297440797205, -0.0989611768448433, 1.15107367264116};
+        constexpr float3 agxMatInvRow1 = { 1.19687900512017, -0.0528968517574562, -0.0529716355144438 };
+        constexpr float3 agxMatInvRow2 = { -0.0980208811401368, 1.15190312990417, -0.0980434501171241 };
+        constexpr float3 agxMatInvRow3 = { -0.0990297440797205, -0.0989611768448433, 1.15107367264116 };
 
         // Inverse input transform (outset)
         val = make_float3(dot(agxMatInvRow1, val), dot(agxMatInvRow2, val), dot(agxMatInvRow3, val));
