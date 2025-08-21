@@ -329,8 +329,6 @@ inline __device__ void NextEventEstimation(
 		if (!sampleIsValid)
 			return;
 
-		if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
-			printf("emission: %f, sampleThroughput: %f", fmaxf(emissive), fmaxf(sampleThroughput));
 	}
 	else
 		return;

@@ -65,7 +65,6 @@ public:
 		{
 			if (Random::Rand(rngState) < material.transmission)
 			{
-
 				D_DielectricBSDF bsdf;
 				bsdf.PrepareBSDFData(wi, material);
 				bool scattered = bsdf.Sample(material, wi, wo, throughput, pdf, rngState);

@@ -10,11 +10,11 @@ public:
 	// Fresnel reflectance for dieletric materials. See https://www.pbr-book.org/3ed-2018/Reflection_Models/Specular_Reflection_and_Transmission
 	inline static __device__ float DieletricReflectance(float eta, float cosThetaI, float& cosThetaT)
 	{
-		if (cosThetaI < 0.0f)
-		{
-			eta = 1.0f / eta;
-			cosThetaI = -cosThetaI;
-		}
+		//if (cosThetaI < 0.0f)
+		//{
+		//	eta = 1.0f / eta;
+		//	cosThetaI = -cosThetaI;
+		//}
 
 		const float sinThetaTSq = eta * eta * (1.0f - cosThetaI * cosThetaI);
 
@@ -24,7 +24,7 @@ public:
 			return 1.0f;
 		}
 
-		cosThetaT = sqrt(fmax(0.0f, 1.0f - sinThetaTSq));
+		cosThetaT = sqrt(1.0f - sinThetaTSq);
 
 		const float Rparl = (eta * cosThetaI - cosThetaT) / (eta * cosThetaI + cosThetaT);
 		const float Rperp = (eta * cosThetaT - cosThetaI) / (eta * cosThetaT + cosThetaT);

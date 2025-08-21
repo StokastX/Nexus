@@ -185,6 +185,8 @@ void SceneHierarchyPanel::DrawProperties(SelectionContext selectionContext)
 					assetManager.InvalidateMaterial(meshInstance.materialIdx);
 				if (ImGui::DragFloat("Roughness", &material.roughness, 0.01f, 0.0f, 1.0f))
 					assetManager.InvalidateMaterial(meshInstance.materialIdx);
+				if (ImGui::DragFloat("Anisotropy", &material.anisotropy, 0.01f, 0.0f, 1.0f))
+					assetManager.InvalidateMaterial(meshInstance.materialIdx);
 				if (ImGui::DragFloat("Specular weight", &material.specularWeight, 0.01f, 0.0f, 1.0f))
 					assetManager.InvalidateMaterial(meshInstance.materialIdx);
 				if (ImGui::ColorEdit3("Specular color", (float *)&material.specularColor))

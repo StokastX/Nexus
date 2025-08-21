@@ -17,50 +17,48 @@
 struct D_DielectricBSDF
 {
 	float eta;
-	float alpha;
+	float2 alpha;
 
 	inline __device__ void PrepareBSDFData(const float3& wi,  const D_Material& material)
 	{
-		alpha = clamp((1.2f - 0.2f * sqrtf(fabs(wi.z))) * material.roughness * material.roughness, 1.0e-4f, 1.0f);
-		eta = wi.z < 0.0f ? material.ior : 1 / material.ior;
+		eta = wi.z < 0.0f ? material.ior : 1.0f / material.ior;
+
+		// OpenPBR alpha mapping
+		alpha.x = Square(material.roughness) * sqrtf(2.0f / (1.0f + Square(1.0f - material.anisotropy)));
+		alpha.y = (1.0f - material.anisotropy) * alpha.x;
+		alpha = clamp(alpha, 1.0e-4f, 1.0f);
 	}
 
 	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& throughput, float& pdf)
 	{
-		const float wiDotN = wi.z;
-		const float woDotN = wo.z;
-
-		const bool reflected = wiDotN * woDotN > 0.0f;
+		const bool reflected = wi.z * wo.z > 0.0f;
 
 		float3 m;
 		if (reflected)
-			m = Utils::SgnE(wiDotN) * normalize(wo + wi);
+			m = normalize(wo + wi);
 		else
-			m = -normalize(wi * eta + wo);
+			m = normalize(wi * eta + wo); // We don't care about the sign of m
 
 		float cosThetaT;
 		const float wiDotM = dot(wi, m);
 		const float woDotM = dot(wo, m);
-		const float F = Fresnel::DieletricReflectance(1.0f / material.ior, wiDotM, cosThetaT);
-		const float G = Microfacet::Smith_G2(alpha, fabs(woDotN), fabs(wiDotN));
-		const float D = Microfacet::BeckmannD(alpha, m.z);
+
+		const float F = Fresnel::DieletricReflectance(eta, fabs(wiDotM), cosThetaT);
+		const float G1 = Microfacet::G1_GGX(wi, alpha);
+		const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
+		const float D = Microfacet::D_GGXAnisotropic(m, alpha);
 
 		if (reflected)
 		{
 			// BSDF times woDotN
-			const float3 brdf = make_float3(F * G * D / (4.0f * fabs(wiDotN)));
-			throughput = brdf;
-
-			// pm * jacobian = pm * || dWhr / dWo ||
-			// We can replace woDotM with wiDotM since for a reflection both are equal
-			pdf = F * D * m.z / (4.0f * fabs(wiDotM));
+			throughput = make_float3(F * G2 * D / (4.0f * fabs(wi.z)));
+			pdf = F * Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
 		}
 		else
 		{
-			const float3 btdf = fabs(wiDotM * woDotM) * (1.0f - F) * G * D / (fabs(wiDotN) * Square(eta * wiDotM + woDotM)) * material.baseColor;
-			throughput = btdf;
-
-			pdf = (1.0f - F) * D * m.z * fabs(woDotM) / Square(eta * wiDotM + woDotM);
+			// wiDotM and woDotM always have an opposite sign, this is why we don't care about the sign of m
+			throughput = (1.0f - F) * G2 * D * fabs(wiDotM * woDotM) / (fabs(wi.z) * Square(eta * wiDotM + woDotM)) * material.baseColor;
+			pdf = (1.0f - F) * Microfacet::RefractionPdf_GGX(D, G1, eta, wi.z, wiDotM, woDotM);
 		}
 
 		return Sampler::IsPdfValid(pdf);
@@ -68,29 +66,32 @@ struct D_DielectricBSDF
 
 	inline __device__ bool Sample(const D_Material& material, const float3& wi, float3& wo, float3& throughput, float& pdf, unsigned int& rngState)
 	{
-		const float3 m = Microfacet::SampleSpecularHalfBeckWalt(alpha, rngState);
+		// Very ugly change of sign because we can only sample in the upper hemisphere
+		// Requiring wi.z to be always positive would fix this, but I would need to change a few things in the shading kernel
+		// Also, VNDF sampling allows to sample below the horizon when wi.z is negative, so I'm not sure how this is compatible with refraction
+		float3 w = wi;
+		if (wi.z < 0)
+			w.z = -w.z;
+		float3 m = Microfacet::SampleVNDF_GGX(w, alpha, rngState);
+		if (wi.z < 0)
+			m.z = -m.z;
 
+		// Should always be positive since we sample visible normals
 		const float wiDotM = dot(wi, m);
 
 		float cosThetaT;
-		const float fr = Fresnel::DieletricReflectance(1.0f / material.ior, wiDotM, cosThetaT);
+		const float F = Fresnel::DieletricReflectance(eta, wiDotM, cosThetaT);
 
 		// Randomly select a reflected or transmitted ray based on Fresnel reflectance
-		if (Random::Rand(rngState) < fr)
+		const bool reflection = Random::Rand(rngState) < F;
+
+		if (reflection)
 		{
-			// Specular
 			wo = reflect(-wi, m);
 
 			// If the new ray is under the hemisphere, return
 			if (wo.z * wi.z < 0.0f)
 				return false;
-
-			const float weight = Microfacet::WeightBeckmannWalter(alpha, abs(wiDotM), abs(wo.z), abs(wi.z), m.z);
-
-			// We dont need to include the Fresnel term since it's already included when
-			// we select between reflection and refraction (see paper page 7)
-			throughput = make_float3(weight); // * F / fr
-			pdf = fr * Microfacet::SampleWalterReflectionPdf(alpha, m.z, fabs(wiDotM));
 		}
 
 		else
@@ -98,21 +99,24 @@ struct D_DielectricBSDF
 			// Refraction
 			wo = (eta * wiDotM - Utils::SgnE(wiDotM) * cosThetaT) * m - eta * wi;
 
-			const float weight = Microfacet::WeightBeckmannWalter(alpha, fabs(wiDotM), fabs(wo.z), fabs(wi.z), m.z);
-
-			// Handle divisions by zero
-			if (weight > 1.0e10)
-				return false;
-
 			if (wo.z * wi.z > 0.0f)
 				return false;
+		}
 
-			throughput = material.baseColor * weight;
-			// Same here, we don't need to include the Fresnel term
-			//throughput = throughput * (1.0f - F) / (1.0f - fr)
+		const float D = Microfacet::D_GGXAnisotropic(m, alpha);
+		const float G1 = Microfacet::G1_GGX(wi, alpha);
+		const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
+
+		if (reflection)
+		{
+			throughput = make_float3(G2 / G1);
+			pdf = F * Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
+		}
+		else
+		{
 			const float woDotM = dot(wo, m);
-
-			pdf = (1.0f - fr) * Microfacet::SampleWalterRefractionPdf(alpha, m.z, fabs(wiDotM), fabs(woDotM), eta);
+			throughput = material.baseColor * make_float3(G2 / (G1));
+			pdf = (1.0f - F) * Microfacet::RefractionPdf_GGX(D, G1, eta, wi.z, wiDotM, woDotM);
 		}
 		return Sampler::IsPdfValid(pdf);
 	}
