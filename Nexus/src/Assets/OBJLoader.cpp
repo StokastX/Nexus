@@ -375,6 +375,24 @@ static void CreateMeshInstancesFromNode(const aiScene* assimpScene, Scene* scene
 		}
 	}
 
+	// Same for the camera
+	if (assimpScene->HasCameras())
+	{
+		aiCamera* assimpCamera = assimpScene->mCameras[0];
+		if (assimpCamera->mName == node->mName)
+		{
+			std::shared_ptr<Camera> camera = scene->GetCamera();
+			aiVector3D position = aiTransform * assimpCamera->mPosition;
+			aiVector3D lookAt = rotationMatrix * assimpCamera->mLookAt;
+			aiVector3D upDirection = rotationMatrix * assimpCamera->mUp;
+			aiVector3D rightDirection = lookAt ^ upDirection;
+			camera->SetPosition(*(float3*)&position);
+			camera->SetForwardDirection(*(float3*)&lookAt);
+			camera->SetRightDirection(*(float3*)&rightDirection);
+			camera->SetHorizontalFOV(Utils::ToDegrees(assimpCamera->mHorizontalFOV));
+		}
+	}
+
 	for (int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh* mesh = assimpScene->mMeshes[node->mMeshes[i]];
