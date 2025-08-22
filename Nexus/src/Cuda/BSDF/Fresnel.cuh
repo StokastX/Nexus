@@ -8,28 +8,40 @@ class Fresnel
 {
 public:
 	// Fresnel reflectance for dieletric materials. See https://www.pbr-book.org/3ed-2018/Reflection_Models/Specular_Reflection_and_Transmission
-	inline static __device__ float DieletricReflectance(float eta, float cosThetaI, float& cosThetaT)
+	// cosThetaI should be positive
+	inline static __device__ float DielectricReflectance(float eta, float cosThetaI)
 	{
-		//if (cosThetaI < 0.0f)
-		//{
-		//	eta = 1.0f / eta;
-		//	cosThetaI = -cosThetaI;
-		//}
-
 		const float sinThetaTSq = eta * eta * (1.0f - cosThetaI * cosThetaI);
 
-		if (sinThetaTSq > 1.0f)
-		{
-			cosThetaT = 0.0f;
+		if (sinThetaTSq >= 1.0f)
 			return 1.0f;
-		}
 
-		cosThetaT = sqrt(1.0f - sinThetaTSq);
+		float cosThetaT = sqrtf(1.0f - sinThetaTSq);
 
 		const float Rparl = (eta * cosThetaI - cosThetaT) / (eta * cosThetaI + cosThetaT);
-		const float Rperp = (eta * cosThetaT - cosThetaI) / (eta * cosThetaT + cosThetaT);
+		const float Rperp = (eta * cosThetaT - cosThetaI) / (eta * cosThetaT + cosThetaI);
 
 		return (Rparl * Rparl + Rperp * Rperp) * 0.5f;
+	}
+
+	// Portsmouth, Kutz, and Hill 2025, "OpenPBR: Novel Features and Implementation Details"
+	// specular_weight (>= 0) modulates the Fresnel F0 linearly, without disturbing TIR/refraction
+	inline static __device__ float DielectricReflectance(float eta, float cosThetaI, float specularWeight)
+	{
+		if (specularWeight == 1.0f)
+			return DielectricReflectance(eta, cosThetaI);
+
+		float F0 = Square((eta - 1.0f) / (eta + 1.0f));
+		float eps = copysignf(fmin(1.0f, sqrtf(specularWeight * F0)), 1.0f - eta);
+		float etaPrime = (1.0f - eps) / fmax(FLT_EPSILON, 1.0f + eps);
+
+		if (etaPrime <= 1.0f) // (No TIR possible)
+			return DielectricReflectance(etaPrime, cosThetaI);
+
+		float cosThetaTSq = 1.0f - (1.0f - Square(cosThetaI)) * Square(eta);
+		if (cosThetaTSq <= 0.0f)
+			return 1.0f; // (TIR occurs)
+		return DielectricReflectance(1.0f / eta, sqrtf(cosThetaTSq));
 	}
 
 	// Schlick reflectance approximation
