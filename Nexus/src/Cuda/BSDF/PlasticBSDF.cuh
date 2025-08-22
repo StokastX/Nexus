@@ -32,9 +32,8 @@ struct D_PlasticBSDF
 	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& throughput, float& pdf)
 	{
 		const float3 m = normalize(wo + wi);
-		float cosThetaT;
 		const float wiDotM = dot(wi, m);
-		const float F = Fresnel::DieletricReflectance(1.0f / material.ior, wiDotM, cosThetaT);
+		const float F = Fresnel::DielectricReflectance(eta, wiDotM, material.specularWeight);
 		const float G1 = Microfacet::G1_GGX(wi, alpha);
 		const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
 		const float D = Microfacet::D_GGXAnisotropic(m, alpha);
@@ -63,8 +62,7 @@ struct D_PlasticBSDF
 
 		const float wiDotM = dot(wi, m);
 
-		float cosThetaT;
-		const float F = Fresnel::DieletricReflectance(1.0f / material.ior, wiDotM, cosThetaT);
+		const float F = Fresnel::DielectricReflectance(eta, wiDotM, material.specularWeight);
 
 		// Randomly select a specular or diffuse ray based on Fresnel reflectance
 		if (Random::Rand(rngState) < F)

@@ -43,7 +43,7 @@ struct D_DielectricBSDF
 		const float wiDotM = dot(wi, m);
 		const float woDotM = dot(wo, m);
 
-		const float F = Fresnel::DieletricReflectance(eta, fabs(wiDotM), cosThetaT);
+		const float F = Fresnel::DielectricReflectance(eta, fabs(wiDotM), material.specularWeight);
 		const float G1 = Microfacet::G1_GGX(wi, alpha);
 		const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
 		const float D = Microfacet::D_GGXAnisotropic(m, alpha);
@@ -79,8 +79,7 @@ struct D_DielectricBSDF
 		// Should always be positive since we sample visible normals
 		const float wiDotM = dot(wi, m);
 
-		float cosThetaT;
-		const float F = Fresnel::DieletricReflectance(eta, wiDotM, cosThetaT);
+		const float F = Fresnel::DielectricReflectance(eta, wiDotM, material.specularWeight);
 
 		// Randomly select a reflected or transmitted ray based on Fresnel reflectance
 		const bool reflection = Random::Rand(rngState) < F;
@@ -97,6 +96,7 @@ struct D_DielectricBSDF
 		else
 		{
 			// Refraction
+			float cosThetaT = sqrtf(1.0f - Square(eta) * (1.0f - Square(wiDotM)));
 			wo = (eta * wiDotM - Utils::SgnE(wiDotM) * cosThetaT) * m - eta * wi;
 
 			if (wo.z * wi.z > 0.0f)

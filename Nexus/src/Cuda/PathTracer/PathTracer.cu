@@ -408,8 +408,8 @@ __global__ void MaterialKernel()
 		material.metalness *= c.z;
 	}
 
-	if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
-		printf("roughness: %f, metalness: %f\n", material.roughness, material.metalness);
+	//if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
+	//	printf("roughness: %f, metalness: %f\n", material.roughness, material.metalness);
 
 	bool allowMIS = bounce > 1 && scene.renderSettings.useMIS;
 
