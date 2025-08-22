@@ -9,42 +9,42 @@
 class D_PrincipledBSDF
 {
 public:
-	static inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& throughput, float& pdf)
+	static inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& bsdf, float& pdf)
 	{
-		throughput = make_float3(0.0f);
+		bsdf = make_float3(0.0f);
 		pdf = 0.0f;
 
 		if (material.metalness > 0.0f)
 		{
-			D_ConductorBSDF bsdf;
-			bsdf.PrepareBSDFData(wi, material);
+			D_ConductorBSDF conductorBSDF;
+			conductorBSDF.PrepareBSDFData(wi, material);
 			float3 metalThroughput;
 			float metalPdf;
-			if (bsdf.Eval(material, wi, wo, metalThroughput, metalPdf))
+			if (conductorBSDF.Eval(material, wi, wo, metalThroughput, metalPdf))
 			{
-				throughput += material.metalness * metalThroughput;
+				bsdf += material.metalness * metalThroughput;
 				pdf += material.metalness * metalPdf;
 			}
 		}
 		if (material.transmission > 0.0f)
 		{
-			D_DielectricBSDF bsdf;
-			bsdf.PrepareBSDFData(wi, material);
+			D_DielectricBSDF dielectricBSDF;
+			dielectricBSDF.PrepareBSDFData(wi, material);
 			float3 dielectricThroughput = make_float3(0.0f);
 			float dielectricPdf = 0.0f;
-			if (bsdf.Eval(material, wi, wo, dielectricThroughput, dielectricPdf))
+			if (dielectricBSDF.Eval(material, wi, wo, dielectricThroughput, dielectricPdf))
 			{
-				throughput += (1.0f - material.metalness) * material.transmission * dielectricThroughput;
+				bsdf += (1.0f - material.metalness) * material.transmission * dielectricThroughput;
 				pdf += (1.0f - material.metalness) * material.transmission * dielectricPdf;
 			}
 		}
-		D_PlasticBSDF bsdf;
-		bsdf.PrepareBSDFData(wi, material);
+		D_PlasticBSDF plasticBSDF;
+		plasticBSDF.PrepareBSDFData(wi, material);
 		float3 plasticThroughput = make_float3(0.0f);
 		float plasticPdf = 0.0f;
-		if (bsdf.Eval(material, wi, wo, plasticThroughput, plasticPdf))
+		if (plasticBSDF.Eval(material, wi, wo, plasticThroughput, plasticPdf))
 		{
-			throughput += (1.0f - material.metalness) * (1.0f - material.transmission) * plasticThroughput;
+			bsdf += (1.0f - material.metalness) * (1.0f - material.transmission) * plasticThroughput;
 			pdf += (1.0f - material.metalness) * (1.0f - material.transmission) * plasticPdf;
 		}
 

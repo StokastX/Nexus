@@ -22,6 +22,9 @@ struct D_DielectricBSDF
 	inline __device__ void PrepareBSDFData(const float3& wi,  const D_Material& material)
 	{
 		eta = wi.z < 0.0f ? material.ior : 1.0f / material.ior;
+		// Workaround to avoid having null refracted directions
+		if (eta == 1.0f)
+			eta += 1.0e-4f;
 
 		// OpenPBR alpha mapping
 		alpha.x = Square(material.roughness) * sqrtf(2.0f / (1.0f + Square(1.0f - material.anisotropy)));
@@ -29,7 +32,7 @@ struct D_DielectricBSDF
 		alpha = clamp(alpha, 1.0e-4f, 1.0f);
 	}
 
-	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& throughput, float& pdf)
+	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& bsdf, float& pdf)
 	{
 		const bool reflected = wi.z * wo.z > 0.0f;
 
@@ -39,7 +42,6 @@ struct D_DielectricBSDF
 		else
 			m = normalize(wi * eta + wo); // We don't care about the sign of m
 
-		float cosThetaT;
 		const float wiDotM = dot(wi, m);
 		const float woDotM = dot(wo, m);
 
@@ -50,14 +52,15 @@ struct D_DielectricBSDF
 
 		if (reflected)
 		{
+			const float3 FTinted = material.specularColor * F;
 			// BSDF times woDotN
-			throughput = make_float3(F * G2 * D / (4.0f * fabs(wi.z)));
+			bsdf = FTinted * G2 * D / (4.0f * fabs(wi.z));
 			pdf = F * Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
 		}
 		else
 		{
 			// wiDotM and woDotM always have an opposite sign, this is why we don't care about the sign of m
-			throughput = (1.0f - F) * G2 * D * fabs(wiDotM * woDotM) / (fabs(wi.z) * Square(eta * wiDotM + woDotM)) * material.baseColor;
+			bsdf = (1.0f - F) * G2 * D * fabs(wiDotM * woDotM) / (fabs(wi.z) * Square(eta * wiDotM + woDotM)) * material.baseColor;
 			pdf = (1.0f - F) * Microfacet::RefractionPdf_GGX(D, G1, eta, wi.z, wiDotM, woDotM);
 		}
 
@@ -109,7 +112,8 @@ struct D_DielectricBSDF
 
 		if (reflection)
 		{
-			throughput = make_float3(G2 / G1);
+			const float3 FTinted = material.specularColor * F;
+			throughput = FTinted * G2 / (G1 * F);
 			pdf = F * Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
 		}
 		else

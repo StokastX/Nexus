@@ -29,22 +29,23 @@ struct D_PlasticBSDF
 	}
 
 	// Evaluation function for a shadow ray
-	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& throughput, float& pdf)
+	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& bsdf, float& pdf)
 	{
 		const float3 m = normalize(wo + wi);
 		const float wiDotM = dot(wi, m);
 		const float F = Fresnel::DielectricReflectance(eta, wiDotM, material.specularWeight);
+		const float3 FTinted = material.specularColor * F;
 		const float G1 = Microfacet::G1_GGX(wi, alpha);
 		const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
 		const float D = Microfacet::D_GGXAnisotropic(m, alpha);
 
 		// BRDF times woDotN
-		const float3 brdf = make_float3(F * G2 * D / (4.0f * fabs(wi.z)));
+		const float3 brdf = FTinted * G2 * D / (4.0f * fabs(wi.z));
 
 		// Diffuse bounce
 		const float3 btdf = (1.0f - F) * material.baseColor * INV_PI * fabs(wo.z);
 
-		throughput = brdf + btdf;
+		bsdf = brdf + btdf;
 
 		const float pdfSpecular = Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
 
@@ -62,7 +63,7 @@ struct D_PlasticBSDF
 
 		const float wiDotM = dot(wi, m);
 
-		const float F = Fresnel::DielectricReflectance(eta, wiDotM, material.specularWeight);
+		float F = Fresnel::DielectricReflectance(eta, wiDotM, material.specularWeight);
 
 		// Randomly select a specular or diffuse ray based on Fresnel reflectance
 		if (Random::Rand(rngState) < F)
@@ -74,11 +75,12 @@ struct D_PlasticBSDF
 			if (wo.z * wi.z < 0.0f)
 				return false;
 
+			const float3 FTinted = material.specularColor * F;
 			const float D = Microfacet::D_GGXAnisotropic(m, alpha);
 			const float G1 = Microfacet::G1_GGX(wi, alpha);
 			const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
 
-			throughput = make_float3(G2 / G1);
+			throughput = G2 * FTinted / (G1 * F);
 			pdf = F * Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
 		}
 

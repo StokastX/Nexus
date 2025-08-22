@@ -18,7 +18,7 @@ struct D_ConductorBSDF
 		alpha = clamp(alpha, 1.0e-4f, 1.0f);
 	}
 
-	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& throughput, float& pdf)
+	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& bsdf, float& pdf)
 	{
 		const float3 m = normalize(wo + wi);
 		const float wiDotM = dot(wi, m);
@@ -29,7 +29,7 @@ struct D_ConductorBSDF
 		const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
 
 		// BRDF times woDotN
-		throughput = F * G2 * D / (4.0f * fabs(wi.z));
+		bsdf = F * G2 * D / (4.0f * fabs(wi.z));
 
 		pdf = Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
 

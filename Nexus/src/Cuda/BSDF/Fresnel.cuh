@@ -16,7 +16,7 @@ public:
 		if (sinThetaTSq >= 1.0f)
 			return 1.0f;
 
-		float cosThetaT = sqrtf(1.0f - sinThetaTSq);
+		const float cosThetaT = sqrtf(1.0f - sinThetaTSq);
 
 		const float Rparl = (eta * cosThetaI - cosThetaT) / (eta * cosThetaI + cosThetaT);
 		const float Rperp = (eta * cosThetaT - cosThetaI) / (eta * cosThetaT + cosThetaI);
@@ -35,7 +35,9 @@ public:
 		float eps = copysignf(fmin(1.0f, sqrtf(specularWeight * F0)), 1.0f - eta);
 		float etaPrime = (1.0f - eps) / fmax(FLT_EPSILON, 1.0f + eps);
 
-		if (etaPrime <= 1.0f) // (No TIR possible)
+		// I changed etaPrime to eta because in case specularWeight is zero,
+		// etaPrime is equal to 1 while eta can be greater than one which leads to false positives
+		if (eta <= 1.0f) // (No TIR possible)
 			return DielectricReflectance(etaPrime, cosThetaI);
 
 		float cosThetaTSq = 1.0f - (1.0f - Square(cosThetaI)) * Square(eta);
