@@ -90,7 +90,6 @@ void PathTracer::Reset()
 
 	float* lastPdf = CudaMemory::AllocateAsync<float>(count);
 	float3* throughput = CudaMemory::AllocateAsync<float3>(count);
-	float3* rayOrigin = CudaMemory::AllocateAsync<float3>(count);
 	float3* radiance = CudaMemory::AllocateAsync<float3>(count);
 	bool* allowMIS = CudaMemory::AllocateAsync<bool>(count);
 
