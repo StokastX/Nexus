@@ -4,50 +4,23 @@
 
 struct D_Material
 {
-	enum struct D_Type : char
-	{
-		DIFFUSE,
-		DIELECTRIC,
-		PLASTIC,
-		CONDUCTOR
-	};
+	float3 baseColor = make_float3(0.8f);
+	float metalness = 0.0f;
+	float roughness = 0.3f;
+	float anisotropy = 0.0f;
+	float specularWeight = 1.0f;
+	float3 specularColor = make_float3(1.0f);
+	float ior = 1.5f;
+	float transmission = 0.0f;
 
-	union
-	{
-		struct
-		{
-			float3 albedo;
-		} diffuse;
+	float3 emissionColor = make_float3(1.0f);
+	float intensity = 0.0f;
+	float opacity = 1.0f;
 
-		struct
-		{
-			float3 albedo;
-			float roughness;
-			float ior;
-		} dielectric;
-
-		struct
-		{
-			float3 albedo;
-			float roughness;
-			float ior;
-		} plastic;
-
-		struct
-		{
-			float3 ior;
-			float3 k;
-			float roughness;
-		} conductor;
-	};
-
-	float3 emissive;
-	float intensity;
-	float opacity;
-
-	int diffuseMapId = -1;
-	int emissiveMapId = -1;
-	int normalMapId = -1;
-	int roughnessMapId = -1;
-	D_Type type;
+	int32_t baseColorMapId = -1;
+	int32_t emissiveMapId = -1;
+	int32_t normalMapId = -1;
+	int32_t roughnessMapId = -1;
+	int32_t metalnessMapId = -1;
+	int32_t metallicRoughnessMapId = -1;
 };

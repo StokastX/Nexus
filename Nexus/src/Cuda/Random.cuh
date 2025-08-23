@@ -14,9 +14,6 @@ public:
 	static inline __device__ unsigned int InitRNG(uint2 pixel, uint2 resolution, unsigned int frameNumber);
 	static inline __device__ unsigned int InitRNG(uint32_t index, uint2 resolution, unsigned int frameNumber);
 	static inline __device__ float Rand(unsigned int& rngState);
-	static inline __device__ float3 RandomUnitVector(unsigned int& rngState);
-	static inline __device__ float3 RandomInUnitSphere(unsigned int& rngState);
-	static inline __device__ float3 RandomOnHemisphere(unsigned int& rngState, float3& normal);
 	static inline __device__ float3 RandomCosineHemisphere(unsigned int& rngState);
 	static inline __device__ float2 RandomInUnitDisk(unsigned int& rngState);
 };
@@ -32,7 +29,6 @@ inline __device__ unsigned int jenkinsHash(unsigned int x)
 }
 
 // PCG version
-
 inline __device__ uint4 pcg4d(uint4 v)
 {
 	v = v * 1664525u + 1013904223u;
@@ -86,30 +82,6 @@ inline __device__ float Random::Rand(unsigned int& rngState)
 	return uintToFloat(xorShift(rngState));
 }
 
-inline __device__ float3 Random::RandomInUnitSphere(unsigned int& rngState)
-{
-	float3 p;
-	do {
-		p = 2.0f * (make_float3(Rand(rngState), Rand(rngState), Rand(rngState)) - 0.5f);
-	} while (length(p) >= 1.0f);
-	return p;
-}
-
-inline __device__ float3 Random::RandomUnitVector(unsigned int& rngState)
-{
-	return normalize(RandomInUnitSphere(rngState));
-}
-
-
-inline __device__ float3 Random::RandomOnHemisphere(unsigned int& rngState, float3& normal)
-{
-	float3 r = RandomUnitVector(rngState);
-	if (dot(r, normal) > 0)
-		return r;
-	else
-		return -r;
-}
-
 inline __device__ float3 Random::RandomCosineHemisphere(unsigned int& rngState)
 {
 	float r1 = Rand(rngState);
@@ -124,11 +96,12 @@ inline __device__ float3 Random::RandomCosineHemisphere(unsigned int& rngState)
 	return make_float3(x, y, z);
 }
 
+// From https://pbr-book.org/3ed-2018/Monte_Carlo_Integration/2D_Sampling_with_Multidimensional_Transformations
+// Warning: this distorts areas on the disk and should not be used for stratified sampling
 inline __device__ float2 Random::RandomInUnitDisk(unsigned int& rngState)
 {
-	float2 p;
-	do {
-		p = 2.0f * (make_float2(Rand(rngState), Rand(rngState)) - 0.5f);
-	} while (length(p) >= 1.0f);
-	return p;
+	float2 u = make_float2(Rand(rngState), Rand(rngState));
+	float r = sqrt(u.x);
+	float theta = 2 * PI * u.y;
+	return make_float2(r * cos(theta), r * sin(theta));
 }

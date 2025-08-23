@@ -94,41 +94,29 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 	{
 		aiMaterial* material = scene->mMaterials[i];
 		Material newMaterial;
-		newMaterial.type = Material::Type::PLASTIC;
 
-		aiColor3D diffuse(0.0f);
-		material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuse);
-		newMaterial.plastic.albedo = make_float3(diffuse.r, diffuse.g, diffuse.b);
+		aiColor3D baseColor(0.0f);
+		material->Get(AI_MATKEY_BASE_COLOR, baseColor);
+		newMaterial.baseColor = make_float3(baseColor.r, baseColor.g, baseColor.b);
+		material->Get(AI_MATKEY_METALLIC_FACTOR, newMaterial.metalness);
+		material->Get(AI_MATKEY_ROUGHNESS_FACTOR, newMaterial.roughness);
+		material->Get(AI_MATKEY_SPECULAR_FACTOR, newMaterial.specularWeight);
+
+		aiColor3D specularColor(1.0f);
+		material->Get(AI_MATKEY_COLOR_SPECULAR, specularColor);
+		newMaterial.specularColor = make_float3(specularColor.r, specularColor.g, specularColor.b);
+
+		material->Get(AI_MATKEY_TRANSMISSION_FACTOR, newMaterial.transmission);
+		material->Get(AI_MATKEY_REFRACTI, newMaterial.ior);
 
 		aiColor3D emission(0.0f);
 		material->Get(AI_MATKEY_COLOR_EMISSIVE, emission);
-		newMaterial.emissive = make_float3(emission.r, emission.g, emission.b);
+		newMaterial.emissionColor = make_float3(emission.r, emission.g, emission.b);
 
-		float intensity = 1.0f;
-		material->Get(AI_MATKEY_EMISSIVE_INTENSITY, intensity);
-		newMaterial.intensity = intensity;
-
-		float opacity = 1.0f;
-		material->Get(AI_MATKEY_OPACITY, opacity);
-		newMaterial.opacity = opacity;
-
-		float transmissionFactor = 0.0f;
-		material->Get(AI_MATKEY_TRANSMISSION_FACTOR, transmissionFactor);
-
-		// We assume every partially transmissive material is a dielectric
-		if (transmissionFactor > 0.0f)
-			newMaterial.type = Material::Type::DIELECTRIC;
-
-		float ior = 1.45f;
-		material->Get(AI_MATKEY_REFRACTI, ior);
-		newMaterial.plastic.ior = ior;
-
-		float shininess = 0.0f;
-		if (AI_SUCCESS != aiGetMaterialFloat(material, AI_MATKEY_SHININESS, &shininess))
-		{
-			shininess = 20.0f;
-		}
-		newMaterial.plastic.roughness = clamp(1.0f - sqrt(shininess) / 31.62278f, 0.0f, 1.0f);
+		if (fmaxf(newMaterial.emissionColor) > 0.0f)
+			newMaterial.intensity = 1.0f;
+		material->Get(AI_MATKEY_EMISSIVE_INTENSITY, newMaterial.intensity);
+		material->Get(AI_MATKEY_OPACITY, newMaterial.opacity);
 
 		if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
 		{
@@ -149,7 +137,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					newTexture = IMGLoader::LoadIMG(materialPath);
 				}
 				newTexture.type = Texture::Type::DIFFUSE;
-				newMaterial.diffuseMapId = assetManager->AddTexture(newTexture);
+				newMaterial.baseColorMapId = assetManager->AddTexture(newTexture);
 			}
 		}
 		if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
@@ -157,9 +145,6 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 			aiString mPath;
 			if (material->GetTexture(aiTextureType_NORMALS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
-				//aiUVTransform transform;
-				//material->Get(AI_MATKEY_UVTRANSFORM_NORMALS(0), transform);
-
 				Texture newTexture;
 				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
 				if (texture)
@@ -203,6 +188,54 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 				newMaterial.roughnessMapId = assetManager->AddTexture(newTexture);
 			}
 		}
+		if (material->GetTextureCount(aiTextureType_METALNESS) > 0)
+		{
+			aiString mPath;
+			if (material->GetTexture(aiTextureType_METALNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
+			{
+				Texture newTexture;
+				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
+				if (texture)
+				{
+					if (texture->mHeight == 0)
+					{
+						newTexture = IMGLoader::LoadIMG(texture);
+					}
+				}
+				else
+				{
+					const std::string materialPath = path + mPath.C_Str();
+					newTexture = IMGLoader::LoadIMG(materialPath);
+				}
+				newTexture.sRGB = false;
+				newTexture.type = Texture::Type::METALNESS;
+				newMaterial.metalnessMapId = assetManager->AddTexture(newTexture);
+			}
+		}
+		if (material->GetTextureCount(aiTextureType_GLTF_METALLIC_ROUGHNESS) > 0)
+		{
+			aiString mPath;
+			if (material->GetTexture(aiTextureType_GLTF_METALLIC_ROUGHNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
+			{
+				Texture newTexture;
+				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
+				if (texture)
+				{
+					if (texture->mHeight == 0)
+					{
+						newTexture = IMGLoader::LoadIMG(texture);
+					}
+				}
+				else
+				{
+					const std::string materialPath = path + mPath.C_Str();
+					newTexture = IMGLoader::LoadIMG(materialPath);
+				}
+				newTexture.sRGB = false;
+				newTexture.type = Texture::Type::METALLICROUGHNESS;
+				newMaterial.metallicRoughnessMapId = assetManager->AddTexture(newTexture);
+			}
+		}
 		if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0)
 		{
 			aiString mPath;
@@ -231,6 +264,56 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 	return materialIdx;
 }
 
+static void CreateLightsFromScene(const aiScene* assimpScene, Scene* scene)
+{
+	for (uint32_t i = 0; i < assimpScene->mNumLights; i++)
+	{
+		Light light;
+		float3 color;
+		switch (assimpScene->mLights[i]->mType)
+		{
+		case aiLightSource_POINT:
+		case aiLightSource_UNDEFINED:
+			light.type = Light::Type::POINT;
+			light.point.position = *(float3*)&assimpScene->mLights[i]->mPosition;
+			color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			light.point.intensity = fmaxf(color);
+			light.point.color = color / light.point.intensity;
+			std::cout << "Added point light of intensity " << light.point.intensity << " and color " << light.point.color.x << " " << light.point.color.y << " " << light.point.color.z << std::endl;
+			std::cout << "Attenuation constant: " << assimpScene->mLights[i]->mAttenuationConstant << ", AttenuationLinear: " << assimpScene->mLights[i]->mAttenuationLinear << std::endl;
+			break;
+		case aiLightSource_SPOT:
+			light.type = Light::Type::SPOT;
+			light.spot.position = *(float3*)&assimpScene->mLights[i]->mPosition;
+			light.spot.direction = *(float3*)&assimpScene->mLights[i]->mDirection;
+			color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			light.spot.intensity = fmaxf(color);
+			light.spot.color = color / light.spot.intensity;
+			light.spot.falloffStart = 1.0f / assimpScene->mLights[i]->mAngleInnerCone;
+			light.spot.falloffEnd = 1.0f / assimpScene->mLights[i]->mAngleOuterCone;
+			std::cout << "Added spot light of intensity " << light.spot.intensity << " and color " << light.spot.color.x << " " << light.spot.color.y << " " << light.spot.color.z << std::endl;
+			std::cout << "Attenuation constant: " << assimpScene->mLights[i]->mAttenuationConstant << ", AttenuationLinear: " << assimpScene->mLights[i]->mAttenuationLinear << std::endl;
+			break;
+		case aiLightSource_DIRECTIONAL:
+			light.type = Light::Type::DIRECTIONAL;
+			color = *(float3*)&assimpScene->mLights[i]->mColorDiffuse;
+			light.directional.intensity = fmaxf(color);
+			light.directional.color = color / light.directional.intensity;
+			light.directional.direction = *(float3*)&assimpScene->mLights[i]->mDirection;
+			std::cout << "Added directional light of intensity " << light.directional.intensity << " and color " << light.directional.color.x << " " << light.directional.color.y << " " << light.directional.color.z << std::endl;
+			std::cout << "Attenuation constant: " << assimpScene->mLights[i]->mAttenuationConstant << ", AttenuationLinear: " << assimpScene->mLights[i]->mAttenuationLinear << std::endl;
+			break;
+		default:
+			std::cout << "Warning: unhandled light type" << std::endl;
+			break;
+		}
+		if (light.type != Light::Type::UNDEFINED)
+		{
+			scene->AddLight(light);
+		}
+	}
+}
+
 static std::vector<uint32_t> CreateMeshesFromScene(const aiScene* scene, AssetManager* assetManager, std::vector<uint32_t> materialIdx)
 {
 	std::vector<uint32_t> meshIds;
@@ -252,19 +335,73 @@ static std::vector<uint32_t> CreateMeshesFromScene(const aiScene* scene, AssetMa
 static void CreateMeshInstancesFromNode(const aiScene* assimpScene, Scene* scene, const aiNode* node, aiMatrix4x4 aiTransform, std::vector<uint32_t>& materialIds, std::vector<uint32_t>& meshIds)
 {
 	aiTransform = aiTransform * node->mTransformation;
+
+	aiVector3D aiPosition, aiRotation, aiScale;
+	aiTransform.Decompose(aiScale, aiRotation, aiPosition);
+
+	double scaleFactor = 1.0f;
+	bool result = assimpScene->mMetaData->Get("UnitScaleFactor", scaleFactor);
+
+	aiMatrix4x4 rotationMatrix;
+	rotationMatrix = rotationMatrix.FromEulerAnglesXYZ(aiRotation);
+
+	// For some reason in assimp the transform of a light is given by a node if they both have the same name
+	for (uint32_t i = 0; i < assimpScene->mNumLights; i++)
+	{
+		aiLight* assimpLight = assimpScene->mLights[i];
+		if (node->mName == assimpLight->mName)
+		{
+			Light& light = scene->GetLights()[i];
+			aiVector3D position, direction;
+			switch (light.type)
+			{
+			case Light::Type::POINT:
+				position = aiTransform * assimpLight->mPosition;
+				light.point.position = *(float3*)&position / scaleFactor;
+				break;
+			case Light::Type::DIRECTIONAL:
+				direction = rotationMatrix * assimpLight->mDirection;
+				light.directional.direction = *(float3*)&direction;
+				break;
+			case Light::Type::SPOT:
+				position = aiTransform * assimpLight->mPosition;
+				direction = rotationMatrix * assimpLight->mDirection;
+				light.spot.position = *(float3*)&position / scaleFactor;
+				light.spot.direction = *(float3*)&direction;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	// Same for the camera
+	if (assimpScene->HasCameras())
+	{
+		aiCamera* assimpCamera = assimpScene->mCameras[0];
+		if (assimpCamera->mName == node->mName)
+		{
+			std::shared_ptr<Camera> camera = scene->GetCamera();
+			aiVector3D position = aiTransform * assimpCamera->mPosition;
+			aiVector3D lookAt = rotationMatrix * assimpCamera->mLookAt;
+			aiVector3D upDirection = rotationMatrix * assimpCamera->mUp;
+			aiVector3D rightDirection = lookAt ^ upDirection;
+			camera->SetPosition(*(float3*)&position);
+			camera->SetForwardDirection(*(float3*)&lookAt);
+			camera->SetRightDirection(*(float3*)&rightDirection);
+			camera->SetHorizontalFOV(Utils::ToDegrees(assimpCamera->mHorizontalFOV));
+		}
+	}
+
 	for (int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh* mesh = assimpScene->mMeshes[node->mMeshes[i]];
 		int32_t meshId = meshIds[node->mMeshes[i]];
 
-		aiVector3D aiPosition, aiRotation, aiScale;
-		aiTransform.Decompose(aiScale, aiRotation, aiPosition);
 		float3 position = { aiPosition.x, aiPosition.y, aiPosition.z };
 		float3 rotation = { Utils::ToDegrees(aiRotation.x), Utils::ToDegrees(aiRotation.y), Utils::ToDegrees(aiRotation.z) };
 		float3 scale = { aiScale.x, aiScale.y, aiScale.z };
 
-		double scaleFactor = 1.0f;
-		bool result = assimpScene->mMetaData->Get("UnitScaleFactor", scaleFactor);
 		scale /= scaleFactor;
 		position /= scaleFactor;
 
@@ -298,10 +435,11 @@ void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Sc
 
 	//double factor = 100.0f;
 	//// Fix for assimp scaling FBX with a factor 100
-	//scene->mMetaData->Set("UnitScaleFactor", factor);
+	//objScene->mMetaData->Set("UnitScaleFactor", factor);
 	
 	std::vector<uint32_t> materialIdx = CreateMaterialsFromAiScene(objScene, assetManager, path);
 	std::vector<uint32_t> meshIdx = CreateMeshesFromScene(objScene, assetManager, materialIdx);
+	CreateLightsFromScene(objScene, scene);
 	CreateMeshInstancesFromNode(objScene, scene, objScene->mRootNode, aiMatrix4x4(), materialIdx, meshIdx);
 
 	std::cout << "OBJLoader: loaded model " << filePath << " successfully" << std::endl;

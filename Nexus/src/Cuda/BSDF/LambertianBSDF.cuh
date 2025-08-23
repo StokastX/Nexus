@@ -22,7 +22,7 @@ struct D_LambertianBSDF
 		if (!reflected)
 			return false;
 
-		throughput = material.diffuse.albedo * INV_PI * woDotN;
+		throughput = material.baseColor * INV_PI * woDotN;
 		pdf = INV_PI * woDotN;
 
 		return Sampler::IsPdfValid(pdf);
@@ -31,7 +31,7 @@ struct D_LambertianBSDF
 	inline __device__ bool Sample(const D_Material& material, const float3& wi, float3& wo, float3& throughput, float& pdf, unsigned int& rngState)
 	{
 		wo = Random::RandomCosineHemisphere(rngState);
-		throughput = material.diffuse.albedo;
+		throughput = material.baseColor;
 		pdf = INV_PI * wo.z;
 
 		return Sampler::IsPdfValid(pdf);

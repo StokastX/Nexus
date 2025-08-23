@@ -1,5 +1,6 @@
 #pragma once
 #include "Utils/cuda_math.h"
+#include "Utils/ColorUtils.h"
 
 struct RenderSettings
 {
@@ -10,4 +11,6 @@ struct RenderSettings
 
 	float3 backgroundColor = make_float3(0.0f);
 	float backgroundIntensity = 1.0f;
+	ColorUtils::ToneMapping toneMapping = ColorUtils::ToneMapping::AGX_DEFAULT;
+	float exposure = 0.0f;
 };

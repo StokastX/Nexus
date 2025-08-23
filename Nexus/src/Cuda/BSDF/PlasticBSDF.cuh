@@ -18,43 +18,36 @@
 struct D_PlasticBSDF
 {
 	float eta;
-	float alpha;
+	float2 alpha;
 
 	inline __device__ void PrepareBSDFData(const float3& wi,  const D_Material& material)
 	{
-		alpha = clamp((1.2f - 0.2f * sqrtf(fabs(wi.z))) * material.plastic.roughness * material.plastic.roughness, 1.0e-4f, 1.0f);
-		eta = wi.z < 0.0f ? material.plastic.ior : 1 / material.plastic.ior;
+		eta = wi.z < 0.0f ? material.ior : 1 / material.ior;
+		alpha.x = Square(material.roughness) * sqrtf(2.0f / (1.0f + Square(1.0f - material.anisotropy)));
+		alpha.y = (1.0f - material.anisotropy) * alpha.x;
+		alpha = clamp(alpha, 1.0e-4f, 1.0f);
 	}
 
 	// Evaluation function for a shadow ray
-	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& throughput, float& pdf)
+	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& bsdf, float& pdf)
 	{
-		const float wiDotN = wi.z;
-		const float woDotN = wo.z;
-
-		//const bool reflected = wiDotN * woDotN > 0.0f;
-
-		//if (!reflected)
-		//	return false;
-
 		const float3 m = normalize(wo + wi);
-		float cosThetaT;
 		const float wiDotM = dot(wi, m);
-		const float F = Fresnel::DieletricReflectance(1.0f / material.plastic.ior, wiDotM, cosThetaT);
-		const float G = Microfacet::Smith_G2(alpha, fabs(woDotN), fabs(wiDotN));
-		const float D = Microfacet::BeckmannD(alpha, m.z);
+		const float F = Fresnel::DielectricReflectance(eta, wiDotM, material.specularWeight);
+		const float3 FTinted = material.specularColor * F;
+		const float G1 = Microfacet::G1_GGX(wi, alpha);
+		const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
+		const float D = Microfacet::D_GGXAnisotropic(m, alpha);
 
 		// BRDF times woDotN
-		const float3 brdf = make_float3(F * G * D / (4.0f * fabs(wiDotN)));
+		const float3 brdf = FTinted * G2 * D / (4.0f * fabs(wi.z));
 
 		// Diffuse bounce
-		const float3 btdf = (1.0f - F) * material.plastic.albedo * INV_PI * fabs(wo.z);
+		const float3 btdf = (1.0f - F) * material.baseColor * INV_PI * fabs(wo.z);
 
-		throughput = brdf + btdf;
+		bsdf = brdf + btdf;
 
-		// pm * jacobian = pm * || dWhr / dWo ||
-		// We can replace woDotM with wiDotM since for a reflection both are equal
-		const float pdfSpecular = D * fabs(m.z) / (4.0f * fabs(wiDotM));
+		const float pdfSpecular = Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
 
 		// cos(theta) / PI
 		const float pdfDiffuse = fabs(wo.z) * INV_PI;
@@ -66,15 +59,14 @@ struct D_PlasticBSDF
 
 	inline __device__ bool Sample(const D_Material& material, const float3& wi, float3& wo, float3& throughput, float& pdf, unsigned int& rngState)
 	{
-		const float3 m = Microfacet::SampleSpecularHalfBeckWalt(alpha, rngState);
+		const float3 m = Microfacet::SampleVNDF_GGX(wi, alpha, rngState);
 
 		const float wiDotM = dot(wi, m);
 
-		float cosThetaT;
-		const float fr = Fresnel::DieletricReflectance(1.0f / material.plastic.ior, wiDotM, cosThetaT);
+		float F = Fresnel::DielectricReflectance(eta, wiDotM, material.specularWeight);
 
 		// Randomly select a specular or diffuse ray based on Fresnel reflectance
-		if (Random::Rand(rngState) < fr)
+		if (Random::Rand(rngState) < F)
 		{
 			// Specular
 			wo = reflect(-wi, m);
@@ -83,22 +75,21 @@ struct D_PlasticBSDF
 			if (wo.z * wi.z < 0.0f)
 				return false;
 
-			const float weight = Microfacet::WeightBeckmannWalter(alpha, fabs(wiDotM), fabs(wo.z), fabs(wi.z), m.z);
+			const float3 FTinted = material.specularColor * F;
+			const float D = Microfacet::D_GGXAnisotropic(m, alpha);
+			const float G1 = Microfacet::G1_GGX(wi, alpha);
+			const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
 
-			// We dont need to include the Fresnel term since it's already included when
-			// we select between reflection and transmission (see paper page 7)
-			throughput = make_float3(weight); // * F / fr
-			pdf = fr * Microfacet::SampleWalterReflectionPdf(alpha, m.z, fabs(wiDotM));
+			throughput = G2 * FTinted / (G1 * F);
+			pdf = F * Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
 		}
 
 		else
 		{
 			//Diffuse
 			wo = Random::RandomCosineHemisphere(rngState);
-			throughput = material.plastic.albedo;
-			// Same here, we don't need to include the Fresnel term
-			//throughput = throughput * (1.0f - F) / (1.0f - fr)
-			pdf = (1.0f - fr) * INV_PI * wo.z;
+			throughput = material.baseColor;
+			pdf = (1.0f - F) * INV_PI * wo.z;
 		}
 
 		return Sampler::IsPdfValid(pdf);

@@ -9,6 +9,7 @@
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Cuda/Geometry/Ray.cuh"
 #include "Cuda/Utils.cuh"
+#include "Utils/ColorUtils.h"
 
 // If the ratio of active threads in a warp is less than POSTPONE_RATIO_THRESHOLD, postpone triangle intersection
 #define POSTPONE_RATIO_THRESHOLD 0.2
@@ -676,7 +677,7 @@ inline __device__ void BVH8TraceVisualize(const NXB::BVH8& tlas, D_Mesh* meshes,
 				{
 					intersection.hitDistance = 1.0e30f;
 					traceRequest.intersection.Set(rayIndex, intersection);
-					pathState.radiance[traceRequest.pixelIdx[rayIndex]] = HeatmapColor(boundsHit);
+					pathState.radiance[traceRequest.pixelIdx[rayIndex]] = ColorUtils::HeatmapColor(boundsHit);
 					shouldFetchNewRay = true;
 					break;
 				}

@@ -4,6 +4,7 @@
 #include "Cuda/BSDF/DielectricBSDF.cuh"
 #include "Cuda/BSDF/PlasticBSDF.cuh"
 #include "Cuda/BSDF/ConductorBSDF.cuh"
+#include "Cuda/BSDF/PrincipledBSDF.cuh"
 #include "Cuda/BSDF/BSDF.cuh"
 #include "Utils/cuda_math.h"
 #include "Math/TangentFrame.h"
@@ -15,6 +16,7 @@
 #include "NXB/BVHBuilder.h"
 #include "Cuda/BVH/BVH2Traversal.cuh"
 #include "Cuda/BVH/BVH8Traversal.cuh"
+#include "Utils/ColorUtils.h"
 
 __device__ __constant__ uint32_t frameNumber;
 __device__ __constant__ uint32_t bounce;
@@ -29,41 +31,10 @@ __device__ __constant__ D_PathStateSOA pathState;
 __device__ __constant__ D_TraceRequestSOA traceRequest;
 __device__ __constant__ D_ShadowTraceRequestSOA shadowTraceRequest;
 
-__device__ __constant__ D_MaterialRequestSOA diffuseMaterialBuffer;
-__device__ __constant__ D_MaterialRequestSOA plasticMaterialBuffer;
-__device__ __constant__ D_MaterialRequestSOA dielectricMaterialBuffer;
-__device__ __constant__ D_MaterialRequestSOA conductorMaterialBuffer;
+__device__ __constant__ D_MaterialRequestSOA materialRequest;
 
 __device__ D_PixelQuery pixelQuery;
 __device__ D_QueueSize queueSize;
-
-
-inline __device__ uint32_t ToColorUInt(float3 color)
-{
-	float4 clamped = clamp(make_float4(color, 1.0f), make_float4(0.0f), make_float4(1.0f));
-	uint8_t red = (uint8_t)(clamped.x * 255.0f);
-	uint8_t green = (uint8_t)(clamped.y * 255.0f);
-	uint8_t blue = (uint8_t)(clamped.z * 255.0f);
-	uint8_t alpha = (uint8_t)(clamped.w * 255.0f);
-	 
-	return alpha << 24 | blue << 16 | green << 8 | red;
-}
-
-// Approximated ACES tonemapping by Krzysztof Narkowicz. See https://graphics-programming.org/resources/tonemapping/index.html
-inline __device__ float3 Tonemap(float3 color)
-{
-	// Tungsten renderer filmic tonemapping to compare my results
-	//float3 x = fmaxf(make_float3(0.0f), color - 0.004f);
-	//return (x * (6.2f * x + 0.5f)) / (x * (6.2f * x + 1.7f) + 0.06f);
-
-	color *= 0.6f; // Exposure
-	const float a = 2.51f;
-	const float b = 0.03f;
-	const float c = 2.43f;
-	const float d = 0.59f;
-	const float e = 0.14f;
-	return clamp((color * (a * color + b)) / (color * (c * color + d) + e), 0.0f, 1.0f);
-}
 
 // If necessary, sample the HDR map (from spherical to equirectangular projection)
 inline __device__ float3 SampleBackground(const D_Scene& scene, float3 direction)
@@ -118,8 +89,6 @@ __global__ void GenerateKernel()
 	if (index == 0)
 		queueSize.traceSize[0] = resolution.x * resolution.y;
 
-	pathState.rayOrigin[index] = ray.origin;
-	pathState.lastPdf[index] = 1.0e10f;
 	traceRequest.ray.origin[index] = ray.origin;
 	traceRequest.ray.direction[index] = ray.direction;
 	traceRequest.pixelIdx[index] = index;
@@ -196,43 +165,14 @@ __global__ void LogicKernel()
 	else
 		return;
 
-	const D_MeshInstance instance = scene.meshInstances[intersection.instanceIdx];
-	const D_Material material = scene.materials[instance.materialIdx];
-
 	int32_t requestIdx;
-	switch (material.type)
-	{
-	case D_Material::D_Type::DIFFUSE:
-		requestIdx = atomicAdd(&queueSize.diffuseSize[bounce], 1);
-		diffuseMaterialBuffer.intersection.Set(requestIdx, intersection);
-		diffuseMaterialBuffer.rayDirection[requestIdx] = ray.direction;
-		diffuseMaterialBuffer.pixelIdx[requestIdx] = pixelIdx;
-		break;
-	case D_Material::D_Type::PLASTIC:
-		requestIdx = atomicAdd(&queueSize.plasticSize[bounce], 1);
-		plasticMaterialBuffer.intersection.Set(requestIdx, intersection);
-		plasticMaterialBuffer.rayDirection[requestIdx] = ray.direction;
-		plasticMaterialBuffer.pixelIdx[requestIdx] = pixelIdx;
-		break;
-	case D_Material::D_Type::DIELECTRIC:
-		requestIdx = atomicAdd(&queueSize.dielectricSize[bounce], 1);
-		dielectricMaterialBuffer.intersection.Set(requestIdx, intersection);
-		dielectricMaterialBuffer.rayDirection[requestIdx] = ray.direction;
-		dielectricMaterialBuffer.pixelIdx[requestIdx] = pixelIdx;
-		break;
-	case D_Material::D_Type::CONDUCTOR:
-		requestIdx = atomicAdd(&queueSize.conductorSize[bounce], 1);
-		conductorMaterialBuffer.intersection.Set(requestIdx, intersection);
-		conductorMaterialBuffer.rayDirection[requestIdx] = ray.direction;
-		conductorMaterialBuffer.pixelIdx[requestIdx] = pixelIdx;
-		break;
-	default:
-		break;
-	}
+	requestIdx = atomicAdd(&queueSize.materialSize[bounce], 1);
+	materialRequest.intersection.Set(requestIdx, intersection);
+	materialRequest.rayDirection[requestIdx] = ray.direction;
+	materialRequest.pixelIdx[requestIdx] = pixelIdx;
 }
 
 
-template<typename BSDF>
 inline __device__ void NextEventEstimation(
 	const float3 wi,
 	const float3 rayDirection,
@@ -247,7 +187,13 @@ inline __device__ void NextEventEstimation(
 ) {
 	D_Light light = Sampler::UniformSampleLights(scene.lights, scene.lightCount, rngState);
 
-	if (light.type == D_Light::Type::MESH_LIGHT)
+	float weight = 1.0f;
+	float lightPdf, hitDistance;
+	float3 sampleThroughput;
+	float3 emissive;
+	D_Ray shadowRay;
+
+	if (light.type == D_Light::Type::MESH)
 	{
 		D_MeshInstance instance = scene.meshInstances[light.mesh.meshId];
 
@@ -266,13 +212,11 @@ inline __device__ void NextEventEstimation(
 		float3 lightNormal = Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv);
 		lightNormal = normalize(instance.invTransform.Transposed().TransformVector(lightNormal));
 
-		D_Ray shadowRay;
-
 		float3 toLight = p - hitPoint;
 
 		const bool reflect = dot(-rayDirection, hitGNormal) * dot(toLight, hitGNormal) > 0.0f;
 
-		if (!reflect && material.type != D_Material::D_Type::DIELECTRIC)
+		if (!reflect && material.transmission == 0.0f)
 			return;
 
 		float offsetDirection = Utils::SgnE(dot(toLight, normal));
@@ -282,8 +226,8 @@ inline __device__ void NextEventEstimation(
 		p = OffsetRay(p, lightGNormal * offsetDirection);
 
 		float3 offsetRay = p - shadowRay.origin;
-		const float offsetDist = length(offsetRay);
-		shadowRay.direction = offsetRay / offsetDist;
+		hitDistance = length(offsetRay);
+		shadowRay.direction = offsetRay / hitDistance;
 		shadowRay.invDirection = 1.0f / shadowRay.direction;
 
 		TangentFrame tangentFrame(normal);
@@ -299,7 +243,7 @@ inline __device__ void NextEventEstimation(
 			instance.transform.TransformPoint(triangle.v2)
 		);
 
-		float lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());
+		lightPdf = 1.0f / (scene.lightCount * meshes[instance.meshIdx].bvh.primCount * triangleTransformed.Area());
 		// Transform pdf over an area to pdf over directions
 		lightPdf *= dSquared / cosThetaO;
 
@@ -308,56 +252,102 @@ inline __device__ void NextEventEstimation(
 
 		const D_Material lightMaterial = scene.materials[instance.materialIdx];
 
-		float3 sampleThroughput;
 		float bsdfPdf;
-
-		bool sampleIsValid = D_BSDF::Eval<BSDF>(material, wi, wo, sampleThroughput, bsdfPdf);
-
-		//if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
-		//{
-		//if (fminf(sampleThroughput) < 0.0f)
-		//	printf("negative bsdf: %f\n", sampleThroughput.x);
-		//	printf("Normal: %f %f %f\n", normal.x, normal.y, normal.z);
-		//	printf("wi: %f %f %f\n", wi.x, wi.y, wi.z);
-		//	printf("wo: %f %f %f\n", wo.x, wo.y, wo.z);
-		//	printf("ray direction: %f %f %f\n", rayDirection.x, rayDirection.y, rayDirection.z);
-		//	printf("Normal dot -raydirection: %f\n", dot(normal, -rayDirection));
-		//	printf("Pdf: light = %f, bsdf = %f\n", lightPdf, bsdfPdf);
-		//	printf("BSDF: %f %f %f\n", sampleThroughput.x, sampleThroughput.y, sampleThroughput.z);
-		//	printf("Valid: %u\n", sampleIsValid);
-		//}
+		bool sampleIsValid = D_PrincipledBSDF::Eval(material, wi, wo, sampleThroughput, bsdfPdf);
 
 		if (!sampleIsValid)
 			return;
 
-		const float weight = Sampler::PowerHeuristic(lightPdf, bsdfPdf);
+		weight = Sampler::PowerHeuristic(lightPdf, bsdfPdf);
 
-		float3 emissive;
 		if (lightMaterial.emissiveMapId != -1)
 		{
 			float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
 			emissive = make_float3(tex2D<float4>(scene.textures[lightMaterial.emissiveMapId], texUv.x, texUv.y));
 		}
 		else
-			emissive = lightMaterial.emissive;
+			emissive = lightMaterial.emissionColor;
 
-		const float3 radiance = weight * throughput * sampleThroughput * emissive * lightMaterial.intensity / lightPdf;
-
-		const int32_t index = atomicAdd(&queueSize.traceShadowSize[bounce], 1);
-		shadowTraceRequest.hitDistance[index] = offsetDist;
-		shadowTraceRequest.radiance[index] = radiance;
-		shadowTraceRequest.ray.Set(index, shadowRay);
-		shadowTraceRequest.pixelIdx[index] = pixelIdx;
+		emissive *= lightMaterial.intensity;
 	}
+
+	else if (light.type == D_Light::Type::POINT)
+	{
+		float3 toLight = light.point.position - hitPoint;
+		float dSquared = dot(toLight, toLight);
+		lightPdf = 1.0f / scene.lightCount;
+		lightPdf *= dSquared;
+		if (!Sampler::IsPdfValid(lightPdf))
+			return;
+
+		emissive = light.point.color * light.point.intensity;
+
+		const bool reflect = dot(-rayDirection, hitGNormal) * dot(toLight, hitGNormal) > 0.0f;
+
+		if (!reflect && material.transmission == 0.0f)
+			return;
+
+		float offsetDirection = Utils::SgnE(dot(toLight, normal));
+		shadowRay.origin = OffsetRay(hitPoint, hitGNormal * offsetDirection);
+
+		hitDistance = length(toLight);
+		shadowRay.direction = toLight / hitDistance;
+		shadowRay.invDirection = 1.0f / shadowRay.direction;
+
+		TangentFrame tangentFrame(normal);
+		const float3 wo = tangentFrame.WorldToLocal(shadowRay.direction);
+
+		float bsdfPdf;
+		bool sampleIsValid = D_PrincipledBSDF::Eval(material, wi, wo, sampleThroughput, bsdfPdf);
+
+		if (!sampleIsValid)
+			return;
+	}
+	else if (light.type == D_Light::Type::DIRECTIONAL)
+	{
+		float3 toLight = -light.directional.direction;
+		lightPdf = 1.0f / scene.lightCount;
+		emissive = light.directional.color * light.directional.intensity;
+
+		const bool reflect = dot(-rayDirection, hitGNormal) * dot(toLight, hitGNormal) > 0.0f;
+
+		if (!reflect && material.transmission == 0.0f)
+			return;
+
+		float offsetDirection = Utils::SgnE(dot(toLight, normal));
+		shadowRay.origin = OffsetRay(hitPoint, hitGNormal * offsetDirection);
+		shadowRay.direction = normalize(toLight);
+		shadowRay.invDirection = 1.0f / shadowRay.direction;
+		hitDistance = 1.0e30f;
+
+		TangentFrame tangentFrame(normal);
+		const float3 wo = tangentFrame.WorldToLocal(shadowRay.direction);
+
+		float bsdfPdf;
+		bool sampleIsValid = D_PrincipledBSDF::Eval(material, wi, wo, sampleThroughput, bsdfPdf);
+
+		if (!sampleIsValid)
+			return;
+
+	}
+	else
+		return;
+
+	const float3 radiance = weight * throughput * sampleThroughput * emissive / lightPdf;
+
+	const int32_t index = atomicAdd(&queueSize.traceShadowSize[bounce], 1);
+	shadowTraceRequest.hitDistance[index] = hitDistance;
+	shadowTraceRequest.radiance[index] = radiance;
+	shadowTraceRequest.ray.Set(index, shadowRay);
+	shadowTraceRequest.pixelIdx[index] = pixelIdx;
 }
 
 
-template<typename BSDF>
-inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
+__global__ void MaterialKernel()
 {
 	const int32_t requestIdx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (requestIdx >= size)
+	if (requestIdx >= queueSize.materialSize[bounce])
 		return;
 
 	const D_Intersection intersection = materialRequest.intersection.Get(requestIdx);
@@ -382,13 +372,13 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 	float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
 	float3 normal = normalize(Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv));
+	float3 tangent = Barycentric(triangleData.tangent0, triangleData.tangent1, triangleData.tangent2, uv);
 
 	if (material.normalMapId != -1)
 	{
 		float3 texNormal = make_float3(tex2D<float4>(scene.textures[material.normalMapId], texUv.x, texUv.y));
 		texNormal = normalize(2.0f * texNormal - 1.0f);
 
-		float3 tangent = Barycentric(triangleData.tangent0, triangleData.tangent1, triangleData.tangent2, uv);
 		TangentFrame tangentFrame(normal, tangent);
 		normal = tangentFrame.LocalToWorld(texNormal);
 	}
@@ -396,19 +386,38 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	// We use the transposed of the inverse matrix to transform normals.
 	// See https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals.html
 	normal = normalize(instance.invTransform.Transposed().TransformVector(normal));
+	tangent = normalize(instance.invTransform.Transposed().TransformVector(tangent));
+	TangentFrame tangentFrame(normal);
 
 	float3 gNormal = normalize(instance.invTransform.Transposed().TransformVector(triangle.Normal()));
 
+	if (material.baseColorMapId != -1)
+	{
+		float4 color = tex2D<float4>(scene.textures[material.baseColorMapId], texUv.x, texUv.y);
+		material.baseColor *= make_float3(color);
+		material.opacity *= color.w;
+	}
 	if (material.emissiveMapId != -1)
-		material.emissive = make_float3(tex2D<float4>(scene.textures[material.emissiveMapId], texUv.x, texUv.y));
+		material.emissionColor *= make_float3(tex2D<float4>(scene.textures[material.emissiveMapId], texUv.x, texUv.y));
 	if (material.roughnessMapId != -1)
-		material.plastic.roughness = tex2D<float4>(scene.textures[material.roughnessMapId], texUv.x, texUv.y).x;
+		material.roughness *= tex2D<float4>(scene.textures[material.roughnessMapId], texUv.x, texUv.y).x;
+	if (material.metalnessMapId != -1)
+		material.metalness *= tex2D<float4>(scene.textures[material.metalnessMapId], texUv.x, texUv.y).x;
+	if (material.metallicRoughnessMapId != -1)
+	{
+		float4 c = tex2D<float4>(scene.textures[material.metallicRoughnessMapId], texUv.x, texUv.y);
+		material.roughness *= c.y;
+		material.metalness *= c.z;
+	}
+
+	//if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
+	//	printf("roughness: %f, metalness: %f\n", material.roughness, material.metalness);
 
 	bool allowMIS = bounce > 1 && scene.renderSettings.useMIS;
 
 	float3 radiance = make_float3(0.0f);
 
-	if (fmaxf(material.emissive * material.intensity) > 0.0f)
+	if (fmaxf(material.emissionColor * material.intensity) > 0.0f)
 	{
 		float weight = 1.0f;
 
@@ -419,7 +428,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 			const float cosThetaO = fabs(dot(normal, rayDirection));
 
-			const float dSquared = Square(length(p - pathState.rayOrigin[pixelIdx]));
+			const float dSquared = Square(intersection.hitDistance);
 
 			const NXB::Triangle triangleTransformed(
 				instance.transform.TransformPoint(triangle.v0),
@@ -436,7 +445,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 			else
 				weight = Sampler::PowerHeuristic(lastPdf, lightPdf);
 		}
-		radiance = weight * material.emissive * material.intensity * throughput;
+		radiance = weight * material.emissionColor * material.intensity * throughput;
 	}
 
 	if (bounce == 1)
@@ -450,35 +459,12 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	if (bounce == 1 && pixelQuery.pixelIdx == pixelIdx)
 		pixelQuery.instanceIdx = intersection.instanceIdx;
 
-	float4 color = make_float4(1.0f);
-	if (material.diffuseMapId != -1)
-	{
-		color = tex2D<float4>(scene.textures[material.diffuseMapId], texUv.x, texUv.y);
-		material.diffuse.albedo = make_float3(color);
-	}
-
-	// Invert normals for non transmissive material if the primitive is backfacing the ray
-	//if (dot(gNormal, rayDirection) > 0.0f && material.type != D_Material::D_Type::DIELECTRIC)
-	//{
-	//	if (pixelQuery.pixelIdx == pixelIdx)
-	//	{
-	//		printf("v0: %f %f %f\n", triangle.v0.x, triangle.v0.y, triangle.v0.z);
-	//		printf("v1: %f %f %f\n", triangle.v1.x, triangle.v1.y, triangle.v1.z);
-	//		printf("v2: %f %f %f\n", triangle.v2.x, triangle.v2.y, triangle.v2.z);
-	//		printf("gNormal: %f %f %f\n", gNormal.x, gNormal.y, gNormal.z);
-	//	}
-	//	throughput *= make_float3(100.0f, 0.0f, 0.0f);
-	//	normal = -normal;
-	//	gNormal = -gNormal;
-	//}
-
-	TangentFrame tangentFrame(normal);
 	float3 wi = tangentFrame.WorldToLocal(-rayDirection);
 
 	float3 wo;
 
 	// Handle texture transparency
-	if (Random::Rand(rngState) > material.opacity || (material.diffuseMapId != -1 && Random::Rand(rngState) > color.w))
+	if (Random::Rand(rngState) > material.opacity)
 	{
 		wo = tangentFrame.LocalToWorld(-wi);
 		const float offsetDirection = Utils::SgnE(dot(wo, normal));
@@ -491,12 +477,12 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 	}
 	else
 	{
-		if (scene.renderSettings.useMIS)
-			NextEventEstimation<BSDF>(wi, rayDirection, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
+		if (scene.renderSettings.useMIS && scene.lightCount > 0)
+			NextEventEstimation(wi, rayDirection, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
 
 		float pdf;
 		float3 sampleThroughput;
-		const bool scattered = D_BSDF::Sample<BSDF>(material, wi, wo, sampleThroughput, pdf, rngState);
+		const bool scattered = D_PrincipledBSDF::Sample(material, wi, wo, sampleThroughput, pdf, rngState);
 
 		if (!scattered)
 			return;
@@ -505,7 +491,7 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 
 		const bool reflect = dot(-rayDirection, gNormal) * dot(wo, gNormal) > 0.0f;
 
-		if (!reflect && material.type != D_Material::D_Type::DIELECTRIC)
+		if (!reflect && material.transmission == 0.0f)
 			return;
 
 		const float offsetDirection = Utils::SgnE(dot(wo, normal));
@@ -519,30 +505,9 @@ inline __device__ void Shade(D_MaterialRequestSOA materialRequest, int32_t size)
 		traceRequest.ray.Set(traceRequestIdx, scatteredRay);
 		traceRequest.pixelIdx[traceRequestIdx] = pixelIdx;
 
-		pathState.rayOrigin[pixelIdx] = scatteredRay.origin;
 		pathState.throughput[pixelIdx] = throughput;
 		pathState.lastPdf[pixelIdx] = pdf;
 	}
-}
-
-__global__ void DiffuseMaterialKernel()
-{
-	Shade<D_LambertianBSDF>(diffuseMaterialBuffer, queueSize.diffuseSize[bounce]);
-}
-
-__global__ void PlasticMaterialKernel()
-{
-	Shade<D_PlasticBSDF>(plasticMaterialBuffer, queueSize.plasticSize[bounce]);
-}
-
-__global__ void DielectricMaterialKernel()
-{
-	Shade<D_DielectricBSDF>(dielectricMaterialBuffer, queueSize.dielectricSize[bounce]);
-}
-
-__global__ void ConductorMaterialKernel()
-{
-	//Shade<D_ConductorBSDF>(conductorMaterialBuffer, queueSize.conductorSize[bounce]);
 }
 
 __global__ void AccumulateKernel()
@@ -559,8 +524,28 @@ __global__ void AccumulateKernel()
 	else
 		accumulationBuffer[index] += (pathState.radiance[index] - accumulationBuffer[index]) / frameNumber;
 
+	float3 color = accumulationBuffer[index] * exp2f(scene.renderSettings.exposure);
 
-	renderBuffer[index] = ToColorUInt(Utils::LinearToGamma(Tonemap(accumulationBuffer[index])));
+	//float2 uv = make_float2(index % resolution.x, index / resolution.x);
+	//color = ColorUtils::ColorGradients(uv, make_float2(resolution)) * exp2f(scene.renderSettings.exposure);
+
+	switch (scene.renderSettings.toneMapping)
+	{
+	case ColorUtils::ToneMapping::ACES:
+		color = ColorUtils::ACESToneMapping(color);
+		break;
+	case ColorUtils::ToneMapping::UNCHARTED2:
+		color = ColorUtils::Uncharted2ToneMapping(color);
+		break;
+	case ColorUtils::ToneMapping::AGX_DEFAULT:
+	case ColorUtils::ToneMapping::AGX_GOLDEN:
+	case ColorUtils::ToneMapping::AGX_PUNCHY:
+		color = ColorUtils::AgxToneMapping(color, scene.renderSettings.toneMapping);
+		break;
+	default:
+		break;
+	}
+	renderBuffer[index] = ColorUtils::ToColorUInt(ColorUtils::LinearToGamma(color));
 }
 
 D_Scene* GetDeviceSceneAddress()
@@ -633,31 +618,10 @@ D_TraceRequestSOA* GetDeviceTraceRequestAddress()
 	return target;
 }
 
-D_MaterialRequestSOA* GetDeviceDiffuseRequestAddress()
+D_MaterialRequestSOA* GetDeviceMaterialRequestAddress()
 {
 	D_MaterialRequestSOA* target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, diffuseMaterialBuffer));
-	return target;
-}
-
-D_MaterialRequestSOA* GetDevicePlasticRequestAddress()
-{
-	D_MaterialRequestSOA* target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, plasticMaterialBuffer));
-	return target;
-}
-
-D_MaterialRequestSOA* GetDeviceDielectricRequestAddress()
-{
-	D_MaterialRequestSOA* target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, dielectricMaterialBuffer));
-	return target;
-}
-
-D_MaterialRequestSOA* GetDeviceConductorRequestAddress()
-{
-	D_MaterialRequestSOA* target;
-	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, conductorMaterialBuffer));
+	CheckCudaErrors(cudaGetSymbolAddress((void**)&target, materialRequest));
 	return target;
 }
 

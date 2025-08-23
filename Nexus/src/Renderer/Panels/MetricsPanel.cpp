@@ -89,5 +89,13 @@ void MetricsPanel::OnImGuiRender(uint32_t frameNumber)
 	if (ImGui::DragFloat("Background intensity", &renderSettings.backgroundIntensity, 0.01, 0.0f, 1000.0f))
 		m_Context->Invalidate();
 
+	ImGui::Spacing();
+	ImGui::Separator();
+	ImGui::Text("Color management");
+	ImGui::DragFloat("Exposure", &renderSettings.exposure, 0.01, 2.0f, 2.0f);
+	int currentIndex = static_cast<int>(renderSettings.toneMapping);
+	if (ImGui::Combo("Tone mapping", &currentIndex, ColorUtils::ToneMappingNames, IM_ARRAYSIZE(ColorUtils::ToneMappingNames)))
+		renderSettings.toneMapping = static_cast<ColorUtils::ToneMapping>(currentIndex);
+
 	ImGui::End();
 }

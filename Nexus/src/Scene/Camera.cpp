@@ -103,11 +103,6 @@ void Camera::OnResize(uint32_t width, uint32_t height)
 	Invalidate();
 }
 
-void Camera::SetHorizontalFOV(float horizontalFOV)
-{
-	m_HorizontalFOV = horizontalFOV;
-}
-
 float Camera::GetRotationSpeed()
 {
 	return 0.0008f;

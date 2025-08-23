@@ -76,6 +76,9 @@ void Renderer::Render(Scene& scene, float deltaTime)
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+	if (m_PathTracer.PixelQueryPending())
+		m_HierarchyPannel.SetSelectionContext(SelectionContext::Type::INSTANCE, m_PathTracer.SynchronizePixelQuery());
 }
 
 void Renderer::RenderUI(Scene& scene)
@@ -153,7 +156,6 @@ void Renderer::RenderUI(Scene& scene)
 	ImGui::End();
 	ImGui::PopStyleVar();
 	
-	m_HierarchyPannel.SetSelectionContext(m_PathTracer.GetSelectedInstance());
 	m_HierarchyPannel.OnImGuiRender();
 
 	m_MetricsPanel.OnImGuiRender(m_PathTracer.GetFrameNumber());

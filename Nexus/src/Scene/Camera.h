@@ -15,17 +15,21 @@ public:
 	void OnUpdate(float ts);
 	void OnResize(uint32_t width, uint32_t height);
 
-	void SetHorizontalFOV(float horizontalFOV);
-
 	float GetRotationSpeed();
 	float& GetHorizontalFOV() { return m_HorizontalFOV; }
+	void SetHorizontalFOV(float horizontalFOV) { m_HorizontalFOV = horizontalFOV; }
 	float& GetDefocusAngle() { return m_DefocusAngle; }
+	void SetDefocusAngle(float defocusAngle) { m_DefocusAngle = defocusAngle; }
 	float& GetFocusDist() { return m_FocusDist; }
+	void SetFocusDist(float focusDist) { m_FocusDist = focusDist; }
 	uint32_t GetViewportWidth() { return m_ViewportWidth; }
 	uint32_t GetViewportHeight() { return m_ViewportHeight; }
 	float3& GetPosition() { return m_Position; }
+	void SetPosition(const float3& position) { m_Position = position; }
 	float3& GetForwardDirection() { return m_ForwardDirection; }
+	void SetForwardDirection(const float3& direction) { m_ForwardDirection = direction; }
 	float3& GetRightDirection() { return m_RightDirection; }
+	void SetRightDirection(const float3& rightDirection) { m_RightDirection = rightDirection; }
 	Ray RayThroughPixel(int2 pixel);
 
 	bool IsInvalid() { return m_Invalid; }

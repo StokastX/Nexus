@@ -35,7 +35,6 @@ uint32_t AssetManager::AddMesh(const std::string name, uint32_t materialIdx, con
 void AssetManager::AddMaterial()
 {
 	Material material;
-	material.diffuse.albedo = make_float3(0.2f, 0.2f, 0.2f);
 	AddMaterial(material);
 }
 
@@ -44,7 +43,11 @@ uint32_t AssetManager::AddMaterial(const Material& material)
 	m_Materials.push_back(material);
 	m_DeviceMaterials.PushBack(material);
 	Material& m = m_Materials.back();
-	return m_Materials.size() - 1;
+	uint32_t idx = m_Materials.size() - 1;
+
+	// To update instances lighting
+	m_InvalidMaterials.insert(idx);
+	return idx;
 }
 
 void AssetManager::InvalidateMaterial(uint32_t index)
@@ -64,7 +67,7 @@ int AssetManager::AddTexture(const Texture& texture)
 
 void AssetManager::ApplyTextureToMaterial(int materialIdx, int diffuseMapId)
 {
-	m_Materials[materialIdx].diffuseMapId = diffuseMapId;
+	m_Materials[materialIdx].baseColorMapId = diffuseMapId;
 	InvalidateMaterial(materialIdx);
 }
 

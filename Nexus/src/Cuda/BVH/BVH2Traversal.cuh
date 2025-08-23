@@ -7,6 +7,7 @@
 #include "Cuda/Scene/Mesh.cuh"
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Cuda/Geometry/Ray.cuh"
+#include "Utils/ColorUtils.h"
 
 #ifndef USE_BVH8
 
@@ -317,7 +318,7 @@ inline __device__ void BVH2TraceVisualize(const NXB::BVH2& tlas, D_Mesh* meshes,
 				{
 					intersection.hitDistance = 1.0e30f;
 					traceRequest.intersection.Set(rayIndex, intersection);
-					pathState.radiance[traceRequest.pixelIdx[rayIndex]] = HeatmapColor(boundsHit);
+					pathState.radiance[traceRequest.pixelIdx[rayIndex]] = ColorUtils::HeatmapColor(boundsHit);
 					shouldFetchNewRay = true;
 					continue;
 				}
@@ -351,7 +352,7 @@ inline __device__ void BVH2TraceVisualize(const NXB::BVH2& tlas, D_Mesh* meshes,
 			{
 				intersection.hitDistance = 1.0e30f;
 				traceRequest.intersection.Set(rayIndex, intersection);
-				pathState.radiance[traceRequest.pixelIdx[rayIndex]] = HeatmapColor(boundsHit);
+				pathState.radiance[traceRequest.pixelIdx[rayIndex]] = ColorUtils::HeatmapColor(boundsHit);
 				shouldFetchNewRay = true;
 				continue;
 			}
