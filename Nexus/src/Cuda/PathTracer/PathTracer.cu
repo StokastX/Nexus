@@ -524,6 +524,10 @@ __global__ void AccumulateKernel()
 		accumulationBuffer[index] += (pathState.radiance[index] - accumulationBuffer[index]) / frameNumber;
 
 	float3 color = accumulationBuffer[index] * exp2f(scene.renderSettings.exposure);
+
+	//float2 uv = make_float2(index % resolution.x, index / resolution.x);
+	//color = ColorUtils::ColorGradients(uv, make_float2(resolution)) * exp2f(scene.renderSettings.exposure);
+
 	switch (scene.renderSettings.toneMapping)
 	{
 	case ColorUtils::ToneMapping::ACES:

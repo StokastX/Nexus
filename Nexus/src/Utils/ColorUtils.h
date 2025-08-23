@@ -73,6 +73,7 @@ namespace ColorUtils
     // Approximated ACES tonemapping by Stephen Hill. See https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl
     inline __host__ __device__ float3 ACESToneMapping(float3 color)
     {
+        // Important: HLSL matrices are initialized by rows
         // sRGB => XYZ => D65_2_D60 => AP1 => RRT_SAT
         constexpr float3 inputMatRow1 = { 0.59719, 0.35458, 0.04823 };
         constexpr float3 inputMatRow2 = { 0.07600, 0.90834, 0.01566 };
@@ -130,12 +131,13 @@ namespace ColorUtils
 
     inline __host__ __device__ float3 Agx(float3 val)
     {
-        constexpr float3 agxMatRow1 = { 0.842479062253094, 0.0423282422610123, 0.0423756549057051 };
-        constexpr float3 agxMatRow2 = { 0.0784335999999992, 0.878468636469772, 0.0784336 };
-        constexpr float3 agxMatRow3 = { 0.0792237451477643, 0.0791661274605434, 0.879142973793104 };
+        // Important: OpenGL matrices are initialized by columns
+        constexpr float3 agxMatRow1 = { 0.842479062253094, 0.0784335999999992, 0.0792237451477643 };
+        constexpr float3 agxMatRow2 = { 0.0423282422610123, 0.878468636469772, 0.0791661274605434 };
+        constexpr float3 agxMatRow3 = { 0.0423756549057051, 0.0784336, 0.879142973793104 };
 
-        constexpr float minEv = -12.47393f;
-        constexpr float maxEv = 4.026069f;
+        const float minEv = -12.47393f;
+        const float maxEv = 4.026069f;
 
         // Input transform (inset)
         val = make_float3(dot(agxMatRow1, val), dot(agxMatRow2, val), dot(agxMatRow3, val));
@@ -152,9 +154,10 @@ namespace ColorUtils
 
     inline __host__ __device__ float3 AgxEotf(float3 val)
     {
-        constexpr float3 agxMatInvRow1 = { 1.19687900512017, -0.0528968517574562, -0.0529716355144438 };
-        constexpr float3 agxMatInvRow2 = { -0.0980208811401368, 1.15190312990417, -0.0980434501171241 };
-        constexpr float3 agxMatInvRow3 = { -0.0990297440797205, -0.0989611768448433, 1.15107367264116 };
+        // Important: OpenGL matrices are initialized by columns
+        constexpr float3 agxMatInvRow1 = { 1.19687900512017, -0.0980208811401368, -0.0990297440797205 };
+        constexpr float3 agxMatInvRow2 = { -0.0528968517574562, 1.15190312990417, -0.0989611768448433 };
+        constexpr float3 agxMatInvRow3 = { -0.0529716355144438, -0.0980434501171241, 1.15107367264116 };
 
         // Inverse input transform (outset)
         val = make_float3(dot(agxMatInvRow1, val), dot(agxMatInvRow2, val), dot(agxMatInvRow3, val));
@@ -225,4 +228,16 @@ namespace ColorUtils
             return make_float3(localT, 1.0f - localT, 0.0f);
         }
     }
+
+    // Useful to test tonemappings
+	inline __host__ __device__ float3 ColorGradients(float2 fragCoord, float2 iResolution)
+    {
+		float h = floor(1.0 + 24.0 * fragCoord.y / iResolution.y) / 24.0 * 3.141592 * 2.;
+		float L = floor(fragCoord.x * 24.0 / iResolution.y) / (24.0 / iResolution.y) / iResolution.x - 0.4;
+		float3 color = make_float3(cosf(h), cosf(h + 3.141592 * 2.0 / 3.0), cosf(h + 2.0 * 3.141592 * 2.0 / 3.0));
+		float maxRGB = max(color.x, max(color.y, color.z));
+		float minRGB = min(color.x, min(color.y, color.z));
+
+		return exp(15.0 * L) * (color - minRGB) / (maxRGB - minRGB);
+	}
 }
