@@ -372,13 +372,13 @@ __global__ void MaterialKernel()
 
 	float2 texUv = Barycentric(triangleData.texCoord0, triangleData.texCoord1, triangleData.texCoord2, uv);
 	float3 normal = normalize(Barycentric(triangleData.normal0, triangleData.normal1, triangleData.normal2, uv));
+	float3 tangent = Barycentric(triangleData.tangent0, triangleData.tangent1, triangleData.tangent2, uv);
 
 	if (material.normalMapId != -1)
 	{
 		float3 texNormal = make_float3(tex2D<float4>(scene.textures[material.normalMapId], texUv.x, texUv.y));
 		texNormal = normalize(2.0f * texNormal - 1.0f);
 
-		float3 tangent = Barycentric(triangleData.tangent0, triangleData.tangent1, triangleData.tangent2, uv);
 		TangentFrame tangentFrame(normal, tangent);
 		normal = tangentFrame.LocalToWorld(texNormal);
 	}
@@ -386,6 +386,8 @@ __global__ void MaterialKernel()
 	// We use the transposed of the inverse matrix to transform normals.
 	// See https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals.html
 	normal = normalize(instance.invTransform.Transposed().TransformVector(normal));
+	tangent = normalize(instance.invTransform.Transposed().TransformVector(tangent));
+	TangentFrame tangentFrame(normal);
 
 	float3 gNormal = normalize(instance.invTransform.Transposed().TransformVector(triangle.Normal()));
 
@@ -457,7 +459,6 @@ __global__ void MaterialKernel()
 	if (bounce == 1 && pixelQuery.pixelIdx == pixelIdx)
 		pixelQuery.instanceIdx = intersection.instanceIdx;
 
-	TangentFrame tangentFrame(normal);
 	float3 wi = tangentFrame.WorldToLocal(-rayDirection);
 
 	float3 wo;
