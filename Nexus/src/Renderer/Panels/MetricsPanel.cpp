@@ -70,8 +70,6 @@ void MetricsPanel::OnImGuiRender(uint32_t frameNumber, ImVec2 viewportSize)
 	if (ImGui::Checkbox("Fit render to viewport", &m_FitRenderToViewport))
 	{
 		if (m_FitRenderToViewport)
-			m_Context->OnResize(renderSettings.resolution);
-		else
 			m_Context->OnResize(make_uint2(viewportSize.x, viewportSize.y));
 	}
 	ImGui::BeginDisabled(m_FitRenderToViewport);
