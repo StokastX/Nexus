@@ -22,7 +22,6 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
 ![bedroom](https://github.com/user-attachments/assets/d8387785-86cb-4c84-b1c3-0fd949b6b6c1)
 ![spider](https://github.com/user-attachments/assets/354a6c07-e181-4e8a-b3d3-5abd6a2570bf)
 ![bathroom](https://github.com/user-attachments/assets/60188c8e-1729-4d12-9eab-8592b02b38e9)
-![piano](https://github.com/user-attachments/assets/bef492f7-769e-4966-a6a6-92c0ea2768bf)
 
 ## Features
 - Interactive camera with thin lens approximation: FOV, defocus blur.
@@ -33,15 +32,16 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
    - Compressed-wide BVH (BVH8), see [Ylitie et al. 2017](https://research.nvidia.com/sites/default/files/publications/ylitie2017hpg-paper.pdf). BVH2 is collapsed into an 8-ary BVH. Nodes are compressed to 80 bytes encoding the child nodes' bounding boxes to limit memory bandwidth on the GPU.
    - GPU builder: implements the H-PLOC algorithm proposed by [Benthin et al. 2024](https://dl.acm.org/doi/10.1145/3675377), a high-performance GPU-oriented BVH construction method. H-PLOC builds high-quality BVHs through hierarchical clustering of spatially nearby primitives. The full algorithm is implemented in my [NexusBVH](https://github.com/StokastX/NexusBVH) library.
 - The BVH is split into two parts: a top level structure (TLAS) and a bottom level structure (BLAS). This allows for multiple instances of the same mesh as well as dynamic scenes using object transforms.
-- Model loader: obj, ply, fbx, glb, gltf, 3ds, blend with Assimp
-- Materials:
-   - Diffuse BSDF (Lambertian)
-   - Rough dielectric BSDF (Beckmann microfacet model, see [Walter et al. 2007](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwilsq_av4qGAxWOSFUIHdm4A64QFnoECBMQAQ&url=https%3A%2F%2Fwww.graphics.cornell.edu%2F~bjw%2Fmicrofacetbsdf.pdf&usg=AOvVaw0iX18V7ncCyVX6K-TPfdO3&opi=89978449)).
-   - Rough plastic BSDF (mix between diffuse and rough specular).
-   - Rough conductor BSDF.
-- Importance sampling: cosine weighted for diffuse materials, VNDF sampling for rough materials.
-- Multiple importance sampling, see [Veach 1997](https://graphics.stanford.edu/papers/veach_thesis/thesis.pdf). BSDF importance sampling is combined with next event estimation (direct light sampling) and the results from both sampling strategies are weighted using the power heuristic to get low-variance results.
-- Texture mapping (diffuse, emissive).
+- Model loader: obj, ply, fbx, gltf with Assimp
+- The material system is based on the [OpenPBR](https://academysoftwarefoundation.github.io/OpenPBR/) model and supports both dielectric and metallic bases. Both bases use the GGX microfacet distribution [Walter et al. 2007](https://www.graphics.cornell.edu/~bjw/microfacetbsdf.pdf).
+   - Dielectric base:
+      - Glossy-diffuse BRDF (non-physical mix between diffuse and specular).  
+      - Translucent BSDF (no volumetric scattering).  
+
+   - Metallic base: Rough conductor BSDF with the F82-tint model of [Kutz et al. 2021](https://helpx.adobe.com/substance-3d-general/adobe-standard-material/asm-technical-documentation.html).
+- Importance sampling: cosine weighted for diffuse BSDFs, VNDF sampling for microfacet BSDFs (see [Heitz 2014](https://jcgt.org/published/0007/04/01/) and [Dupuy and Benyoub 2023](https://onlinelibrary.wiley.com/doi/10.1111/cgf.14867)).
+- Multiple importance sampling, see [Veach 1997](https://graphics.stanford.edu/papers/veach_thesis/thesis.pdf). BSDF sampling is combined with next event estimation (direct light sampling) and the results from both sampling strategies are weighted using the power heuristic to get low-variance results.
+- Texture mapping (albedo, emissive, normal, metallic, roughness).
 - HDR environment maps.
 
 ## Prerequisites
@@ -126,4 +126,3 @@ I also had a look at other renderer implementations such as Blender's [cycles](h
 - [Ford mustang](https://sketchfab.com/3d-models/ford-mustang-1965-5f4e3965f79540a9888b5d05acea5943) by [Pooya_dh](https://sketchfab.com/Pooya_dh)
 - [Bedroom](https://www.blendswap.com/blend/3391) by [SlykDrako](https://www.blendswap.com/profile/324)
 - [Bathroom](https://www.blendswap.com/blend/12584) by [nacimus](https://www.blendswap.com/profile/72536)
-- [Piano](https://blendswap.com/blend/29080) by [Roy](https://blendswap.com/profile/1508348)
