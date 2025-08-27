@@ -1,9 +1,8 @@
 #include "MetricsPanel.h"
 
 #include <GLFW/glfw3.h>
-#include <imgui.h>
 
-MetricsPanel::MetricsPanel(Scene* context) : m_Context(context)
+MetricsPanel::MetricsPanel(Renderer* context) : m_Context(context)
 {
 	Reset();
 }
@@ -22,10 +21,10 @@ void MetricsPanel::Reset()
 
 void MetricsPanel::UpdateMetrics(float deltaTime)
 {
-	std::shared_ptr<Camera> camera = m_Context->GetCamera();
+	std::shared_ptr<Camera> camera = m_Context->GetScene()->GetCamera();
 
 	m_NAccumulatedFrame++;
-	m_NumRaysProcessed += camera->GetViewportWidth() * camera->GetViewportHeight();
+	m_NumRaysProcessed += camera->GetResolution().x * camera->GetResolution().y;
 
 	m_AccumulatedTime += deltaTime;
 	if (glfwGetTime() - m_DisplayFPSTimer >= 0.2f || m_DeltaTime == 0)
@@ -38,12 +37,11 @@ void MetricsPanel::UpdateMetrics(float deltaTime)
 		m_AccumulatedTime = 0.0f;
 		m_NumRaysProcessed = 0;
 	}
-
 }
 
-void MetricsPanel::OnImGuiRender(uint32_t frameNumber)
+void MetricsPanel::OnImGuiRender(uint32_t frameNumber, ImVec2 viewportSize)
 {
-	std::shared_ptr<Camera> camera = m_Context->GetCamera();
+	std::shared_ptr<Camera> camera = m_Context->GetScene()->GetCamera();
 
 	ImGui::Begin("Metrics");
 
@@ -66,28 +64,46 @@ void MetricsPanel::OnImGuiRender(uint32_t frameNumber)
 	if (ImGui::DragFloat("Defocus angle", &camera->GetDefocusAngle(), 0.2f, 0.0f, 180.0f))
 		camera->Invalidate();
 
-	RenderSettings& renderSettings = m_Context->GetRenderSettings();
+	RenderSettings& renderSettings = m_Context->GetScene()->GetRenderSettings();
 	ImGui::Text("Render settings");
+	int2 resolution = make_int2(renderSettings.resolution);
+	if (ImGui::Checkbox("Fit render to viewport", &m_FitRenderToViewport))
+	{
+		if (m_FitRenderToViewport)
+			m_Context->OnResize(renderSettings.resolution);
+		else
+			m_Context->OnResize(make_uint2(viewportSize.x, viewportSize.y));
+	}
+	ImGui::BeginDisabled(m_FitRenderToViewport);
+	if (ImGui::InputInt2("Resolution", (int*)&resolution))
+	{
+		if (resolution.x > 0 && resolution.x <= 10000 && resolution.y > 0 && resolution.y <= 10000)
+		{
+			m_Context->OnResize(make_uint2(resolution));
+			m_Context->GetScene()->Invalidate();
+		}
+	}
+	ImGui::EndDisabled();
 	if (ImGui::Checkbox("Use MIS", &renderSettings.useMIS))
-		m_Context->Invalidate();
+		m_Context->GetScene()->Invalidate();
 	if (ImGui::Checkbox("Vizualize BVH", &renderSettings.visualizeBvh))
-		m_Context->Invalidate();
+		m_Context->GetScene()->Invalidate();
 	if (renderSettings.visualizeBvh)
 		if (ImGui::Checkbox("Wireframe", &renderSettings.wireframeBvh))
-			m_Context->Invalidate();
+			m_Context->GetScene()->Invalidate();
 
 	int pathLength = renderSettings.pathLength;
 
 	if (ImGui::SliderInt("Path length", &pathLength, 1, PATH_MAX_LENGTH))
-		m_Context->Invalidate();
+		m_Context->GetScene()->Invalidate();
 
 	renderSettings.pathLength = pathLength;
 
 	if (ImGui::ColorEdit3("Background color", (float*)&renderSettings.backgroundColor))
-		m_Context->Invalidate();
+		m_Context->GetScene()->Invalidate();
 
 	if (ImGui::DragFloat("Background intensity", &renderSettings.backgroundIntensity, 0.01, 0.0f, 1000.0f))
-		m_Context->Invalidate();
+		m_Context->GetScene()->Invalidate();
 
 	ImGui::Spacing();
 	ImGui::Separator();

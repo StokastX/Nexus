@@ -9,6 +9,8 @@
 
 struct D_RenderSettings
 {
+	uint2 resolution;
+
 	bool useMIS;
 	bool visualizeBvh;
 	bool wireFrameBvh;

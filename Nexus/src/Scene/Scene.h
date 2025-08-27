@@ -16,7 +16,7 @@
 class Scene
 {
 public:
-	Scene(uint32_t width, uint32_t height);
+	Scene(uint2 resolution);
 	~Scene();
 	void Reset();
 

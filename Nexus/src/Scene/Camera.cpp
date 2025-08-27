@@ -11,20 +11,19 @@
 #include "Cuda/PathTracer/PathTracer.cuh"
 
 
-Camera::Camera(float horizontalFOV, uint32_t width, uint32_t height)
+Camera::Camera(float horizontalFOV, uint2 resolution)
 {
 	m_HorizontalFOV = horizontalFOV;
 	m_DefocusAngle = 10.0f;
 	m_FocusDist = 5.0f;
-	m_ViewportWidth = width;
-	m_ViewportHeight = height;
+	m_Resolution = resolution;
 	m_Position = make_float3(0.0f, 0.0f, 2.0f);
 	m_ForwardDirection = make_float3(0.0f, 0.0f, -1.0f);
 	m_RightDirection = make_float3(1.0f, 0.0f, 0.0f);
 }
 
-Camera::Camera(float3 position, float3 forward, float horizontalFOV, uint32_t width, uint32_t height, float focusDistance, float defocusAngle)
-	:m_Position(position), m_ForwardDirection(forward), m_HorizontalFOV(horizontalFOV), m_ViewportWidth(width), m_ViewportHeight(height),
+Camera::Camera(float3 position, float3 forward, float horizontalFOV, uint2 resolution, float focusDistance, float defocusAngle)
+	:m_Position(position), m_ForwardDirection(forward), m_HorizontalFOV(horizontalFOV), m_Resolution(resolution),
 	m_RightDirection(cross(m_ForwardDirection, make_float3(0.0f, 1.0f, 0.0f))), m_FocusDist(focusDistance), m_DefocusAngle(defocusAngle)
 {
 
@@ -93,13 +92,13 @@ void Camera::OnUpdate(float ts)
 	}
 }
 
-void Camera::OnResize(uint32_t width, uint32_t height)
+void Camera::OnResize(uint2 resolution)
 {
-	if (width == m_ViewportWidth && height == m_ViewportHeight)
+	if (resolution.x == m_Resolution.x && resolution.y == m_Resolution.y)
 		return;
 
-	m_ViewportWidth = width;
-	m_ViewportHeight = height;
+	m_Resolution.x = resolution.x;
+	m_Resolution.y = resolution.y;
 	Invalidate();
 }
 
@@ -113,10 +112,10 @@ Ray Camera::RayThroughPixel(int2 pixel)
 {
 	float3 upDirection = cross(m_RightDirection, m_ForwardDirection);
 
-	float x = pixel.x / (float)m_ViewportWidth;
-	float y = pixel.y / (float)m_ViewportHeight;
+	float x = pixel.x / (float)m_Resolution.x;
+	float y = pixel.y / (float)m_Resolution.y;
 
-	float aspectRatio = m_ViewportWidth / (float)m_ViewportHeight;
+	float aspectRatio = m_Resolution.x / (float)m_Resolution.y;
 	float halfHeight = m_FocusDist * tanf(m_HorizontalFOV / 2.0f * PI / 180.0f);
 	float halfWidth = aspectRatio * halfHeight;
 
@@ -134,7 +133,7 @@ D_Camera Camera::ToDevice(const Camera& camera)
 
 	float3 forwardDirection = camera.m_ForwardDirection;
 	float3 upDirection = cross(camera.m_RightDirection, forwardDirection);
-	float aspectRatio = camera.m_ViewportWidth / (float)camera.m_ViewportHeight;
+	float aspectRatio = camera.m_Resolution.x / (float)camera.m_Resolution.y;
 	float halfWidth = camera.m_FocusDist * tanf(camera.m_HorizontalFOV / 2.0f * PI / 180.0f);
 	float halfHeight = halfWidth / aspectRatio;
 
@@ -151,7 +150,7 @@ D_Camera Camera::ToDevice(const Camera& camera)
 	deviceCamera.lowerLeftCorner = lowerLeftCorner;
 	deviceCamera.viewportX = viewportX;
 	deviceCamera.viewportY = viewportY;
-	deviceCamera.resolution = make_uint2(camera.m_ViewportWidth, camera.m_ViewportHeight);
+	deviceCamera.resolution = camera.m_Resolution;
 
 	return deviceCamera;
 }

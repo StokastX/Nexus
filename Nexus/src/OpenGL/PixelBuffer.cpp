@@ -1,12 +1,12 @@
 #include "PixelBuffer.h"
 #include "../Utils/Utils.h"
 
-PixelBuffer::PixelBuffer(uint32_t width, uint32_t height)
-    :m_Width(width), m_Height(height)
+PixelBuffer::PixelBuffer(uint2 resolution)
+    : m_Resolution(resolution)
 {
     glGenBuffers(1, &m_Handle);
     Bind();
-    glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, resolution.x * resolution.y * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
 
     // Register the buffer for CUDA to use
 	CheckCudaErrors(cudaGraphicsGLRegisterBuffer(&m_CudaResource, m_Handle, cudaGraphicsRegisterFlagsWriteDiscard));
@@ -23,13 +23,12 @@ void PixelBuffer::Unbind() const
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }
 
-void PixelBuffer::OnResize(uint32_t width, uint32_t height)
+void PixelBuffer::OnResize(uint2 resolution)
 {
-    m_Width = width;
-    m_Height = height;
+    m_Resolution = resolution;
     Bind();
     CheckCudaErrors(cudaGraphicsUnregisterResource(m_CudaResource));
-    glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, resolution.x * resolution.y * sizeof(uint32_t), NULL, GL_DYNAMIC_DRAW);
 	CheckCudaErrors(cudaGraphicsGLRegisterBuffer(&m_CudaResource, m_Handle, cudaGraphicsRegisterFlagsWriteDiscard));
     Unbind();
 }

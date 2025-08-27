@@ -9,11 +9,11 @@
 class Camera 
 {
 public:
-	Camera(float verticalFOV, uint32_t width, uint32_t height);
-	Camera(float3 position, float3 forward, float verticalFOV, uint32_t width, uint32_t height, float focusDistance, float defocusAngle);
+	Camera(float verticalFOV, uint2 resolution);
+	Camera(float3 position, float3 forward, float verticalFOV, uint2 resolution, float focusDistance, float defocusAngle);
 
 	void OnUpdate(float ts);
-	void OnResize(uint32_t width, uint32_t height);
+	void OnResize(uint2 resolution);
 
 	float GetRotationSpeed();
 	float& GetHorizontalFOV() { return m_HorizontalFOV; }
@@ -22,8 +22,7 @@ public:
 	void SetDefocusAngle(float defocusAngle) { m_DefocusAngle = defocusAngle; }
 	float& GetFocusDist() { return m_FocusDist; }
 	void SetFocusDist(float focusDist) { m_FocusDist = focusDist; }
-	uint32_t GetViewportWidth() { return m_ViewportWidth; }
-	uint32_t GetViewportHeight() { return m_ViewportHeight; }
+	uint2 GetResolution() { return m_Resolution; }
 	float3& GetPosition() { return m_Position; }
 	void SetPosition(const float3& position) { m_Position = position; }
 	float3& GetForwardDirection() { return m_ForwardDirection; }
@@ -44,8 +43,7 @@ private:
 	float m_HorizontalFOV;
 	float m_DefocusAngle;
 	float m_FocusDist;
-	uint32_t m_ViewportWidth;
-	uint32_t m_ViewportHeight;
+	uint2 m_Resolution;
 	float3 m_Position;
 	float3 m_ForwardDirection;
 	float3 m_RightDirection;
