@@ -33,7 +33,7 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
    - GPU builder: implements the H-PLOC algorithm proposed by [Benthin et al. 2024](https://dl.acm.org/doi/10.1145/3675377), a high-performance GPU-oriented BVH construction method. H-PLOC builds high-quality BVHs through hierarchical clustering of spatially nearby primitives. The full algorithm is implemented in my [NexusBVH](https://github.com/StokastX/NexusBVH) library.
 - The BVH is split into two parts: a top level structure (TLAS) and a bottom level structure (BLAS). This allows for multiple instances of the same mesh as well as dynamic scenes using object transforms.
 - Model loader: obj, ply, fbx, gltf with Assimp
-- The material system is based on the [OpenPBR](https://academysoftwarefoundation.github.io/OpenPBR/) model and supports both dielectric and metallic bases. Both bases use the GGX microfacet distribution [Walter et al. 2007](https://www.graphics.cornell.edu/~bjw/microfacetbsdf.pdf).
+- The material system is based on the [OpenPBR](https://academysoftwarefoundation.github.io/OpenPBR/) model and supports both dielectric and metallic bases. Both bases use the GGX microfacet distribution, see [Walter et al. 2007](https://www.graphics.cornell.edu/~bjw/microfacetbsdf.pdf).
    - Dielectric base:
       - Glossy-diffuse BRDF (non-physical mix between diffuse and specular).  
       - Translucent BSDF (no volumetric scattering).  
