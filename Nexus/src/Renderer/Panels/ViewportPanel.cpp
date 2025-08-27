@@ -10,26 +10,26 @@ void ViewportPanel::OnImGuiRender(bool fitRenderToViewport)
 	float zoomDelta = 0.1f * Input::GetScrollOffsetY();
 	if (!fitRenderToViewport)
 	{
-		if (zoomDelta != 0.0f)
-		{
-			ImVec2 mousePos = ImGui::GetMousePos();
-			ImVec2 localMouse = mousePos - m_TopLeft;
+	  if (zoomDelta != 0.0f)
+	  {
+	  	ImVec2 mousePos = ImGui::GetMousePos();
+	  	ImVec2 localMouse = mousePos - m_TopLeft;
 
-			// Image pixel under mouse BEFORE zoom
-			ImVec2 imagePosBefore = localMouse / m_RenderScale;
+	  	// Image pixel under mouse BEFORE zoom
+	  	ImVec2 imagePosBefore = localMouse / m_RenderScale;
 
-			// Apply zoom
-			float newScale = clamp(m_RenderScale * std::pow(4.0f, zoomDelta), 0.1f, 10.0f);
+	  	// Apply zoom
+	  	float newScale = clamp(m_RenderScale * std::pow(8.0f, zoomDelta), 0.1f, 20.0f);
 
-			// Pixel under mouse after zoom
-			ImVec2 imagePosAfter = imagePosBefore * newScale;
+	  	// Pixel under mouse after zoom
+	  	ImVec2 imagePosAfter = imagePosBefore * newScale;
 
-			m_RenderScroll += imagePosAfter - localMouse;
-			// New scroll so mouse stays on same pixel
-			ImGui::SetNextWindowScroll(m_RenderScroll);
+	  	m_RenderScroll += imagePosAfter - localMouse;
+	  	// New scroll so mouse stays on same pixel
+	  	ImGui::SetNextWindowScroll(m_RenderScroll);
 
-			m_RenderScale = newScale;
-		}
+	  	m_RenderScale = newScale;
+	  }
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -68,6 +68,7 @@ void ViewportPanel::OnImGuiRender(bool fitRenderToViewport)
 		childSize = viewportSize;
 		renderSize = viewportSize;
 	}
+	m_ViewportSize = ImGui::GetContentRegionAvail();
 
 	ImGui::BeginChild("Render", childSize);
 

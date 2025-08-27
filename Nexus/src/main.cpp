@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include "Input.h"
-#include "RayTracerApplication.h"
+#include "Application.h"
 
 int WIDTH = 1400, HEIGHT = 800;
 
