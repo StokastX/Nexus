@@ -9,14 +9,14 @@
 class PathTracer
 {
 public:
-	PathTracer(uint32_t width, uint32_t height);
+	PathTracer(uint2 resolution);
 	~PathTracer();
 
 	void FreeDeviceBuffers();
 	void Reset();
 	void ResetFrameNumber();
 	void Render(const Scene& scene);
-	void OnResize(uint32_t width, uint32_t height);
+	void OnResize(uint2 resolution);
 
 	void UpdateDeviceScene(const Scene& scene);
 
@@ -42,7 +42,7 @@ private:
 
 	uint32_t m_FrameNumber = 0;
 
-	uint32_t m_ViewportWidth = 0, m_ViewportHeight = 0;
+	uint2 m_Resolution;
 
 	// Device members
 	DeviceInstance<float3*> m_AccumulationBuffer;

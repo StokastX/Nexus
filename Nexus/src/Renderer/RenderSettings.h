@@ -4,6 +4,8 @@
 
 struct RenderSettings
 {
+	uint2 resolution;
+
 	bool useMIS = true;
 	bool visualizeBvh = false;
 	bool wireframeBvh = false;

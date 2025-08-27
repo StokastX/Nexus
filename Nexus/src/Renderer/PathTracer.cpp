@@ -2,10 +2,9 @@
 #include "Device/CudaMemory.h"
 
 
-PathTracer::PathTracer(uint32_t width, uint32_t height)
-	: m_ViewportWidth(width),
-	m_ViewportHeight(height),
-	m_PixelBuffer(width, height),
+PathTracer::PathTracer(uint2 resolution)
+	: m_Resolution(resolution),
+	m_PixelBuffer(resolution),
 	m_AccumulationBuffer(GetDeviceAccumulationBufferAddress()),
 	m_RenderBuffer(GetDeviceRenderBufferAddress()),
 	m_Scene(GetDeviceSceneAddress()),
@@ -61,9 +60,9 @@ void PathTracer::FreeDeviceBuffers()
 
 void PathTracer::Reset()
 {
-	m_AccumulationBuffer = CudaMemory::Allocate<float3>(m_ViewportWidth * m_ViewportHeight);
+	m_AccumulationBuffer = CudaMemory::Allocate<float3>(m_Resolution.x * m_Resolution.y);
 
-	dim3 gridSize(m_ViewportWidth * m_ViewportHeight / BLOCK_SIZE + 1, 1, 1);
+	dim3 gridSize(m_Resolution.x * m_Resolution.y / BLOCK_SIZE + 1, 1, 1);
 	dim3 blockSize(BLOCK_SIZE, 1, 1);
 
 	m_GenerateKernel = CUDAKernel((void*)GenerateKernel, gridSize, blockSize);
@@ -86,7 +85,7 @@ void PathTracer::Reset()
 
 	m_RenderGraph.BuildGraph();
 
-	const uint32_t count = m_ViewportWidth * m_ViewportHeight;
+	const uint32_t count = m_Resolution.x * m_Resolution.y;
 
 	float* lastPdf = CudaMemory::AllocateAsync<float>(count);
 	float3* throughput = CudaMemory::AllocateAsync<float3>(count);
@@ -200,15 +199,14 @@ void PathTracer::Render(const Scene& scene)
 	CheckCudaErrors(cudaGraphicsUnmapResources(1, &m_PixelBuffer.GetCudaResource(), 0));
 }
 
-void PathTracer::OnResize(uint32_t width, uint32_t height)
+void PathTracer::OnResize(uint2 resolution)
 {
-	if ((m_ViewportWidth != width || m_ViewportHeight != height) && width != 0 && height != 0)
+	if ((m_Resolution.x != resolution.x || m_Resolution.y != resolution.y) && resolution.x != 0 && resolution.y != 0)
 	{
 		m_FrameNumber = 0;
-		m_PixelBuffer.OnResize(width, height);
+		m_PixelBuffer.OnResize(resolution);
 
-		m_ViewportWidth = width;
-		m_ViewportHeight = height;
+		m_Resolution = resolution;
 
 		FreeDeviceBuffers();
 		Reset();
@@ -235,7 +233,7 @@ int32_t PathTracer::SynchronizePixelQuery()
 void PathTracer::SetPixelQuery(uint32_t x, uint32_t y)
 {
 	D_PixelQuery pixelQuery;
-	pixelQuery.pixelIdx = m_ViewportWidth * y + x;
+	pixelQuery.pixelIdx = m_Resolution.x * y + x;
 	pixelQuery.instanceIdx = -1;
 	m_PixelQuery = pixelQuery;
 	m_PixelQueryPending = true;

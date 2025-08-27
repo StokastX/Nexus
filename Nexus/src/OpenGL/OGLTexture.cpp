@@ -4,16 +4,16 @@
 #include "Utils/cuda_math.h"
 #include "OGLTexture.h"
 
-OGLTexture::OGLTexture(uint32_t width, uint32_t height)
-    :m_Width(width), m_Height(height)
+OGLTexture::OGLTexture(uint2 resolution)
+	: m_Resolution(resolution)
 {
 	glGenTextures(1, &m_Handle);
     Bind();
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 }
 
 void OGLTexture::Bind()
@@ -21,12 +21,11 @@ void OGLTexture::Bind()
 	glBindTexture(GL_TEXTURE_2D, m_Handle);
 }
 
-void OGLTexture::OnResize(uint32_t width, uint32_t height)
+void OGLTexture::OnResize(uint2 resolution)
 {
 	Bind();
-	m_Width = width;
-	m_Height = height;
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_Width, m_Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+	m_Resolution = resolution;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, resolution.x, resolution.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 }
 
 OGLTexture::~OGLTexture()

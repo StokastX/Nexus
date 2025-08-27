@@ -36,7 +36,7 @@ int main(void)
 
     // This scope allows to free everything in the app (textures, buffers) by calling the application destructor before glfwTerminate()
     {
-        RayTracerApplication rayTracerApplication(WIDTH, HEIGHT, window);
+        Application rayTracerApplication(WIDTH, HEIGHT, window);
 
         int width, height;
         double startTime, elapsedTime;
