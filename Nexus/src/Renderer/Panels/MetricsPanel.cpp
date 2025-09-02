@@ -39,15 +39,13 @@ void MetricsPanel::UpdateMetrics(float deltaTime)
 	}
 }
 
-void MetricsPanel::OnImGuiRender(uint32_t frameNumber, ImVec2 viewportSize)
+void MetricsPanel::OnImGuiRender(uint32_t frameNumber)
 {
 	std::shared_ptr<Camera> camera = m_Context->GetScene()->GetCamera();
 
 	ImGui::Begin("Metrics");
 
-	ImGui::Spacing();
-	ImGui::Separator();
-	ImGui::Text("Time info");
+	ImGui::SeparatorText("Time info");
 	ImGui::Text("Render time millisec: %.3f", m_DeltaTime);
 	ImGui::Text("FPS: %d", (int)(1000.0f / m_DeltaTime));
 	ImGui::Text("Frame: %d", frameNumber);
@@ -55,8 +53,7 @@ void MetricsPanel::OnImGuiRender(uint32_t frameNumber, ImVec2 viewportSize)
 
 	// TODO: move camera settings to another panel
 	ImGui::Spacing();
-	ImGui::Separator();
-	ImGui::Text("Camera");
+	ImGui::SeparatorText("Camera settings");
 	if (ImGui::SliderFloat("Horizontal FOV", &camera->GetHorizontalFOV(), 1.0f, 180.0f))
 		camera->Invalidate();
 	if (ImGui::DragFloat("Focus distance", &camera->GetFocusDist(), 0.02f, 0.01f, 1000.0f))
@@ -65,13 +62,10 @@ void MetricsPanel::OnImGuiRender(uint32_t frameNumber, ImVec2 viewportSize)
 		camera->Invalidate();
 
 	RenderSettings& renderSettings = m_Context->GetScene()->GetRenderSettings();
-	ImGui::Text("Render settings");
+	ImGui::Spacing();
+	ImGui::SeparatorText("Render settings");
 	int2 resolution = make_int2(renderSettings.resolution);
-	if (ImGui::Checkbox("Fit render to viewport", &m_FitRenderToViewport))
-	{
-		if (m_FitRenderToViewport)
-			m_Context->OnResize(make_uint2(viewportSize.x, viewportSize.y));
-	}
+	ImGui::Checkbox("Fit render to viewport", &m_FitRenderToViewport);
 	ImGui::BeginDisabled(m_FitRenderToViewport);
 	if (ImGui::InputInt2("Resolution", (int*)&resolution))
 	{
@@ -104,8 +98,7 @@ void MetricsPanel::OnImGuiRender(uint32_t frameNumber, ImVec2 viewportSize)
 		m_Context->GetScene()->Invalidate();
 
 	ImGui::Spacing();
-	ImGui::Separator();
-	ImGui::Text("Color management");
+	ImGui::SeparatorText("Color management");
 	ImGui::DragFloat("Exposure", &renderSettings.exposure, 0.01, 2.0f, 2.0f);
 	int currentIndex = static_cast<int>(renderSettings.toneMapping);
 	if (ImGui::Combo("Tone mapping", &currentIndex, ColorUtils::ToneMappingNames, IM_ARRAYSIZE(ColorUtils::ToneMappingNames)))

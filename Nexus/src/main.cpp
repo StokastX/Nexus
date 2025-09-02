@@ -17,6 +17,7 @@ int main(void)
         return -1;
     }
 
+    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
     window = glfwCreateWindow(WIDTH, HEIGHT, "Nexus", NULL, NULL);
     if (!window)
     {

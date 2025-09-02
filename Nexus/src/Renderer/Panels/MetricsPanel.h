@@ -11,7 +11,7 @@ public:
 
 	void Reset();
 	void UpdateMetrics(float deltaTime);
-	void OnImGuiRender(uint32_t frameNumber, ImVec2 viewportSize);
+	void OnImGuiRender(uint32_t frameNumber);
 	bool FitRenderToViewport() { return m_FitRenderToViewport; }
 
 private:

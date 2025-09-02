@@ -22,13 +22,14 @@ Application::Application(int width, int height, GLFWwindow *window)
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
+    ImGui::StyleColorsCustomDark();
+
 	float xscale, yscale;
 	glfwGetWindowContentScale(window, &xscale, &yscale);
 
-	io.FontDefault = io.Fonts->AddFontFromFileTTF("assets/fonts/opensans/OpenSans-Regular.ttf", 16.0f * xscale);
+	io.Fonts->AddFontFromFileTTF("assets/fonts/SF-Pro-Text-Regular.otf", 14.0f * xscale);
 	ImGui::GetStyle().ScaleAllSizes(xscale);
 
-    ImGui::StyleColorsCustomDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
 }
@@ -119,7 +120,7 @@ void Application::RenderUI()
 	// Render ImGui panels
 	m_ViewportPanel.OnImGuiRender(m_MetricsPanel.FitRenderToViewport());
 	m_SceneHierarchyPanel.OnImGuiRender();
-	m_MetricsPanel.OnImGuiRender(m_Renderer.GetPathTracer()->GetFrameNumber(), m_ViewportPanel.GetViewportSize());
+	m_MetricsPanel.OnImGuiRender(m_Renderer.GetPathTracer()->GetFrameNumber());
 }
 
 void Application::OnResize(int width, int height)

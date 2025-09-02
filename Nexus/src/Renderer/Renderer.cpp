@@ -3,7 +3,7 @@
 
 
 Renderer::Renderer(uint2 resolution, Scene* scene)
-	: m_Resolution(resolution), m_Scene(scene),
+	: m_Scene(scene),
 	m_RenderTexture(resolution), m_PathTracer(resolution)
 {
 }
@@ -49,13 +49,13 @@ void Renderer::UnpackToTexture()
 
 void Renderer::OnResize(uint2 resolution)
 {
-	if ((m_Resolution.x != resolution.x || m_Resolution.y != resolution.y) && resolution.x != 0 && resolution.y != 0)
+	if ((m_RenderTexture.GetResolution().x != resolution.x || m_RenderTexture.GetResolution().y != resolution.y)
+		&& resolution.x != 0 && resolution.y != 0 && resolution.x <= MaxRenderResolution && resolution.y <= MaxRenderResolution)
 	{
 		RenderSettings& renderSettings = m_Scene->GetRenderSettings();
 		renderSettings.resolution = resolution;
 		m_PathTracer.OnResize(resolution);
 		m_Scene->GetCamera()->OnResize(resolution);
 		m_RenderTexture.OnResize(resolution);
-		m_Resolution = resolution;
 	}
 }

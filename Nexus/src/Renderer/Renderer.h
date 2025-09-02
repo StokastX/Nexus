@@ -4,6 +4,8 @@
 #include "Scene/Scene.h"
 #include "PathTracer.h"
 
+constexpr uint32_t MaxRenderResolution = 10000;
+
 class Renderer
 {
 public:
@@ -18,9 +20,9 @@ public:
 	PathTracer* GetPathTracer() { return &m_PathTracer; }
 	Scene* GetScene() { return m_Scene; }
 	OGLTexture& GetTexture() { return m_RenderTexture; }
+	uint2 GetResolution() { return m_RenderTexture.GetResolution(); }
 
 private:
-	uint2 m_Resolution;
 	OGLTexture m_RenderTexture;
 	Scene* m_Scene;
 
