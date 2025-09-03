@@ -60,7 +60,7 @@ void PathTracer::FreeDeviceBuffers()
 
 void PathTracer::Reset()
 {
-	m_AccumulationBuffer = CudaMemory::Allocate<float3>(m_Resolution.x * m_Resolution.y);
+	m_AccumulationBuffer = CudaMemory::AllocateAsync<float3>(m_Resolution.x * m_Resolution.y);
 
 	dim3 gridSize(m_Resolution.x * m_Resolution.y / BLOCK_SIZE + 1, 1, 1);
 	dim3 blockSize(BLOCK_SIZE, 1, 1);
