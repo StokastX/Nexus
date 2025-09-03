@@ -143,6 +143,21 @@ public:
 		m_Size++;
 	}
 
+	void PushBack(THost&& value)
+	{
+		if (m_Size >= m_Capacity)
+			Realloc(m_Capacity + m_Capacity / 2);
+
+		if constexpr (is_trivially_copyable_to_device<THost>)
+			CudaMemory::CopyAsync<TDevice>(m_Data + m_Size, (TDevice*)&value, 1, cudaMemcpyHostToDevice);
+		else
+		{
+			TDevice deviceInstance = THost::ToDevice(value);
+			CudaMemory::CopyAsync<TDevice>(m_Data + m_Size, &deviceInstance, 1, cudaMemcpyHostToDevice);
+		}
+		m_Size++;
+	}
+
 	void PopBack()
 	{
 		assert(m_Size > 0);

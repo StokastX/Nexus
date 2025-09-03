@@ -61,7 +61,7 @@ private:
 	std::set<uint32_t> m_InvalidMeshInstances;
 	std::set<uint32_t> m_InvalidLights;
 
-	Texture m_HdrMap;
+	std::shared_ptr<Texture> m_HdrMap;
 
 	AssetManager m_AssetManager;
 

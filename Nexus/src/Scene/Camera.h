@@ -9,7 +9,7 @@
 class Camera 
 {
 public:
-	Camera(float verticalFOV, uint2 resolution);
+	Camera(uint2 resolution);
 	Camera(float3 position, float3 forward, float verticalFOV, uint2 resolution, float focusDistance, float defocusAngle);
 
 	void OnUpdate(float ts);
@@ -38,15 +38,14 @@ public:
 	static D_Camera ToDevice(const Camera& camera);
 
 private:
-	float2 m_LastMousePosition{ 0.0f, 0.0 };
-
-	float m_HorizontalFOV;
-	float m_DefocusAngle;
-	float m_FocusDist;
+	float2 m_LastMousePosition = make_float2(0.0f, 0.0);
+	float m_HorizontalFOV = 45.0f;
+	float m_DefocusAngle = 0.0f;
+	float m_FocusDist = 1.0f;
 	uint2 m_Resolution;
-	float3 m_Position;
-	float3 m_ForwardDirection;
-	float3 m_RightDirection;
+	float3 m_Position = make_float3(0.0f, 4.0f, 14.0f);
+	float3 m_ForwardDirection = make_float3(0.0f, 0.0f, -1.0f);
+	float3 m_RightDirection = cross(m_ForwardDirection, make_float3(0.0f, 1.0f, 0.0f));
 
 	bool m_Invalid = true;
 };

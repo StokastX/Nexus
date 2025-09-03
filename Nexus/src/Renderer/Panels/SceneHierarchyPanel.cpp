@@ -1,4 +1,5 @@
 #include "SceneHierarchyPanel.h"
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -20,15 +21,18 @@ void SceneHierarchyPanel::SetSelectionContext(SelectionContext::Type type, int32
 
 void SceneHierarchyPanel::OnImGuiRender()
 {
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 	ImGui::Begin("Hierarchy panel");
+	ImGui::PopStyleVar();
 
 	std::vector<MeshInstance>& meshInstances =  m_Context->GetMeshInstances();
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
 	for (int i = 0; i < meshInstances.size(); i++)
 	{
 		MeshInstance& meshInstance = meshInstances[i];
 		bool itemSelected = m_SelectionContext.type == SelectionContext::Type::INSTANCE && m_SelectionContext.idx == i;
 		ImGuiTreeNodeFlags flags = (itemSelected ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-		flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+		flags |= ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap ;
 		bool opened = ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s", meshInstance.name.c_str());
 
 		if (ImGui::IsItemClicked())
@@ -37,6 +41,7 @@ void SceneHierarchyPanel::OnImGuiRender()
 		if (opened)
 			ImGui::TreePop();
 	}
+	ImGui::PopStyleVar();
 
 	std::vector<Light>& lights = m_Context->GetLights();
 	for (uint32_t i = 0; i < lights.size(); i++)
@@ -69,17 +74,17 @@ void SceneHierarchyPanel::OnImGuiRender()
 	ImGui::End();
 }
 
-static bool DrawFloat3Control(const std::string& label, float3& values, float resetValue = 0.0f, float step = 0.1f, const char* format = "%.2f", float columnWidth = 80.0f)
+static bool DrawFloat3Control(const std::string& label, float3& values, float resetValue = 0.0f, float step = 0.1f, const char* format = "%.2f", float columnWidth = 50.0f)
 {
 	ImGui::PushID(label.c_str());
 
 	ImGui::Columns(2);
-	ImGui::SetColumnWidth(0, columnWidth);
+	ImGui::SetColumnWidth(0, columnWidth * ImGui::GetWindowDpiScale());
 	ImGui::Text("%s", label.c_str());
 	ImGui::NextColumn();
 
 	ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImGui::GetStyle().ItemSpacing * 0.5f);
 
 	float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
 	ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
@@ -138,6 +143,7 @@ void SceneHierarchyPanel::DrawProperties(SelectionContext selectionContext)
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_Framed
 		| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_SpanAvailWidth;
 
+	ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.0f);
 	if (selectionContext.type == SelectionContext::Type::INSTANCE)
 	{
 		MeshInstance &meshInstance = m_Context->GetMeshInstances()[selectionContext.idx];
@@ -172,8 +178,8 @@ void SceneHierarchyPanel::DrawProperties(SelectionContext selectionContext)
 			else
 			{
 				int materialIdx = meshInstance.materialIdx;
-				// if (ImGui::Combo("Id", &materialIdx, materialsString.c_str()))
-				//	m_Context->InvalidateMeshInstance(selectionContext);
+				if (ImGui::Combo("Id", &materialIdx, materialsString.c_str()))
+					m_Context->InvalidateMeshInstance(selectionContext.idx);
 
 				meshInstance.materialIdx = materialIdx;
 
@@ -185,29 +191,37 @@ void SceneHierarchyPanel::DrawProperties(SelectionContext selectionContext)
 					assetManager.InvalidateMaterial(meshInstance.materialIdx);
 				if (ImGui::DragFloat("Roughness", &material.roughness, 0.01f, 0.0f, 1.0f))
 					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::DragFloat("Anisotropy", &material.anisotropy, 0.01f, 0.0f, 1.0f))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::DragFloat("Specular weight", &material.specularWeight, 0.01f, 0.0f, 1.0f))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::ColorEdit3("Specular color", (float *)&material.specularColor))
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
 				if (ImGui::DragFloat("IOR", &material.ior, 0.01f, 1.0f, 2.5f))
 					assetManager.InvalidateMaterial(meshInstance.materialIdx);
 				if (ImGui::DragFloat("Transmission", &material.transmission, 0.01f, 0.0f, 1.0f))
 					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				if (ImGui::ColorEdit3("Emission color", (float *)&material.emissionColor))
-				{
-					// Invalidate mesh instance to update lighting
-					m_Context->InvalidateMeshInstance(selectionContext.idx);
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				}
-				if (ImGui::DragFloat("Intensity", (float *)&material.intensity, 0.1f, 0.0f, 1000.0f))
-				{
-					m_Context->InvalidateMeshInstance(selectionContext.idx);
-					assetManager.InvalidateMaterial(meshInstance.materialIdx);
-				}
 				if (ImGui::DragFloat("Opacity", (float *)&material.opacity, 0.01f, 0.0f, 1.0f))
 					assetManager.InvalidateMaterial(meshInstance.materialIdx);
+				if (ImGui::TreeNodeEx("Specular", flags))
+				{
+					if (ImGui::DragFloat("Specular weight", &material.specularWeight, 0.01f, 0.0f, 1.0f))
+						assetManager.InvalidateMaterial(meshInstance.materialIdx);
+					if (ImGui::ColorEdit3("Specular color", (float*)&material.specularColor))
+						assetManager.InvalidateMaterial(meshInstance.materialIdx);
+					if (ImGui::DragFloat("Anisotropy", &material.anisotropy, 0.01f, 0.0f, 1.0f))
+						assetManager.InvalidateMaterial(meshInstance.materialIdx);
+					ImGui::TreePop();
+				}
+				if (ImGui::TreeNodeEx("Emission", flags & ~ImGuiTreeNodeFlags_DefaultOpen))
+				{
+					if (ImGui::ColorEdit3("Emission color", (float*)&material.emissionColor))
+					{
+						// Invalidate mesh instance to update lighting
+						m_Context->InvalidateMeshInstance(selectionContext.idx);
+						assetManager.InvalidateMaterial(meshInstance.materialIdx);
+					}
+					if (ImGui::DragFloat("Intensity", (float*)&material.intensity, 0.1f, 0.0f, 1000.0f))
+					{
+						m_Context->InvalidateMeshInstance(selectionContext.idx);
+						assetManager.InvalidateMaterial(meshInstance.materialIdx);
+					}
+					ImGui::TreePop();
+				}
 			}
 			ImGui::TreePop();
 		}
@@ -259,4 +273,5 @@ void SceneHierarchyPanel::DrawProperties(SelectionContext selectionContext)
 			ImGui::TreePop();
 		}
 	}
+	ImGui::PopStyleVar();
 }

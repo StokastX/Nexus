@@ -13,6 +13,7 @@ class ViewportPanel
 public:
 	ViewportPanel(Renderer* renderer);
 	void OnImGuiRender(bool fitRenderToViewport);
+	bool ExportRender();
 	ImVec2 GetViewportSize() { return m_ViewportSize; }
 
 private:
@@ -21,5 +22,5 @@ private:
 	ImVec2 m_RenderScroll = ImVec2(0.0f, 0.0f);
 	ImVec2 m_TopLeft = ImVec2(0.0f, 0.0f);
 	ImVec2 m_ViewportSize = ImVec2(0.0f, 0.0f);
-	bool initialized = false;
+	bool m_ExportRender = false;
 };

@@ -2,12 +2,14 @@
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Utils/cuda_math.h"
 #include "Assets/IMGLoader.h"
-#include "Assets/OBJLoader.h"
+#include "Assets/SceneLoader.h"
 
 
 Scene::Scene(uint2 resolution)
-	:m_Camera(std::make_shared<Camera>(make_float3(0.0f, 4.0f, 14.0f), make_float3(0.0f, 0.0f, -1.0f), 45.0f,
-		resolution, 5.0f, 0.0f)), m_DeviceTlas(GetDeviceTLASAddress()) {
+	: m_Camera(std::make_shared<Camera>(resolution)), m_DeviceTlas(GetDeviceTLASAddress())
+{
+	m_HdrMap = std::make_shared<Texture>();
+	m_DeviceHdrMap = 0;
 	m_RenderSettings.resolution = resolution;
 }
 
@@ -21,6 +23,9 @@ void Scene::Reset()
 	m_Invalid = true;
 	m_InvalidMeshInstances.clear();
 	m_MeshInstances.clear();
+	m_InvalidLights.clear();
+	m_Lights.clear();
+	m_DeviceLights.Clear();
 	m_AssetManager.Reset();
 	m_Camera->Invalidate();
 	NXB::FreeDeviceBVH(m_DeviceTlas.Instance());
@@ -96,14 +101,14 @@ MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)
 
 void Scene::CreateMeshInstanceFromFile(const std::string& path, const std::string& fileName)
 {
-	OBJLoader::LoadOBJ(path, fileName, this, &m_AssetManager);
+	SceneLoader::LoadScene(path, fileName, this, &m_AssetManager);
 }
 
 void Scene::AddHDRMap(const std::string& filePath, const std::string& fileName)
 {
 	m_HdrMap = IMGLoader::LoadIMG(filePath + fileName);
-	m_HdrMap.sRGB = false;
-	m_DeviceHdrMap = Texture::ToDevice(m_HdrMap);
+	m_HdrMap->sRGB = false;
+	m_DeviceHdrMap = Texture::ToDevice(*m_HdrMap);
 }
 
 void Scene::InvalidateMeshInstance(uint32_t instanceId)
@@ -146,7 +151,7 @@ D_Scene Scene::ToDevice(const Scene& scene)
 
 	deviceScene.renderSettings = *(D_RenderSettings*)&scene.m_RenderSettings;
 
-	deviceScene.hasHdrMap = scene.m_HdrMap.pixels != nullptr;
+	deviceScene.hasHdrMap = scene.m_HdrMap->pixels != nullptr;
 	// TODO: clear m_DeviceHdrMap when reset
 	deviceScene.hdrMap = scene.m_DeviceHdrMap;
 	deviceScene.camera = Camera::ToDevice(*scene.m_Camera);

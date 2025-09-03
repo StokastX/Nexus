@@ -10,7 +10,7 @@ IMGLoader::~IMGLoader()
 {
 }
 
-Texture IMGLoader::LoadIMG(const std::string& filepath)
+std::shared_ptr<Texture> IMGLoader::LoadIMG(const std::string& filepath)
 {
 	int width, height, channels;
 
@@ -27,10 +27,10 @@ Texture IMGLoader::LoadIMG(const std::string& filepath)
 	if (pixels == nullptr)
 		std::cout << "IMGLoader: Failed to load texture " << filepath << std::endl;
 
-	return Texture(width, height, channels, HDR, pixels);
+	return std::make_shared<Texture>(width, height, channels, HDR, pixels);
 }
 
-Texture IMGLoader::LoadIMG(const aiTexture* texture)
+std::shared_ptr<Texture> IMGLoader::LoadIMG(const aiTexture* texture)
 {
 	int width, height, channels;
 	unsigned char* pixels = stbi_load_from_memory((const stbi_uc*)texture->pcData, texture->mWidth, &width, &height, &channels, 4);
@@ -38,7 +38,7 @@ Texture IMGLoader::LoadIMG(const aiTexture* texture)
 	if (pixels == nullptr)
 		std::cout << "IMGLoader: Failed to load an embedded texture" << std::endl;
 
-	return Texture(width, height, channels, false, pixels);
+	return std::make_shared<Texture>(width, height, channels, false, pixels);
 }
 
 

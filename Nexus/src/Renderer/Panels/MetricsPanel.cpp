@@ -63,19 +63,23 @@ void MetricsPanel::OnImGuiRender(uint32_t frameNumber)
 
 	RenderSettings& renderSettings = m_Context->GetScene()->GetRenderSettings();
 	ImGui::Spacing();
-	ImGui::SeparatorText("Render settings");
-	int2 resolution = make_int2(renderSettings.resolution);
-	ImGui::Checkbox("Fit render to viewport", &m_FitRenderToViewport);
+	ImGui::SeparatorText("Resolution");
 	ImGui::BeginDisabled(m_FitRenderToViewport);
-	if (ImGui::InputInt2("Resolution", (int*)&resolution))
+	float2 resolution = make_float2(renderSettings.resolution);
+	ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+	if (ImGui::InputFloat2("", (float*)&resolution, "%.0fpx"))
 	{
-		if (resolution.x > 0 && resolution.x <= 10000 && resolution.y > 0 && resolution.y <= 10000)
+		if (resolution.x > 0 && resolution.x <= MaxRenderResolution && resolution.y > 0 && resolution.y <= MaxRenderResolution)
 		{
-			m_Context->OnResize(make_uint2(resolution));
+			m_Context->OnResize(make_uint2(resolution.x, resolution.y));
 			m_Context->GetScene()->Invalidate();
 		}
 	}
 	ImGui::EndDisabled();
+	ImGui::Checkbox("Use viewport resolution", &m_FitRenderToViewport);
+
+	ImGui::Spacing();
+	ImGui::SeparatorText("Render settings");
 	if (ImGui::Checkbox("Use MIS", &renderSettings.useMIS))
 		m_Context->GetScene()->Invalidate();
 	if (ImGui::Checkbox("Vizualize BVH", &renderSettings.visualizeBvh))

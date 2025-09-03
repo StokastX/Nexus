@@ -36,7 +36,7 @@ public:
 	const DeviceVector<Material, D_Material>& GetDeviceMaterials() const { return m_DeviceMaterials; }
 	const DeviceVector<Texture, cudaTextureObject_t>& GetDeviceTextures() const { return m_DeviceTextures; }
 
-	int AddTexture(const Texture& texture);
+	int AddTexture(std::shared_ptr<Texture> texture);
 	void ApplyTextureToMaterial(int materialIdx, int diffuseMapId);
 
 	bool SendDataToDevice();
@@ -46,7 +46,7 @@ public:
 private:
 	std::vector<Material> m_Materials;
 	std::set<uint32_t> m_InvalidMaterials;
-	std::vector<Texture> m_Textures;
+	std::vector<std::shared_ptr<Texture>> m_Textures;
 	std::vector<Mesh> m_Meshes;
 
 	// Device members

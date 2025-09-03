@@ -9,10 +9,10 @@ public:
 	IMGLoader();
 	~IMGLoader();
 
-	static Texture LoadIMG(const std::string& pathfile);
+	static std::shared_ptr<Texture> LoadIMG(const std::string& pathfile);
 
 	// Load a texture embedded in an Assimp model
-	static Texture LoadIMG(const aiTexture* texture);
+	static std::shared_ptr<Texture> LoadIMG(const aiTexture* texture);
 
 private:
 

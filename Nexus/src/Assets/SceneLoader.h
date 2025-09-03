@@ -9,11 +9,8 @@
 #include "Assets/AssetManager.h"
 #include "Scene/Scene.h"
 
-class OBJLoader
+class SceneLoader
 {
 public:
-	static void LoadOBJ(const std::string& path, const std::string& filename, Scene* scene, AssetManager* assetManager);
-
-private:
-	static Assimp::Importer m_Importer;
+	static void LoadScene(const std::string& path, const std::string& filename, Scene* scene, AssetManager* assetManager);
 };

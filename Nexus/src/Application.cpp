@@ -58,6 +58,9 @@ void Application::Display(float deltaTime)
 	// Render UI
 	RenderUI();
 
+	if (m_ViewportPanel.ExportRender())
+		SaveScreenshot();
+
 	// Render the scene
 	m_Renderer.Render(m_Scene, deltaTime);
 
@@ -73,48 +76,53 @@ void Application::RenderUI()
 {
 	ImGui::DockSpaceOverViewport();
 
-	if (ImGui::BeginMainMenuBar())
+
+	bool openScene = ImGui::IsKeyChordPressed(ImGuiKey_ModCtrl | ImGuiKey_O);
+	bool openHdrMap = ImGui::IsKeyChordPressed(ImGuiKey_ModCtrl | ImGuiKey_H);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 5.0f) * ImGui::GetWindowDpiScale());
+	bool menuBar = ImGui::BeginMainMenuBar();
+	ImGui::PopStyleVar();
+	if (menuBar);
 	{
 		if (ImGui::BeginMenu("File"))
 		{
-			if (ImGui::MenuItem("Open...", "Ctrl+O"))
-			{
-				std::vector<const char*> filters = { "*.obj", "*.ply", "*.stl", "*.glb", "*.gltf", "*.fbx", "*.3ds" };
-				std::string fullPath = FileDialog::OpenFile(filters, "Scene File");
-				if (!fullPath.empty())
-				{
-					CheckCudaErrors(cudaDeviceSynchronize());
-					m_Renderer.Reset();
-					m_MetricsPanel.Reset();
-					m_Scene.Reset();
-
-					std::string fileName, filePath;
-					Utils::GetPathAndFileName(fullPath, filePath, fileName);
-					m_Scene.CreateMeshInstanceFromFile(filePath, fileName);
-					CheckCudaErrors(cudaDeviceSynchronize());
-				}
-			}
-
-			if (ImGui::MenuItem("Load HDR map", "Ctrl+H"))
-			{
-				std::vector<const char*> filters = { "*.hdr", "*.exr" };
-				std::string fullPath = FileDialog::OpenFile(filters, "HDR File");
-				if (!fullPath.empty())
-				{
-					std::string fileName, filePath;
-					Utils::GetPathAndFileName(fullPath, filePath, fileName);
-					m_Scene.AddHDRMap(filePath, fileName);
-					m_Renderer.GetPathTracer()->ResetFrameNumber();
-				}
-			}
-
-			if (ImGui::MenuItem("Save Screenshot", "Ctrl+S")) {
-				SaveScreenshot();
-			}
+			openScene |= ImGui::MenuItem("Open...", "Ctrl+O");
+			openHdrMap |= ImGui::MenuItem("Load HDR map", "Ctrl+H");
 
 			ImGui::EndMenu();
 		}
 		ImGui::EndMainMenuBar();
+	}
+
+	if (openScene)
+	{
+		std::vector<const char*> filters = { "*.obj", "*.ply", "*.stl", "*.glb", "*.gltf", "*.fbx", "*.3ds" };
+		std::string fullPath = FileDialog::OpenFile(filters, "Scene File");
+		if (!fullPath.empty())
+		{
+			CheckCudaErrors(cudaDeviceSynchronize());
+			m_Renderer.Reset();
+			m_MetricsPanel.Reset();
+			m_Scene.Reset();
+
+			std::string fileName, filePath;
+			Utils::GetPathAndFileName(fullPath, filePath, fileName);
+			m_Scene.CreateMeshInstanceFromFile(filePath, fileName);
+			CheckCudaErrors(cudaDeviceSynchronize());
+		}
+	}
+	if (openHdrMap)
+	{
+		std::vector<const char*> filters = { "*.hdr", "*.exr" };
+		std::string fullPath = FileDialog::OpenFile(filters, "HDR File");
+		if (!fullPath.empty())
+		{
+			std::string fileName, filePath;
+			Utils::GetPathAndFileName(fullPath, filePath, fileName);
+			m_Scene.AddHDRMap(filePath, fileName);
+			m_Renderer.GetPathTracer()->ResetFrameNumber();
+		}
 	}
 
 	// Render ImGui panels
@@ -129,7 +137,7 @@ void Application::OnResize(int width, int height)
 
 void Application::SaveScreenshot()
 {
-	OGLTexture renderTexture = m_Renderer.GetTexture();
+	OGLTexture& renderTexture = m_Renderer.GetTexture();
 	int width = renderTexture.GetWidth();
 	int height = renderTexture.GetHeight();
 	std::vector<unsigned char> pixels(width * height * 4);

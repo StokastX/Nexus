@@ -1,9 +1,7 @@
-#include "OBJLoader.h"
+#include "SceneLoader.h"
 #include <vector>
 #include "stb_image.h"
 #include "IMGLoader.h"
-
-Assimp::Importer OBJLoader::m_Importer;
 
 static std::tuple<std::vector<NXB::Triangle>, std::vector<TriangleData>> GetTrianglesFromAiMesh(const aiMesh* mesh)
 {
@@ -22,7 +20,7 @@ static std::tuple<std::vector<NXB::Triangle>, std::vector<TriangleData>> GetTria
 		{
 			if (mesh->mFaces[i].mNumIndices != 3)
 			{
-				std::cout << "ObjLoader: a non triangle primitive with " << mesh->mFaces[i].mNumIndices << " vertices has been discarded" << std::endl;
+				std::cout << "SceneLoader: a non triangle primitive with " << mesh->mFaces[i].mNumIndices << " vertices has been discarded" << std::endl;
 				skipFace = true;
 				continue;
 			}
@@ -123,7 +121,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 			aiString mPath;
 			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
-				Texture newTexture;
+				std::shared_ptr<Texture> newTexture;
 				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
 				if (texture)
 				{
@@ -136,7 +134,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					const std::string materialPath = path + mPath.C_Str();
 					newTexture = IMGLoader::LoadIMG(materialPath);
 				}
-				newTexture.type = Texture::Type::DIFFUSE;
+				newTexture->type = Texture::Type::DIFFUSE;
 				newMaterial.baseColorMapId = assetManager->AddTexture(newTexture);
 			}
 		}
@@ -145,7 +143,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 			aiString mPath;
 			if (material->GetTexture(aiTextureType_NORMALS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
-				Texture newTexture;
+				std::shared_ptr<Texture> newTexture;
 				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
 				if (texture)
 				{
@@ -159,8 +157,8 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					const std::string materialPath = path + mPath.C_Str();
 					newTexture = IMGLoader::LoadIMG(materialPath);
 				}
-				newTexture.sRGB = false;
-				newTexture.type = Texture::Type::NORMALS;
+				newTexture->sRGB = false;
+				newTexture->type = Texture::Type::NORMALS;
 				newMaterial.normalMapId = assetManager->AddTexture(newTexture);
 			}
 		}
@@ -169,7 +167,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 			aiString mPath;
 			if (material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
-				Texture newTexture;
+				std::shared_ptr<Texture> newTexture;
 				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
 				if (texture)
 				{
@@ -183,8 +181,8 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					const std::string materialPath = path + mPath.C_Str();
 					newTexture = IMGLoader::LoadIMG(materialPath);
 				}
-				newTexture.sRGB = false;
-				newTexture.type = Texture::Type::ROUGHNESS;
+				newTexture->sRGB = false;
+				newTexture->type = Texture::Type::ROUGHNESS;
 				newMaterial.roughnessMapId = assetManager->AddTexture(newTexture);
 			}
 		}
@@ -193,7 +191,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 			aiString mPath;
 			if (material->GetTexture(aiTextureType_METALNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
-				Texture newTexture;
+				std::shared_ptr<Texture> newTexture;
 				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
 				if (texture)
 				{
@@ -207,8 +205,8 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					const std::string materialPath = path + mPath.C_Str();
 					newTexture = IMGLoader::LoadIMG(materialPath);
 				}
-				newTexture.sRGB = false;
-				newTexture.type = Texture::Type::METALNESS;
+				newTexture->sRGB = false;
+				newTexture->type = Texture::Type::METALNESS;
 				newMaterial.metalnessMapId = assetManager->AddTexture(newTexture);
 			}
 		}
@@ -217,7 +215,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 			aiString mPath;
 			if (material->GetTexture(aiTextureType_GLTF_METALLIC_ROUGHNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
-				Texture newTexture;
+				std::shared_ptr<Texture> newTexture;
 				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
 				if (texture)
 				{
@@ -231,8 +229,8 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					const std::string materialPath = path + mPath.C_Str();
 					newTexture = IMGLoader::LoadIMG(materialPath);
 				}
-				newTexture.sRGB = false;
-				newTexture.type = Texture::Type::METALLICROUGHNESS;
+				newTexture->sRGB = false;
+				newTexture->type = Texture::Type::METALLICROUGHNESS;
 				newMaterial.metallicRoughnessMapId = assetManager->AddTexture(newTexture);
 			}
 		}
@@ -241,7 +239,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 			aiString mPath;
 			if (material->GetTexture(aiTextureType_EMISSIVE, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 			{
-				Texture newTexture;
+				std::shared_ptr<Texture> newTexture;
 				const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
 				if (texture)
 				{
@@ -255,7 +253,7 @@ static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, A
 					const std::string materialPath = path + mPath.C_Str();
 					newTexture = IMGLoader::LoadIMG(materialPath);
 				}
-				newTexture.type = Texture::Type::EMISSIVE;
+				newTexture->type = Texture::Type::EMISSIVE;
 				newMaterial.emissiveMapId = assetManager->AddTexture(newTexture);
 			}
 		}
@@ -417,19 +415,20 @@ static void CreateMeshInstancesFromNode(const aiScene* assimpScene, Scene* scene
 }
 
 
-void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Scene* scene, AssetManager* assetManager)
+void SceneLoader::LoadScene(const std::string& path, const std::string& filename, Scene* scene, AssetManager* assetManager)
 {
 	const std::string filePath = path + filename;
 
+	Assimp::Importer importer;
 	// Pretransform all meshes for simplicity, but this will need to be removed
 	// in the future to implement proper scene hierarchy
-	const aiScene* objScene = m_Importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_TransformUVCoords | aiProcess_CalcTangentSpace);
+	const aiScene* objScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_TransformUVCoords | aiProcess_CalcTangentSpace);
 
 	std::vector<Mesh> meshes;
 
 	if (!objScene || objScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !objScene->mRootNode)
 	{
-		std::cout << "OBJLoader: Error loading model " << filePath << std::endl;
+		std::cout << "SceneLoader: Error loading model " << filePath << std::endl;
 		return;
 	}
 
@@ -442,5 +441,5 @@ void OBJLoader::LoadOBJ(const std::string& path, const std::string& filename, Sc
 	CreateLightsFromScene(objScene, scene);
 	CreateMeshInstancesFromNode(objScene, scene, objScene->mRootNode, aiMatrix4x4(), materialIdx, meshIdx);
 
-	std::cout << "OBJLoader: loaded model " << filePath << " successfully" << std::endl;
+	std::cout << "SceneLoader: loaded model " << filePath << " successfully" << std::endl;
 }

@@ -1,5 +1,5 @@
 #include "AssetManager.h"
-#include "OBJLoader.h"
+#include "SceneLoader.h"
 #include "IMGLoader.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
 
@@ -13,6 +13,7 @@ void AssetManager::Reset()
 	m_DeviceTextures.Clear();
 	m_DeviceMaterials.Clear();
 	m_Meshes.clear();
+	m_DeviceMeshes.Clear();
 }
 
 uint32_t AssetManager::AddMesh(Mesh&& mesh)
@@ -55,13 +56,13 @@ void AssetManager::InvalidateMaterial(uint32_t index)
 	m_InvalidMaterials.insert(index);
 }
 
-int AssetManager::AddTexture(const Texture& texture)
+int AssetManager::AddTexture(std::shared_ptr<Texture> texture)
 {
-	if (texture.pixels == nullptr)
+	if (texture->pixels == nullptr)
 		return -1;
 
 	m_Textures.push_back(texture);
-	m_DeviceTextures.PushBack(texture);
+	m_DeviceTextures.PushBack(*texture);
 	return m_Textures.size() - 1;
 }
 

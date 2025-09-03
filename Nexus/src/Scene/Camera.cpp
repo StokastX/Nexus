@@ -11,16 +11,8 @@
 #include "Cuda/PathTracer/PathTracer.cuh"
 
 
-Camera::Camera(float horizontalFOV, uint2 resolution)
-{
-	m_HorizontalFOV = horizontalFOV;
-	m_DefocusAngle = 10.0f;
-	m_FocusDist = 5.0f;
-	m_Resolution = resolution;
-	m_Position = make_float3(0.0f, 0.0f, 2.0f);
-	m_ForwardDirection = make_float3(0.0f, 0.0f, -1.0f);
-	m_RightDirection = make_float3(1.0f, 0.0f, 0.0f);
-}
+Camera::Camera(uint2 resolution)
+	: m_Resolution(resolution) { }
 
 Camera::Camera(float3 position, float3 forward, float horizontalFOV, uint2 resolution, float focusDistance, float defocusAngle)
 	:m_Position(position), m_ForwardDirection(forward), m_HorizontalFOV(horizontalFOV), m_Resolution(resolution),
