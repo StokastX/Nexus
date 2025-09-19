@@ -155,15 +155,19 @@ __global__ void LogicKernel()
 	}
 
 	// Russian roulette
-	float probability = fmaxf(throughput);// clamp(fmaxf(currentThroughput), 0.01f, 1.0f);
-	if (Random::Rand(rngState) < probability)
+	float maxThroughput = fmaxf(throughput);
+	if (maxThroughput < 0.1f)
 	{
-		// To get unbiased results, we need to increase the contribution of
-		// the non-terminated rays with their probability of being terminated
-		pathState.throughput[pixelIdx] = throughput / probability;
+		float probability = clamp(maxThroughput, 1.0e-4f, 1.0f);
+		if (Random::Rand(rngState) < probability)
+		{
+			// To get unbiased results, we need to increase the contribution of
+			// the non-terminated rays with their probability of being terminated
+			pathState.throughput[pixelIdx] = throughput / probability;
+		}
+		else
+			return;
 	}
-	else
-		return;
 
 	int32_t requestIdx;
 	requestIdx = atomicAdd(&queueSize.materialSize[bounce], 1);
@@ -258,7 +262,7 @@ inline __device__ void NextEventEstimation(
 		if (!sampleIsValid)
 			return;
 
-		weight = Sampler::PowerHeuristic(lightPdf, bsdfPdf);
+		weight = Sampler::BalanceHeuristic(lightPdf, bsdfPdf);
 
 		if (lightMaterial.emissiveMapId != -1)
 		{
@@ -413,7 +417,7 @@ __global__ void MaterialKernel()
 	//if (pixelQuery.pixelIdx == pixelIdx && bounce == 1)
 	//	printf("roughness: %f, metalness: %f\n", material.roughness, material.metalness);
 
-	bool allowMIS = bounce > 1 && scene.renderSettings.useMIS;
+	bool allowMIS = scene.renderSettings.useMIS && scene.lightCount > 0;
 
 	float3 radiance = make_float3(0.0f);
 
@@ -422,7 +426,7 @@ __global__ void MaterialKernel()
 		float weight = 1.0f;
 
 		// Not using MIS for primary rays
-		if (allowMIS)
+		if (bounce > 1 && allowMIS)
 		{
 			const float lastPdf = pathState.lastPdf[pixelIdx];
 
@@ -443,7 +447,7 @@ __global__ void MaterialKernel()
 			if (!Sampler::IsPdfValid(lightPdf))
 				weight = 0.0f;
 			else
-				weight = Sampler::PowerHeuristic(lastPdf, lightPdf);
+				weight = Sampler::BalanceHeuristic(lastPdf, lightPdf);
 		}
 		radiance = weight * material.emissionColor * material.intensity * throughput;
 	}
@@ -477,7 +481,7 @@ __global__ void MaterialKernel()
 	}
 	else
 	{
-		if (scene.renderSettings.useMIS && scene.lightCount > 0)
+		if (allowMIS)
 			NextEventEstimation(wi, rayDirection, material, intersection, p, normal, gNormal, throughput, pixelIdx, rngState);
 
 		float pdf;
@@ -523,6 +527,9 @@ __global__ void AccumulateKernel()
 		accumulationBuffer[index] = pathState.radiance[index];
 	else
 		accumulationBuffer[index] += (pathState.radiance[index] - accumulationBuffer[index]) / frameNumber;
+
+	//if (pixelQuery.pixelIdx == index)
+	//	printf("max color: %f\n", fmaxf(accumulationBuffer[index]));
 
 	float3 color = accumulationBuffer[index] * exp2f(scene.renderSettings.exposure);
 
