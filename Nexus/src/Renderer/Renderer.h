@@ -14,7 +14,7 @@ public:
 
 	void Reset();
 	void OnResize(uint2 resolution);
-	void Render(Scene& scene, float deltaTime);
+	void Render();
 	void UnpackToTexture();
 
 	PathTracer* GetPathTracer() { return &m_PathTracer; }

@@ -12,7 +12,8 @@ GLFWwindow* Application::m_Window;
 
 Application::Application(int width, int height, GLFWwindow *window)
 	: m_Scene(make_uint2(width, height)), m_Renderer(make_uint2(width, height), &m_Scene),
-	m_SceneHierarchyPanel(&m_Scene), m_MetricsPanel(&m_Renderer), m_ViewportPanel(&m_Renderer)
+	m_OGLRenderer(make_uint2(width, height), &m_Scene), m_SceneHierarchyPanel(&m_Scene), m_MetricsPanel(&m_Renderer),
+	m_ViewportPanel(&m_OGLRenderer), m_RenderPanel(&m_Renderer)
 {
 	m_Window = window;
 
@@ -49,6 +50,10 @@ void Application::Update(float deltaTime)
 
 void Application::Display(float deltaTime)
 {
+	// It's important to wrap the render passes around the ImGui new frame / render call for the following reason:
+	// Render textures are first resized in the RenderUI function if needed, and then the renderers write
+	// in the resized textures. So we want the ImGui render call to be after the render passes so that it
+	// accounts for the updated render textures.
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -58,24 +63,29 @@ void Application::Display(float deltaTime)
 	// Render UI
 	RenderUI();
 
-	if (m_ViewportPanel.ExportRender())
+	if (m_RenderPanel.ExportRender())
 		SaveScreenshot();
 
 	// Render the scene
-	m_Renderer.Render(m_Scene, deltaTime);
+	if (m_RenderPanel.MustRender())
+		m_Renderer.Render();
+
+	m_OGLRenderer.Render(m_SceneHierarchyPanel.GetSelectionContext());
+
+	// Update selection after the render pass
+	if (m_OGLRenderer.PixelQueryPending())
+		m_SceneHierarchyPanel.SetSelectionContext(SelectionContext::Type::INSTANCE, m_OGLRenderer.GetPixelQuery().instanceIdx);
+	// For debugging purposes
+	if (m_Renderer.GetPathTracer()->PixelQueryPending())
+		m_Renderer.GetPathTracer()->SynchronizePixelQuery();
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-	// Update selection after the render pass
-	if (m_Renderer.GetPathTracer()->PixelQueryPending())
-		m_SceneHierarchyPanel.SetSelectionContext(SelectionContext::Type::INSTANCE, m_Renderer.GetPathTracer()->SynchronizePixelQuery());
 }
 
 void Application::RenderUI()
 {
 	ImGui::DockSpaceOverViewport();
-
 
 	bool openScene = ImGui::IsKeyChordPressed(ImGuiKey_ModCtrl | ImGuiKey_O);
 	bool openHdrMap = ImGui::IsKeyChordPressed(ImGuiKey_ModCtrl | ImGuiKey_H);
@@ -126,9 +136,11 @@ void Application::RenderUI()
 	}
 
 	// Render ImGui panels
-	m_ViewportPanel.OnImGuiRender(m_MetricsPanel.FitRenderToViewport());
+	m_ViewportPanel.OnImGuiRender();
+	m_RenderPanel.OnImGuiRender(m_MetricsPanel.FitRenderToViewport());
 	m_SceneHierarchyPanel.OnImGuiRender();
 	m_MetricsPanel.OnImGuiRender(m_Renderer.GetPathTracer()->GetFrameNumber());
+
 }
 
 void Application::OnResize(int width, int height)

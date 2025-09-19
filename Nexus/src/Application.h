@@ -1,8 +1,9 @@
 #pragma once
-//#include "Renderer/Renderer.h"
+#include "Renderer/Panels/RenderPanel.h"
 #include "Renderer/Panels/ViewportPanel.h"
 #include "Renderer/Panels/MetricsPanel.h"
 #include "Renderer/Panels/SceneHierarchyPanel.h"
+#include "OpenGL/OGLRenderer.h"
 #include "Scene/Scene.h"
 
 class Application {
@@ -23,7 +24,10 @@ public:
 
 private:
 	Renderer m_Renderer;
+	OGLRenderer m_OGLRenderer;
+
 	Scene m_Scene;
+	RenderPanel m_RenderPanel;
 	ViewportPanel m_ViewportPanel;
 	SceneHierarchyPanel m_SceneHierarchyPanel;
 	MetricsPanel m_MetricsPanel;

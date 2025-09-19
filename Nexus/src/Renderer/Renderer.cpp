@@ -17,19 +17,19 @@ void Renderer::Reset()
 	m_PathTracer.ResetFrameNumber();
 }
 
-void Renderer::Render(Scene& scene, float deltaTime)
+void Renderer::Render()
 { 
-	if (scene.IsInvalid())
+	if (m_Scene->IsInvalid())
 	{
-		scene.Update();
+		m_Scene->Update();
 		m_PathTracer.ResetFrameNumber();
 	}
 
 	// Launch cuda path tracing kernel, writes the viewport into the pixelbuffer
-	if (!scene.IsEmpty())
+	if (!m_Scene->IsEmpty())
 	{
 		m_PathTracer.UpdateDeviceScene(*m_Scene);
-		m_PathTracer.Render(scene);
+		m_PathTracer.Render(*m_Scene);
 
 		// Unpack the pixel buffer written by cuda to the renderer texture
 		UnpackToTexture();
