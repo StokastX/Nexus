@@ -32,7 +32,7 @@ void SceneHierarchyPanel::OnImGuiRender()
 		MeshInstance& meshInstance = meshInstances[i];
 		bool itemSelected = m_SelectionContext.type == SelectionContext::Type::INSTANCE && m_SelectionContext.idx == i;
 		ImGuiTreeNodeFlags flags = (itemSelected ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-		flags |= ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap ;
+		flags |= ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 		bool opened = ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s", meshInstance.name.c_str());
 
 		if (ImGui::IsItemClicked())
@@ -41,7 +41,6 @@ void SceneHierarchyPanel::OnImGuiRender()
 		if (opened)
 			ImGui::TreePop();
 	}
-	ImGui::PopStyleVar();
 
 	std::vector<Light>& lights = m_Context->GetLights();
 	for (uint32_t i = 0; i < lights.size(); i++)
@@ -52,7 +51,7 @@ void SceneHierarchyPanel::OnImGuiRender()
 
 		bool itemSelected = m_SelectionContext.type == SelectionContext::Type::LIGHT && m_SelectionContext.idx == i;
 		ImGuiTreeNodeFlags flags = (itemSelected ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-		flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+		flags |= ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 		bool opened = ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "Light %u", i);
 
 		if (ImGui::IsItemClicked())
@@ -61,6 +60,7 @@ void SceneHierarchyPanel::OnImGuiRender()
 		if (opened)
 			ImGui::TreePop();
 	}
+	ImGui::PopStyleVar();
 
 	if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
 		m_SelectionContext.idx = -1;

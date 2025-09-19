@@ -1,17 +1,6 @@
 #pragma once
 #include "Scene/Scene.h"
 
-struct SelectionContext
-{
-	enum struct Type
-	{
-		INSTANCE,
-		LIGHT
-	};
-	Type type;
-	int32_t idx;
-};
-
 class SceneHierarchyPanel
 {
 public:
@@ -19,6 +8,7 @@ public:
 
 	void SetContext(Scene* context);
 	void SetSelectionContext(SelectionContext::Type type, int32_t idx);
+	SelectionContext& GetSelectionContext() { return m_SelectionContext; }
 
 	void OnImGuiRender();
 

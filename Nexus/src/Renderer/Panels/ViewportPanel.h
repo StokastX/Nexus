@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Renderer/Renderer.h"
+#include "OpenGL/OGLRenderer.h"
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -11,16 +11,11 @@
 class ViewportPanel
 {
 public:
-	ViewportPanel(Renderer* renderer);
-	void OnImGuiRender(bool fitRenderToViewport);
-	bool ExportRender();
+	ViewportPanel(OGLRenderer* renderer);
+	void OnImGuiRender();
 	ImVec2 GetViewportSize() { return m_ViewportSize; }
 
 private:
-	Renderer* m_Renderer;
-	float m_RenderScale = 1.0f;
-	ImVec2 m_RenderScroll = ImVec2(0.0f, 0.0f);
-	ImVec2 m_TopLeft = ImVec2(0.0f, 0.0f);
+	OGLRenderer* m_Renderer;
 	ImVec2 m_ViewportSize = ImVec2(0.0f, 0.0f);
-	bool m_ExportRender = false;
 };
