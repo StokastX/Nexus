@@ -167,7 +167,7 @@ void Scene::UpdateSceneLighting(size_t index)
 	if ((material.emissiveMapId == -1 && fmaxf(material.emissionColor) == 0.0f)
 		|| material.intensity == 0.0f)
 	{
-	int counter = 0;
+		int counter = 0;
 		for (uint32_t j = 0; j < m_Lights.size(); j++)
 		{
 			if (m_Lights[j].type == Light::Type::MESH)

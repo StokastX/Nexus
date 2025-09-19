@@ -5,6 +5,17 @@
 #include "NXB/BVHBuilder.h"
 #include "Geometry/BVH/BVH.h"
 
+struct SelectionContext
+{
+	enum struct Type
+	{
+		INSTANCE,
+		LIGHT
+	};
+	Type type;
+	int32_t idx;
+};
+
 struct MeshInstance
 {
 	MeshInstance() = default;
@@ -33,7 +44,7 @@ struct MeshInstance
 	}
 	void AssignMaterial(int mIdx) { materialIdx = mIdx; }
 
-	Mat4 GetTransfromationMatrix() const
+	Mat4 GetTransfrom() const
 	{
 		return Mat4::Translate(position) * Mat4::RotateZ(Utils::ToRadians(rotation.z))
 			* Mat4::RotateY(Utils::ToRadians(rotation.y)) * Mat4::RotateX(Utils::ToRadians(rotation.x)) * Mat4::Scale(scale);
@@ -41,12 +52,12 @@ struct MeshInstance
 
 	NXB::AABB GetBounds() const
 	{
-		Mat4 transformationMatrix = GetTransfromationMatrix();
+		Mat4 transform = GetTransfrom();
 		NXB::AABB bounds;
 		bounds.Clear();
 		for (int i = 0; i < 8; i++)
 		{
-			bounds.Grow(transformationMatrix.TransformPoint(make_float3(i & 1 ? meshBounds.bMax.x : meshBounds.bMin.x,
+			bounds.Grow(transform.TransformPoint(make_float3(i & 1 ? meshBounds.bMax.x : meshBounds.bMin.x,
 				i & 2 ? meshBounds.bMax.y : meshBounds.bMin.y, i & 4 ? meshBounds.bMax.z : meshBounds.bMin.z)));
 		}
 		return bounds;
@@ -54,7 +65,7 @@ struct MeshInstance
 
 	static D_MeshInstance ToDevice(const MeshInstance& meshInstance)
 	{
-		Mat4 transformationMatrix = meshInstance.GetTransfromationMatrix();
+		Mat4 transformationMatrix = meshInstance.GetTransfrom();
 		D_MeshInstance deviceInstance;
 		deviceInstance.meshIdx = meshInstance.meshIdx;
 		deviceInstance.materialIdx = meshInstance.materialIdx;
