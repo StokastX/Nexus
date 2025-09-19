@@ -88,12 +88,13 @@ public:
 		return m;
 	}
 
+	// See https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/lookat-function/framing-lookat-function.html
 	inline __host__ __device__ static Mat4 LookAt(const float3 P, const float3 T)
 	{
-		const float3 z = normalize( T - P );
-		const float3 x = normalize( cross( z, make_float3( 0, 1, 0 ) ) );
-		const float3 y = cross( x, z );
-		Mat4 M = Translate( P );
+		const float3 z = normalize(P - T);
+		const float3 x = normalize(cross(make_float3(0, 1, 0), z));
+		const float3 y = cross(z, x);
+		Mat4 M = Translate(P);
 		M[0] = x.x, M[4] = x.y, M[8] = x.z;
 		M[1] = y.x, M[5] = y.y, M[9] = y.z;
 		M[2] = z.x, M[6] = z.y, M[10] = z.z;
@@ -131,6 +132,22 @@ public:
 		cameraToWorld( 0, 2 ) = dir.x, cameraToWorld( 1, 2 ) = dir.y;
 		cameraToWorld( 2, 2 ) = dir.z, cameraToWorld( 3, 2 ) = 0.;
 		return cameraToWorld.Inverted();
+	}
+
+	inline __host__ __device__ static Mat4 Perspective(float fovx, float aspect, float znear, float zfar)
+	{
+		// Convert horizontal FOV to vertical FOV
+		//float fovy = 2.0f * atanf(tanf(fovx * 0.5f) / aspect);
+		float f = 1.0f / tanf(fovx * 0.5f);
+
+		Mat4 M;
+		M[0] = f / aspect;
+		M[5] = f;
+		M[10] = (zfar + znear) / (znear - zfar);
+		M[11] = (2 * zfar * znear) / (znear - zfar);
+		M[14] = -1.0f;
+		M[15] = 0.0f;
+		return M;
 	}
 
 	inline __host__ __device__ static Mat4 Translate(const float x, const float y, const float z) { Mat4 r; r.cell[3] = x; r.cell[7] = y; r.cell[11] = z; return r; };

@@ -5,6 +5,7 @@
 #include <cuda_runtime_api.h>
 #include "Geometry/Ray.h"
 #include "Cuda/Scene/Camera.cuh"
+#include "Math/Mat4.h"
 
 class Camera 
 {
@@ -18,6 +19,7 @@ public:
 	float GetRotationSpeed();
 	float& GetHorizontalFOV() { return m_HorizontalFOV; }
 	void SetHorizontalFOV(float horizontalFOV) { m_HorizontalFOV = horizontalFOV; }
+	float GetVerticalFOV();
 	float& GetDefocusAngle() { return m_DefocusAngle; }
 	void SetDefocusAngle(float defocusAngle) { m_DefocusAngle = defocusAngle; }
 	float& GetFocusDist() { return m_FocusDist; }
@@ -28,6 +30,9 @@ public:
 	float3& GetForwardDirection() { return m_ForwardDirection; }
 	void SetForwardDirection(const float3& direction) { m_ForwardDirection = direction; }
 	float3& GetRightDirection() { return m_RightDirection; }
+	Mat4 GetTransform();
+	Mat4 GetViewMatrix();
+	Mat4 GetProjectionMatrix();
 	void SetRightDirection(const float3& rightDirection) { m_RightDirection = rightDirection; }
 	Ray RayThroughPixel(int2 pixel);
 

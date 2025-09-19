@@ -99,6 +99,29 @@ float Camera::GetRotationSpeed()
 	return 0.0008f;
 }
 
+float Camera::GetVerticalFOV()
+{
+	float aspectRatio = (float)m_Resolution.x / m_Resolution.y;
+	return 2.0f * atanf(tanf(Utils::ToRadians(m_HorizontalFOV) * 0.5f) / aspectRatio);
+}
+
+Mat4 Camera::GetTransform()
+{
+	return Mat4::LookAt(m_Position, m_Position + m_ForwardDirection);
+}
+
+Mat4 Camera::GetViewMatrix()
+{
+	return GetTransform().Inverted();
+}
+
+Mat4 Camera::GetProjectionMatrix()
+{
+	float aspectRatio = (float)m_Resolution.x / m_Resolution.y;
+	// TODO: create m_NearClipPlane and m_FarClipPlane
+	return Mat4::Perspective(GetVerticalFOV(), aspectRatio, 0.01f, 1000.0f);
+}
+
 // Returns the ray traversing the given pixel
 Ray Camera::RayThroughPixel(int2 pixel)
 {
