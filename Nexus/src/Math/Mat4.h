@@ -136,10 +136,7 @@ public:
 
 	inline __host__ __device__ static Mat4 Perspective(float fovx, float aspect, float znear, float zfar)
 	{
-		// Convert horizontal FOV to vertical FOV
-		//float fovy = 2.0f * atanf(tanf(fovx * 0.5f) / aspect);
 		float f = 1.0f / tanf(fovx * 0.5f);
-
 		Mat4 M;
 		M[0] = f / aspect;
 		M[5] = f;
