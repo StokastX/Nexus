@@ -7,7 +7,7 @@
 
 int WIDTH = 1400, HEIGHT = 800;
 
-int main(void)
+int main()
 {
     GLFWwindow* window;
 
@@ -31,7 +31,7 @@ int main(void)
 
     glfwMakeContextCurrent(window);
 
-    Input::Init(window);
+    Nexus::Input::Init(window);
     // Disable vsync (frame rate / screen refresh rate synchronization)
     //glfwSwapInterval(0);
 
@@ -43,7 +43,7 @@ int main(void)
 
     // This scope allows to free everything in the app (textures, buffers) by calling the application destructor before glfwTerminate()
     {
-        Application application(WIDTH, HEIGHT, window);
+        Nexus::Application application(WIDTH, HEIGHT, window);
 
         int width, height;
         double startTime, elapsedTime;

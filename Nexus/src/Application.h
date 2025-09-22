@@ -6,31 +6,35 @@
 #include "OpenGL/OGLRenderer.h"
 #include "Scene/Scene.h"
 
-class Application {
+namespace Nexus {
 
-public:
-	Application(int width, int height, GLFWwindow* window);
-	~Application();
+	class Application {
 
-	void Update(float deltaTime);
+	public:
+		Application(int width, int height, GLFWwindow* window);
+		~Application();
 
-	void Display(float deltaTime);
-	void RenderUI();
+		void Update(float deltaTime);
 
-	void OnResize(int width, int height);
-	void SaveScreenshot();
+		void Display(float deltaTime);
+		void RenderUI();
 
-	static GLFWwindow* GetNativeWindow() { return m_Window; }
+		void OnResize(int width, int height);
+		void SaveScreenshot();
 
-private:
-	Renderer m_Renderer;
-	OGLRenderer m_OGLRenderer;
+		static GLFWwindow* GetNativeWindow() { return m_Window; }
 
-	Scene m_Scene;
-	RenderPanel m_RenderPanel;
-	ViewportPanel m_ViewportPanel;
-	SceneHierarchyPanel m_SceneHierarchyPanel;
-	MetricsPanel m_MetricsPanel;
+	private:
+		Renderer m_Renderer;
+		OGLRenderer m_OGLRenderer;
 
-	static GLFWwindow* m_Window;
-};
+		Scene m_Scene;
+		RenderPanel m_RenderPanel;
+		ViewportPanel m_ViewportPanel;
+		SceneHierarchyPanel m_SceneHierarchyPanel;
+		MetricsPanel m_MetricsPanel;
+
+		static GLFWwindow* m_Window;
+	};
+
+}

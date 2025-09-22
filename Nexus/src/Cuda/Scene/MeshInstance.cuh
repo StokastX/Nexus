@@ -6,12 +6,16 @@
 #include "Math/Mat4.h"
 
 
-struct D_MeshInstance
-{
-	uint32_t meshIdx;
-	uint32_t materialIdx;
+namespace Nexus {
 
-	Mat4 transform;
-	Mat4 invTransform;
-	NXB::AABB bounds;
-};
+	struct D_MeshInstance
+	{
+		uint32_t meshIdx;
+		uint32_t materialIdx;
+
+		Mat4 transform;
+		Mat4 invTransform;
+		NXB::AABB bounds;
+	};
+
+}

@@ -1,22 +1,27 @@
 #pragma once
 
-#include "Memory/Device/DeviceInstance.h"
+#include "Device/DeviceInstance.h"
 
-template<typename THost, typename TDevice = THost>
-class SynchronizedInstance
-{
-	SynchronizedInstance() = delete;
+namespace Nexus {
 
-	SynchronizedInstance(THost& hostInstance, TDevice* deviceInstance)
-		: m_DeviceInstance(deviceInstance), m_HostInstance(hostInstance) { }
-
-	void operator=(const THost& hostInstance)
+	template<typename THost, typename TDevice = THost>
+	class SynchronizedInstance
 	{
-		m_HostInstance = hostInstance;
-		m_DeviceInstance = hostInstance;
-	}
+		SynchronizedInstance() = delete;
 
-private:
-	DeviceInstance<THost, TDevice> m_DeviceInstance;
-	THost& m_HostInstance;
-};
+		SynchronizedInstance(THost& hostInstance, TDevice* deviceInstance)
+			: m_DeviceInstance(deviceInstance), m_HostInstance(hostInstance) {
+		}
+
+		void operator=(const THost& hostInstance)
+		{
+			m_HostInstance = hostInstance;
+			m_DeviceInstance = hostInstance;
+		}
+
+	private:
+		DeviceInstance<THost, TDevice> m_DeviceInstance;
+		THost& m_HostInstance;
+	};
+
+}

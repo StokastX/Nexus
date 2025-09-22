@@ -2,7 +2,7 @@
 
 #include <cuda_runtime_api.h>
 
-namespace ColorUtils
+namespace Nexus::ColorUtils
 {
     constexpr float gamma = 2.2f;
 

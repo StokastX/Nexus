@@ -6,58 +6,64 @@
 /*
  * Vector class that contains a host side Vector, and a device side Vector
  */
-template<typename THost, typename TDevice = THost>
-class SynchronizedVector
-{
-public:
-	SynchronizedVector() = default;
+namespace Nexus {
 
-	SynchronizedVector(const Vector<THost>& hostVector, DeviceAllocator* deviceAllocator = nullptr)
-		: m_HostVector(hostVector), m_DeviceVector(hostVector, deviceAllocator) { }
-
-	SynchronizedVector(const SynchronizedVector<THost, TDevice>& other)
-		: m_HostVector(other.m_HostVector, hostAllocator), m_DeviceVector(other.m_DeviceVector, deviceAllocator) { }
-
-	void PushBack(const THost& value)
+	template<typename THost, typename TDevice = THost>
+	class SynchronizedVector
 	{
-		m_HostVector.PushBack(value);
-		m_DeviceVector.PushBack(value);
-	}
+	public:
+		SynchronizedVector() = default;
 
-	void PushBack(THost&& value)
-	{
-		m_HostVector.PushBack(value);
-		m_DeviceVector.PushBack(value);
-	}
+		SynchronizedVector(const Vector<THost>& hostVector, DeviceAllocator* deviceAllocator = nullptr)
+			: m_HostVector(hostVector), m_DeviceVector(hostVector, deviceAllocator) {
+		}
 
-	void PopBack()
-	{
-		m_HostVector.PopBack();
-		m_DeviceVector.PopBack();
-	}
+		SynchronizedVector(const SynchronizedVector<THost, TDevice>& other)
+			: m_HostVector(other.m_HostVector, hostAllocator), m_DeviceVector(other.m_DeviceVector, deviceAllocator) {
+		}
 
-	void Clear()
-	{
-		m_HostVector.Clear();
-		m_DeviceVector.Clear();
-	}
+		void PushBack(const THost& value)
+		{
+			m_HostVector.PushBack(value);
+			m_DeviceVector.PushBack(value);
+		}
 
-	size_t Size() 
-	{
-		assert(m_HostVector.Size() == m_DeviceVector.Size());
-		return m_HostVector.Size(); 
-	}
+		void PushBack(THost&& value)
+		{
+			m_HostVector.PushBack(value);
+			m_DeviceVector.PushBack(value);
+		}
 
-	SynchronizedInstance<THost, TDevice> operator[] (size_t index)
-	{
-		assert(index > 0 && index < m_Size);
-		return SynchronizedInstance<THost, TDevice>(m_HostVector[index], m_DeviceVector.Data() + index);
-	}
+		void PopBack()
+		{
+			m_HostVector.PopBack();
+			m_DeviceVector.PopBack();
+		}
 
-	THost* HostData() { return m_HostVector.Data(); }
-	TDevice* DeviceData() { return m_Device.Data(); }
+		void Clear()
+		{
+			m_HostVector.Clear();
+			m_DeviceVector.Clear();
+		}
 
-private:
-	Vector<THost> m_HostVector;
-	DeviceVector<THost, TDevice> m_DeviceVector;
-};
+		size_t Size()
+		{
+			assert(m_HostVector.Size() == m_DeviceVector.Size());
+			return m_HostVector.Size();
+		}
+
+		SynchronizedInstance<THost, TDevice> operator[] (size_t index)
+		{
+			assert(index > 0 && index < m_Size);
+			return SynchronizedInstance<THost, TDevice>(m_HostVector[index], m_DeviceVector.Data() + index);
+		}
+
+		THost* HostData() { return m_HostVector.Data(); }
+		TDevice* DeviceData() { return m_Device.Data(); }
+
+	private:
+		Vector<THost> m_HostVector;
+		DeviceVector<THost, TDevice> m_DeviceVector;
+	};
+
+}

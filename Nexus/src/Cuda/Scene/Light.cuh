@@ -1,48 +1,52 @@
 #pragma once
 #include <cstdint>
 
-struct D_Light
-{
-	enum struct Type : char
+namespace Nexus {
+
+	struct D_Light
 	{
-		POINT,
-		SPOT,
-		DIRECTIONAL,
-		MESH,
-		UNDEFINED
+		enum struct Type : char
+		{
+			POINT,
+			SPOT,
+			DIRECTIONAL,
+			MESH,
+			UNDEFINED
+		};
+
+		union
+		{
+			struct
+			{
+				float3 position;
+				float3 color;
+				float intensity;
+			} point;
+
+			struct
+			{
+				float3 position;
+				float3 direction;
+				float3 color;
+				float intensity;
+				float falloffStart;
+				float falloffEnd;
+			} spot;
+
+			struct
+			{
+				float3 color;
+				float3 direction;
+				float intensity;
+			} directional;
+
+			struct
+			{
+				uint32_t meshId;
+			} mesh;
+		};
+
+		Type type;
 	};
 
-	union
-	{
-		struct
-		{
-			float3 position;
-			float3 color;
-			float intensity;
-		} point;
-
-		struct
-		{
-			float3 position;
-			float3 direction;
-			float3 color;
-			float intensity;
-			float falloffStart;
-			float falloffEnd;
-		} spot;
-
-		struct
-		{
-			float3 color;
-			float3 direction;
-			float intensity;
-		} directional;
-
-		struct
-		{
-			uint32_t meshId;
-		} mesh;
-	};
-
-	Type type;
-};
+}

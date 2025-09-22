@@ -5,23 +5,27 @@
 
 #include <cuda_gl_interop.h>
 
-class PixelBuffer
-{
-public:
-	PixelBuffer(uint2 resolution);
-	~PixelBuffer();
+namespace Nexus {
 
-	void Bind() const;
-	void Unbind() const;
-	void OnResize(uint2 resolution);
+	class PixelBuffer
+	{
+	public:
+		PixelBuffer(uint2 resolution);
+		~PixelBuffer();
 
-	uint32_t GetWidth() const { return m_Resolution.x; };
-	uint32_t GetHeight() const { return m_Resolution.y; };
-	unsigned int GetHandle() { return m_Handle; };
-	cudaGraphicsResource_t& GetCudaResource() { return m_CudaResource; };
+		void Bind() const;
+		void Unbind() const;
+		void OnResize(uint2 resolution);
 
-private:
-	unsigned int m_Handle = 0;
-	cudaGraphicsResource_t m_CudaResource;
-	uint2 m_Resolution;
-};
+		uint32_t GetWidth() const { return m_Resolution.x; };
+		uint32_t GetHeight() const { return m_Resolution.y; };
+		unsigned int GetHandle() { return m_Handle; };
+		cudaGraphicsResource_t& GetCudaResource() { return m_CudaResource; };
+
+	private:
+		unsigned int m_Handle = 0;
+		cudaGraphicsResource_t m_CudaResource;
+		uint2 m_Resolution;
+	};
+
+}

@@ -2,17 +2,21 @@
 #include <iostream>
 #include <cstdint>
 
-class Framebuffer
-{
-public:
-	Framebuffer(uint32_t width, uint32_t height, unsigned int textureHandle);
-	~Framebuffer();
+namespace Nexus {
 
-	void Bind();
-	void AttachToTextureHandle(unsigned int handle);
+	class Framebuffer
+	{
+	public:
+		Framebuffer(uint32_t width, uint32_t height, unsigned int textureHandle);
+		~Framebuffer();
 
-	unsigned int GetHandle() { return m_Handle; };
+		void Bind();
+		void AttachToTextureHandle(unsigned int handle);
 
-private:
-	unsigned int m_Handle = 0;
-};
+		unsigned int GetHandle() { return m_Handle; };
+
+	private:
+		unsigned int m_Handle = 0;
+	};
+
+}

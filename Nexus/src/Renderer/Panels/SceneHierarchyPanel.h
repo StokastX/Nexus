@@ -1,21 +1,25 @@
 #pragma once
 #include "Scene/Scene.h"
 
-class SceneHierarchyPanel
-{
-public:
-	SceneHierarchyPanel(Scene* context);
+namespace Nexus {
 
-	void SetContext(Scene* context);
-	void SetSelectionContext(SelectionContext::Type type, int32_t idx);
-	SelectionContext& GetSelectionContext() { return m_SelectionContext; }
+	class SceneHierarchyPanel
+	{
+	public:
+		SceneHierarchyPanel(Scene* context);
 
-	void OnImGuiRender();
+		void SetContext(Scene* context);
+		void SetSelectionContext(SelectionContext::Type type, int32_t idx);
+		SelectionContext& GetSelectionContext() { return m_SelectionContext; }
 
-private:
-	void DrawProperties(SelectionContext selectionContext);
+		void OnImGuiRender();
 
-private:
-	Scene* m_Context;
-	SelectionContext m_SelectionContext = {SelectionContext::Type::INSTANCE, -1};
-};
+	private:
+		void DrawProperties(SelectionContext selectionContext);
+
+	private:
+		Scene* m_Context;
+		SelectionContext m_SelectionContext = { SelectionContext::Type::INSTANCE, -1 };
+	};
+
+}

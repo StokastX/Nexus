@@ -8,14 +8,18 @@
 #include "imgui_impl_opengl3.h"
 #include "Input.h"
 
-class ViewportPanel
-{
-public:
-	ViewportPanel(OGLRenderer* renderer);
-	void OnImGuiRender();
-	ImVec2 GetViewportSize() { return m_ViewportSize; }
+namespace Nexus {
 
-private:
-	OGLRenderer* m_Renderer;
-	ImVec2 m_ViewportSize = ImVec2(0.0f, 0.0f);
-};
+	class ViewportPanel
+	{
+	public:
+		ViewportPanel(OGLRenderer* renderer);
+		void OnImGuiRender();
+		ImVec2 GetViewportSize() { return m_ViewportSize; }
+
+	private:
+		OGLRenderer* m_Renderer;
+		ImVec2 m_ViewportSize = ImVec2(0.0f, 0.0f);
+	};
+
+}

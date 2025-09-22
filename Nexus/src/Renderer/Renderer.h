@@ -4,28 +4,31 @@
 #include "Scene/Scene.h"
 #include "PathTracer.h"
 
-constexpr uint32_t MaxRenderResolution = 10000;
+namespace Nexus {
 
-class Renderer
-{
-public:
-	Renderer(uint2 resolution, Scene* scene);
-	~Renderer();
+	constexpr uint32_t MaxRenderResolution = 10000;
 
-	void Reset();
-	void OnResize(uint2 resolution);
-	void Render();
-	void UnpackToTexture();
+	class Renderer
+	{
+	public:
+		Renderer(uint2 resolution, Scene* scene);
+		~Renderer();
 
-	PathTracer* GetPathTracer() { return &m_PathTracer; }
-	Scene* GetScene() { return m_Scene; }
-	OGLTexture& GetTexture() { return m_RenderTexture; }
-	uint2 GetResolution() { return m_RenderTexture.GetResolution(); }
+		void Reset();
+		void OnResize(uint2 resolution);
+		void Render();
+		void UnpackToTexture();
 
-private:
-	OGLTexture m_RenderTexture;
-	Scene* m_Scene;
+		PathTracer* GetPathTracer() { return &m_PathTracer; }
+		Scene* GetScene() { return m_Scene; }
+		OGLTexture& GetTexture() { return m_RenderTexture; }
+		uint2 GetResolution() { return m_RenderTexture.GetResolution(); }
 
-	PathTracer m_PathTracer;
-};
+	private:
+		OGLTexture m_RenderTexture;
+		Scene* m_Scene;
 
+		PathTracer m_PathTracer;
+	};
+
+}

@@ -13,8 +13,8 @@
 
 void check_cuda(cudaError_t result, char const* const func, const char* const file, int const line);
 
-namespace Utils
-{
+namespace Nexus::Utils {
+
 	template<typename T>
 	inline __host__ __device__ void Swap(T& a, T& b) 
 	{

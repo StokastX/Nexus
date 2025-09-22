@@ -1,54 +1,58 @@
 #pragma once
 #include <cstdint>
 
-static const char *lightTypeNames[] = {
-	"Point Light",
-	"Spot Light",
-	"Directional Light"
-};
+namespace Nexus {
 
-struct Light
-{
-	enum struct Type : char
-	{
-		POINT,
-		SPOT,
-		DIRECTIONAL,
-		MESH,
-		UNDEFINED
+	static const char* lightTypeNames[] = {
+		"Point Light",
+		"Spot Light",
+		"Directional Light"
 	};
 
-	union
+	struct Light
 	{
-		struct
+		enum struct Type : char
 		{
-			float3 position;
-			float3 color;
-			float intensity;
-		} point;
+			POINT,
+			SPOT,
+			DIRECTIONAL,
+			MESH,
+			UNDEFINED
+		};
 
-		struct
+		union
 		{
-			float3 position;
-			float3 direction;
-			float3 color;
-			float intensity;
-			float falloffStart;
-			float falloffEnd;
-		} spot;
+			struct
+			{
+				float3 position;
+				float3 color;
+				float intensity;
+			} point;
 
-		struct
-		{
-			float3 color;
-			float3 direction;
-			float intensity;
-		} directional;
+			struct
+			{
+				float3 position;
+				float3 direction;
+				float3 color;
+				float intensity;
+				float falloffStart;
+				float falloffEnd;
+			} spot;
 
-		struct
-		{
-			uint32_t meshId;
-		} mesh;
+			struct
+			{
+				float3 color;
+				float3 direction;
+				float intensity;
+			} directional;
+
+			struct
+			{
+				uint32_t meshId;
+			} mesh;
+		};
+
+		Type type = Type::UNDEFINED;
 	};
 
-	Type type = Type::UNDEFINED;
-};
+}
