@@ -54,6 +54,11 @@ namespace Nexus {
 			m_Renderer.GetPathTracer()->SynchronizePixelQuery();
 	}
 
+	void EditorLayer::OnEvent(Event& e)
+	{
+		std::cout << "New event: " << e.ToString() << std::endl;
+	}
+
 	void EditorLayer::RenderUI()
 	{
 		ImGui::DockSpaceOverViewport();

@@ -3,7 +3,9 @@
 #include <iostream>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <functional>
 #include "Utils/cuda_math.h"
+#include "Events/Event.h"
 
 namespace Nexus {
 
@@ -19,9 +21,13 @@ namespace Nexus {
 
 	class Window
 	{
+		using EventCallbackFn = std::function<void(std::unique_ptr<Event> event)>;
+
 	public:
 		Window(const WindowSpecification& specification = WindowSpecification());
 		~Window();
+
+		void SetEventCallback(const EventCallbackFn& callback) { m_EventCallback = callback; }
 
 		void Create();
 		void Destroy();
@@ -35,8 +41,9 @@ namespace Nexus {
 
 	private:
 		WindowSpecification m_Specification;
-
 		GLFWwindow* m_Handle = nullptr;
+
+		EventCallbackFn m_EventCallback;
 	};
 
 }

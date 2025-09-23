@@ -19,6 +19,8 @@ namespace Nexus {
 		virtual void OnUpdate(float deltaTime) override;
 		virtual void OnRender() override;
 
+		virtual void OnEvent(Event& e) override;
+
 	private:
 		void RenderUI();
 		void SaveScreenshot();

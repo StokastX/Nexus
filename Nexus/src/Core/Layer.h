@@ -1,4 +1,5 @@
 #pragma once
+#include "Events/Event.h"
 
 namespace Nexus {
 
@@ -10,7 +11,7 @@ namespace Nexus {
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
 
-		virtual void OnEvent() {}
+		virtual void OnEvent(Event& e) {}
 
 		virtual void OnUpdate(float deltaTime) {}
 		virtual void OnRender() {}

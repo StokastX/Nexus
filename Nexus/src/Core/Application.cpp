@@ -3,6 +3,7 @@
 #include <cassert>
 #include "Core/Input.h"
 #include "ImGui/ImGuiLayer.h"
+#include "Events/ApplicationEvent.h"
 
 
 namespace Nexus {
@@ -33,6 +34,10 @@ namespace Nexus {
 		m_Window = std::make_shared<Window>(m_Specification.windowSpec);
 		m_Window->Create();
 
+		m_Window->SetEventCallback([this](std::unique_ptr<Event> e) {
+			this->OnEvent(std::move(e));
+		});
+
 		Input::Init(m_Window->GetHandle());
 
 		PushLayer<ImGuiLayer>();
@@ -51,6 +56,11 @@ namespace Nexus {
 		s_Application = nullptr;
 	}
 
+	void Application::OnEvent(std::unique_ptr<Event> event)
+	{
+		m_EventQueue.push(std::move(event));
+	}
+
 	void Application::Run()
 	{
 		m_Running = true;
@@ -61,12 +71,7 @@ namespace Nexus {
 		while (m_Running)
 		{
 			glfwPollEvents();
-
-			if (m_Window->ShouldClose())
-			{
-				Stop();
-				break;
-			}
+			DispatchEvents();
 
 			float currentTime = GetTime();
 			float timestep = (currentTime - lastTime) * 1000.0f;
@@ -108,6 +113,39 @@ namespace Nexus {
 	float Application::GetTime()
 	{
 		return (float)glfwGetTime();
+	}
+
+	void Application::DispatchEvents()
+	{
+		while (!m_EventQueue.empty())
+		{
+			Event& e = *m_EventQueue.front();
+
+			EventDispatcher dispatcher(e);
+			dispatcher.Dispatch<WindowCloseEvent>([this](WindowCloseEvent& event) {
+				m_Running = false;
+				return true;
+			});
+
+			dispatcher.Dispatch<WindowResizeEvent>([this](WindowResizeEvent& event) {
+				if (event.GetWidth() == 0 || event.GetHeight() == 0)
+				{
+					m_Minimized = true;
+					return false;
+				}
+				m_Minimized = false;
+				return false;
+			});
+
+			for (auto it = m_LayerStack.rbegin(); it != m_LayerStack.rend(); it++)
+			{
+				if (e.handled)
+					break;
+				(*it)->OnEvent(e);
+			}
+
+			m_EventQueue.pop();
+		}
 	}
 
 }

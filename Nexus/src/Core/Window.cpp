@@ -1,5 +1,8 @@
 #include "Window.h"
 #include <cassert>
+#include "Events/ApplicationEvent.h"
+#include "Events/KeyEvent.h"
+#include "Events/MouseEvent.h"
 
 namespace Nexus {
 
@@ -34,6 +37,85 @@ namespace Nexus {
 
 		if (glewInit() != GLEW_OK)
 			std::cout << "Window: Error initializing GLEW" << std::endl;
+
+		glfwSetWindowUserPointer(m_Handle, this);
+
+		// Set GLFW callbacks
+		glfwSetWindowSizeCallback(m_Handle, [](GLFWwindow* window, int width, int height)
+		{
+			Window* win = (Window*)glfwGetWindowUserPointer(window);
+			win->m_Specification.width = width;
+			win->m_Specification.height = height;
+
+			win->m_EventCallback(std::make_unique<WindowResizeEvent>(width, height));
+		});
+
+		glfwSetWindowCloseCallback(m_Handle, [](GLFWwindow* window)
+		{
+			Window* win = (Window*)glfwGetWindowUserPointer(window);
+			win->m_EventCallback(std::make_unique<WindowCloseEvent>());
+		});
+
+		glfwSetKeyCallback(m_Handle, [](GLFWwindow* window, int key, int scancode, int action, int mods)
+		{
+			Window* win = (Window*)glfwGetWindowUserPointer(window);
+
+			switch (action)
+			{
+				case GLFW_PRESS:
+				{
+					win->m_EventCallback(std::make_unique<KeyPressedEvent>(key, false));
+					break;
+				}
+				case GLFW_RELEASE:
+				{
+					win->m_EventCallback(std::make_unique<KeyReleasedEvent>(key));
+					break;
+				}
+				case GLFW_REPEAT:
+				{
+					win->m_EventCallback(std::make_unique<KeyPressedEvent>(key, true));
+					break;
+				}
+			}
+		});
+
+		glfwSetCharCallback(m_Handle, [](GLFWwindow* window, unsigned int keycode)
+		{
+			Window* win = (Window*)glfwGetWindowUserPointer(window);
+			win->m_EventCallback(std::make_unique<KeyTypedEvent>(keycode));
+		});
+
+		glfwSetMouseButtonCallback(m_Handle, [](GLFWwindow* window, int button, int action, int mods)
+		{
+			Window* win = (Window*)glfwGetWindowUserPointer(window);
+
+			switch (action)
+			{
+				case GLFW_PRESS:
+				{
+					win->m_EventCallback(std::make_unique<MouseButtonPressedEvent>(button));
+					break;
+				}
+				case GLFW_RELEASE:
+				{
+					win->m_EventCallback(std::make_unique<MouseButtonReleasedEvent>(button));
+					break;
+				}
+			}
+		});
+
+		glfwSetScrollCallback(m_Handle, [](GLFWwindow* window, double xOffset, double yOffset)
+		{
+			Window* win = (Window*)glfwGetWindowUserPointer(window);
+			win->m_EventCallback(std::make_unique<MouseScrolledEvent>((float)xOffset, (float)yOffset));
+		});
+
+		glfwSetCursorPosCallback(m_Handle, [](GLFWwindow* window, double xPos, double yPos)
+		{
+			Window* win = (Window*)glfwGetWindowUserPointer(window);
+			win->m_EventCallback(std::make_unique<MouseMovedEvent>((float)xPos, (float)yPos));
+		});
 	}
 
 	void Window::Destroy()
@@ -54,10 +136,5 @@ namespace Nexus {
 		int2 size;
 		glfwGetFramebufferSize(m_Handle, &size.x, &size.y);
 		return size;
-	}
-
-	bool Window::ShouldClose() const
-	{
-		return glfwWindowShouldClose(m_Handle) != 0;
 	}
 }
