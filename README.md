@@ -80,14 +80,12 @@ The project has been tested on both **Windows** (with Visual Studio) and **Ubunt
 
 These are the main references I relied on while building this project. They range from theoretical foundations to practical guides, and I highly recommend them if you’re interested in ray tracing and physically based rendering.
 
----
 
 #### Path Tracing (General)
 - [**Eric Veach’s PhD Thesis**](https://graphics.stanford.edu/papers/veach_thesis/thesis.pdf) — The definitive resource on the theory of Monte Carlo path tracing. Although quite theoretical and code-agnostic, it helped me a lot to implement importance sampling, next event estimation, and multiple importance sampling.
 - [**Physically Based Rendering: From Theory to Implementation**](https://www.pbr-book.org/4ed/contents) — This is the go-to reference for implementing a complete path tracer from the ground up.
 - [**Ray Tracing Gems II**](https://www.realtimerendering.com/raytracinggems/rtg2/index.html) — A collection of modern techniques for real-time ray tracing using DXR, Vulkan, and OptiX.
 
----
 
 #### Getting Started with Ray Tracing
 - [**The Cherno’s YouTube Series**](https://www.youtube.com/playlist?list=PLlrATfBNZ98edc5GshdBtREv5asFW3yXl) — Great for beginners to understand the basics of ray tracing step by step.
@@ -95,32 +93,27 @@ These are the main references I relied on while building this project. They rang
 - [**Scratchapixel**](https://scratchapixel.com) — Excellent explanations of computer graphics fundamentals with code examples.
 - [**Accelerated Ray Tracing in One Weekend in CUDA**](https://developer.nvidia.com/blog/accelerated-ray-tracing-cuda/) — A hands-on introduction to GPU-based ray tracing.
 
----
 
 #### BVH (Bounding Volume Hierarchies)
 - [**Jacco Bikker’s BVH Guides**](https://jacco.ompf2.com/2022/04/13/how-to-build-a-bvh-part-1-basics/) — A practical introduction to SAH-based BVHs, which helped me implement my first GPU BVH builder and traversal (surprisingly fast!).
 - [**Stich et al. 2009**](https://www.nvidia.in/docs/IO/77714/sbvh.pdf) — Detailed explanation of binned building and spatial splits for BVH2.
 - [**Ylitie et al. 2017**](https://research.nvidia.com/sites/default/files/publications/ylitie2017hpg-paper.pdf) — Reference for compressed wide BVHs, useful for GPU acceleration.
 
----
 
 #### Physically Based Materials
 - [**Crash Course in BRDF Implementation**](https://boksajak.github.io/files/CrashCourseBRDF.pdf) — A clear overview of diffuse and microfacet BRDFs, both theory and implementation.
 - [**Walter et al. 2007**](https://www.graphics.cornell.edu/~bjw/microfacetbsdf.pdf) — Basis for my implementation of rough dielectric BSDFs.
 - [**Weidlich & Wilkie 2007**](https://www.cg.tuwien.ac.at/research/publications/2007/weidlich_2007_almfs/weidlich_2007_almfs-paper.pdf) — Explores layered BSDFs (planned for future use in my rough plastic BSDF).
 
----
 
 #### Sampling
 - [**TU Wien Computer Graphics Lectures**](https://www.youtube.com/watch?v=FU1dbi827LY) — Great explanation of next event estimation and multiple importance sampling.
 
----
 
 #### GPU Optimization
 - [**Aila & Laine 2009**](https://research.nvidia.com/sites/default/files/pubs/2009-08_Understanding-the-Efficiency/aila2009hpg_paper.pdf) — Key insights into GPU architecture, traversal efficiency, and persistent threads.
 - [**Laine et al. 2013**](https://research.nvidia.com/sites/default/files/pubs/2013-07_Megakernels-Considered-Harmful/laine2013hpg_paper.pdf) — About wavefront path tracing and why megakernels can be problematic.
 
----
 
 #### Renderer Implementations
 I also studied existing production and hobby renderers for reference and inspiration:
@@ -128,7 +121,6 @@ I also studied existing production and hobby renderers for reference and inspira
 - [**Tungsten Renderer**](https://github.com/tunabrain/tungsten)  
 - [**Jan van Bergen’s CUDA Ray Tracer**](https://github.com/jan-van-bergen/GPU-Raytracer)  
 
----
 
 ## Dependencies
 
