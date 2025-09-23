@@ -15,7 +15,7 @@ namespace Nexus {
 	class OGLRenderer
 	{
 	public:
-		OGLRenderer(uint2 resolution, Scene* scene);
+		OGLRenderer(Scene* scene, uint2 resolution = make_uint2(1));
 		~OGLRenderer();
 		void Render(const SelectionContext& selectionContext);
 		void OnResize(uint2 resolution);

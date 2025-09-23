@@ -11,7 +11,7 @@ namespace Nexus {
 	class Renderer
 	{
 	public:
-		Renderer(uint2 resolution, Scene* scene);
+		Renderer(Scene* scene, uint2 resolution = make_uint2(1));
 		~Renderer();
 
 		void Reset();

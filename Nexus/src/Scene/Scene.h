@@ -18,7 +18,7 @@ namespace Nexus {
 	class Scene
 	{
 	public:
-		Scene(uint2 resolution);
+		Scene(uint2 resolution = make_uint2(1));
 		~Scene();
 		void Reset();
 

@@ -1,24 +1,25 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+
 #include <stb_image_write.h>
 
-#include "Application.h"
+#include "EditorLayer.h"
+
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+
+
 #include "Renderer/FileDialog.h"
+#include "Core/Application.h"
 
 namespace Nexus {
 
-	GLFWwindow* Application::m_Window;
-
-	Application::Application(int width, int height, GLFWwindow* window)
-		: m_Scene(make_uint2(width, height)), m_Renderer(make_uint2(width, height), &m_Scene),
-		m_OGLRenderer(make_uint2(width, height), &m_Scene), m_SceneHierarchyPanel(&m_Scene), m_MetricsPanel(&m_Renderer),
+	EditorLayer::EditorLayer()
+		: m_Scene(), m_Renderer(&m_Scene),
+		m_OGLRenderer(&m_Scene), m_SceneHierarchyPanel(&m_Scene), m_MetricsPanel(&m_Renderer),
 		m_ViewportPanel(&m_OGLRenderer), m_RenderPanel(&m_Renderer)
 	{
-		m_Window = window;
-
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
@@ -28,29 +29,29 @@ namespace Nexus {
 		ImGui::StyleColorsCustomDark();
 
 		float xscale, yscale;
-		glfwGetWindowContentScale(window, &xscale, &yscale);
+		glfwGetWindowContentScale(Application::Get().GetWindow().GetHandle(), &xscale, &yscale);
 
 		io.Fonts->AddFontFromFileTTF("assets/fonts/SF-Pro-Text-Regular.otf", 14.0f * xscale);
 		ImGui::GetStyle().ScaleAllSizes(xscale);
 
-		ImGui_ImplGlfw_InitForOpenGL(window, true);
+		ImGui_ImplGlfw_InitForOpenGL(Application::Get().GetWindow().GetHandle(), true);
 		ImGui_ImplOpenGL3_Init("#version 130");
 	}
 
-	Application::~Application()
+	EditorLayer::~EditorLayer()
 	{
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
 	}
 
-	void Application::Update(float deltaTime)
+	void EditorLayer::OnUpdate(float deltaTime)
 	{
 		m_Scene.GetCamera()->OnUpdate(deltaTime);
-		Display(deltaTime);
+		m_MetricsPanel.UpdateMetrics(deltaTime);
 	}
 
-	void Application::Display(float deltaTime)
+	void EditorLayer::OnRender()
 	{
 		// It's important to wrap the render passes around the ImGui new frame / render call for the following reason:
 		// Render textures are first resized in the RenderUI function if needed, and then the renderers write
@@ -59,8 +60,6 @@ namespace Nexus {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-
-		m_MetricsPanel.UpdateMetrics(deltaTime);
 
 		// Render UI
 		RenderUI();
@@ -85,14 +84,14 @@ namespace Nexus {
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	}
 
-	void Application::RenderUI()
+	void EditorLayer::RenderUI()
 	{
 		ImGui::DockSpaceOverViewport();
 
 		bool openScene = ImGui::IsKeyChordPressed(ImGuiKey_ModCtrl | ImGuiKey_O);
 		bool openHdrMap = ImGui::IsKeyChordPressed(ImGuiKey_ModCtrl | ImGuiKey_H);
 
-		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 5.0f) * ImGui::GetWindowDpiScale());
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 5.0f * ImGui::GetWindowDpiScale()));
 		bool menuBar = ImGui::BeginMainMenuBar();
 		ImGui::PopStyleVar();
 		if (menuBar);
@@ -145,11 +144,7 @@ namespace Nexus {
 
 	}
 
-	void Application::OnResize(int width, int height)
-	{
-	}
-
-	void Application::SaveScreenshot()
+	void EditorLayer::SaveScreenshot()
 	{
 		OGLTexture& renderTexture = m_Renderer.GetTexture();
 		int width = renderTexture.GetWidth();

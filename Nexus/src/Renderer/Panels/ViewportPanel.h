@@ -6,7 +6,7 @@
 #include "imgui_internal.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "Input.h"
+#include "Core/Input.h"
 
 namespace Nexus {
 

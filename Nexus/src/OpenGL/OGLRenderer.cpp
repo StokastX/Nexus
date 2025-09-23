@@ -4,11 +4,13 @@
 
 namespace Nexus {
 
-	OGLRenderer::OGLRenderer(uint2 resolution, Scene* scene)
+	OGLRenderer::OGLRenderer(Scene* scene, uint2 resolution)
 		: m_Scene(scene), m_RenderTexture(resolution), m_InstanceTexture(resolution), m_PixelQuery(),
 		m_Shader("../../Nexus/src/OpenGL/Shaders/layout.vert", "../../Nexus/src/OpenGL/Shaders/layout.frag"),
 		m_GridShader("../../Nexus/src/OpenGL/Shaders/grid.vert", "../../Nexus/src/OpenGL/Shaders/grid.frag")
 	{
+		glEnable(GL_BLEND);
+		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_STENCIL_TEST);
 
 		glGenFramebuffers(1, &m_FrameBuffer);

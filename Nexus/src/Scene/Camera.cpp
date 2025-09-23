@@ -7,7 +7,7 @@
 #include "Utils/Utils.h"
 #include "Utils/cuda_math.h"
 #include "Math/Quat4.h"
-#include "Input.h"
+#include "Core/Input.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
 
 

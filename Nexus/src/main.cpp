@@ -1,72 +1,80 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
-
-#include "Input.h"
-#include "Application.h"
+#include "Core/Application.h"
+#include "EditorLayer.h"
 
 int WIDTH = 1400, HEIGHT = 800;
 
 int main()
 {
-    GLFWwindow* window;
+	Nexus::ApplicationSpecification applicationSpec;
+	applicationSpec.name = "Nexus Renderer";
+	applicationSpec.windowSpec.width = 1400;
+	applicationSpec.windowSpec.height = 800;
 
-    if (!glfwInit())
-    {
-        std::cout << "Error initializing glfw" << std::endl;
-        return -1;
-    }
+	Nexus::Application application(applicationSpec);
+	application.PushLayer<Nexus::EditorLayer>();
+	application.Run();
 
-    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    window = glfwCreateWindow(WIDTH, HEIGHT, "Nexus", NULL, NULL);
-    if (!window)
-    {
-        std::cout << "Error creating glfw window" << std::endl;
-        glfwTerminate();
-        return -1;
-    }
+ //   GLFWwindow* window;
 
-    glfwMakeContextCurrent(window);
+ //   if (!glfwInit())
+ //   {
+ //       std::cout << "Error initializing glfw" << std::endl;
+ //       return -1;
+ //   }
 
-    Nexus::Input::Init(window);
-    // Disable vsync (frame rate / screen refresh rate synchronization)
-    //glfwSwapInterval(0);
+ //   glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+ //   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+ //   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+ //   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+ //   window = glfwCreateWindow(WIDTH, HEIGHT, "Nexus", NULL, NULL);
+ //   if (!window)
+ //   {
+ //       std::cout << "Error creating glfw window" << std::endl;
+ //       glfwTerminate();
+ //       return -1;
+ //   }
 
-    if (glewInit() != GLEW_OK)
-        std::cout << "Error initializing GLEW" << std::endl;
+ //   glfwMakeContextCurrent(window);
 
-	glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
+ //   Nexus::Input::Init(window);
+ //   // Disable vsync (frame rate / screen refresh rate synchronization)
+ //   //glfwSwapInterval(0);
 
-    // This scope allows to free everything in the app (textures, buffers) by calling the application destructor before glfwTerminate()
-    {
-        Nexus::Application application(WIDTH, HEIGHT, window);
+ //   if (glewInit() != GLEW_OK)
+ //       std::cout << "Error initializing GLEW" << std::endl;
 
-        int width, height;
-        double startTime, elapsedTime;
-        startTime = glfwGetTime();
-        while (!glfwWindowShouldClose(window))
-        {
-            glfwPollEvents();
+ //   glEnable(GL_DEPTH_TEST);
+ //   glEnable(GL_BLEND);
 
-            glClear(GL_COLOR_BUFFER_BIT);
+ //   // This scope allows to free everything in the app (textures, buffers) by calling the application destructor before glfwTerminate()
+ //   {
+ //       Nexus::Application application(WIDTH, HEIGHT, window);
 
-            glfwGetWindowSize(window, &width, &height);
-            application.OnResize(width, height);
+ //       int width, height;
+ //       double startTime, elapsedTime;
+ //       startTime = glfwGetTime();
+ //       while (!glfwWindowShouldClose(window))
+ //       {
+ //           glfwPollEvents();
 
-            elapsedTime = glfwGetTime() - startTime;
-            startTime = glfwGetTime();
-            application.Update((float)elapsedTime * 1000.0f);
+ //           glClear(GL_COLOR_BUFFER_BIT);
 
-            glfwSwapBuffers(window);
-        }
-    }
-    // Free all device allocations
-    CheckCudaErrors(cudaDeviceSynchronize());
-    CheckCudaErrors(cudaDeviceReset());
-    glfwTerminate();
-    return 0;
+ //           glfwGetWindowSize(window, &width, &height);
+ //           application.OnResize(width, height);
+
+ //           elapsedTime = glfwGetTime() - startTime;
+ //           startTime = glfwGetTime();
+ //           application.Update((float)elapsedTime * 1000.0f);
+
+ //           glfwSwapBuffers(window);
+ //       }
+ //   }
+ //   // Free all device allocations
+ //   CheckCudaErrors(cudaDeviceSynchronize());
+ //   CheckCudaErrors(cudaDeviceReset());
+ //   glfwTerminate();
+ //   return 0;
 }

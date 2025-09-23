@@ -4,7 +4,7 @@
 
 namespace Nexus {
 
-	Renderer::Renderer(uint2 resolution, Scene* scene)
+	Renderer::Renderer(Scene* scene, uint2 resolution)
 		: m_Scene(scene),
 		m_RenderTexture(resolution), m_PathTracer(resolution)
 	{

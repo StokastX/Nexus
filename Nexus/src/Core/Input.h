@@ -1,4 +1,5 @@
 #pragma once
+#include <GL/glew.h>
 #include "GLFW/glfw3.h"
 #include "Utils/cuda_math.h"
 
@@ -19,7 +20,6 @@ namespace Nexus {
 		static void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
 		static inline float m_ScrollOffsetY = 0.0f;
-		static GLFWwindow* m_Window;
 	};
 
 }
