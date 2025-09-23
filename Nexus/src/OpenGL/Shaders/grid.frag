@@ -1,4 +1,4 @@
-#version 330 core
+#version 460 core
 
 in vec2 TexCoord;
 in vec3 vPos;

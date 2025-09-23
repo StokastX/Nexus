@@ -9,8 +9,9 @@ int main()
 {
 	Nexus::ApplicationSpecification applicationSpec;
 	applicationSpec.name = "Nexus Lab";
-	applicationSpec.windowSpec.width = 1400;
-	applicationSpec.windowSpec.height = 800;
+	applicationSpec.windowSpec.width = 1920;
+	applicationSpec.windowSpec.height = 1080;
+	applicationSpec.windowSpec.startMaximized = true;
 
 	Nexus::Application application(applicationSpec);
 	application.PushLayer<Nexus::EditorLayer>();

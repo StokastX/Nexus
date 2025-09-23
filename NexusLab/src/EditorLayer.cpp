@@ -20,29 +20,10 @@ namespace Nexus {
 		m_OGLRenderer(&m_Scene), m_SceneHierarchyPanel(&m_Scene), m_MetricsPanel(&m_Renderer),
 		m_ViewportPanel(&m_OGLRenderer), m_RenderPanel(&m_Renderer)
 	{
-		IMGUI_CHECKVERSION();
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-
-		ImGui::StyleColorsCustomDark();
-
-		float xscale, yscale;
-		glfwGetWindowContentScale(Application::Get().GetWindow().GetHandle(), &xscale, &yscale);
-
-		io.Fonts->AddFontFromFileTTF("assets/fonts/SF-Pro-Text-Regular.otf", 14.0f * xscale);
-		ImGui::GetStyle().ScaleAllSizes(xscale);
-
-		ImGui_ImplGlfw_InitForOpenGL(Application::Get().GetWindow().GetHandle(), true);
-		ImGui_ImplOpenGL3_Init("#version 130");
 	}
 
 	EditorLayer::~EditorLayer()
 	{
-		ImGui_ImplOpenGL3_Shutdown();
-		ImGui_ImplGlfw_Shutdown();
-		ImGui::DestroyContext();
 	}
 
 	void EditorLayer::OnUpdate(float deltaTime)
@@ -53,14 +34,6 @@ namespace Nexus {
 
 	void EditorLayer::OnRender()
 	{
-		// It's important to wrap the render passes around the ImGui new frame / render call for the following reason:
-		// Render textures are first resized in the RenderUI function if needed, and then the renderers write
-		// in the resized textures. So we want the ImGui render call to be after the render passes so that it
-		// accounts for the updated render textures.
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
 		// Render UI
 		RenderUI();
 
@@ -79,9 +52,6 @@ namespace Nexus {
 		// For debugging purposes
 		if (m_Renderer.GetPathTracer()->PixelQueryPending())
 			m_Renderer.GetPathTracer()->SynchronizePixelQuery();
-
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	}
 
 	void EditorLayer::RenderUI()

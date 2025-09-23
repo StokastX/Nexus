@@ -10,10 +10,11 @@ namespace Nexus {
 	struct WindowSpecification
 	{
 		std::string title;
-		uint32_t width = 1400;
-		uint32_t height = 800;
+		uint32_t width = 1920;
+		uint32_t height = 1080;
 		bool IsResizable = true;
 		bool vSync = true;
+		bool startMaximized = false;
 	};
 
 	class Window

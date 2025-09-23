@@ -27,9 +27,9 @@ namespace Nexus {
 		void Stop();
 
 		template <typename TLayer>
-		//requires(std::is_base_of_v<Layer, TLayer>)
 		void PushLayer()
 		{
+			static_assert(std::is_base_of<Layer, TLayer>::value, "TLayer must derive from Layer");
 			m_LayerStack.push_back(std::make_unique<TLayer>());
 			m_LayerStack.back()->OnAttach();
 		}

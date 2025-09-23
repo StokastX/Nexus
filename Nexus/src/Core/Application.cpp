@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include "Core/Input.h"
+#include "ImGui/ImGuiLayer.h"
 
 
 namespace Nexus {
@@ -33,6 +34,8 @@ namespace Nexus {
 		m_Window->Create();
 
 		Input::Init(m_Window->GetHandle());
+
+		PushLayer<ImGuiLayer>();
 	}
 
 	Application::~Application()
@@ -73,9 +76,14 @@ namespace Nexus {
 			for (const std::unique_ptr<Layer>& layer : m_LayerStack)
 				layer->OnUpdate(timestep);
 
+			ImGuiLayer* imGuiLayer = static_cast<ImGuiLayer*>(m_LayerStack[0].get());
+			imGuiLayer->Begin();
+
 			// Layer render
 			for (const std::unique_ptr<Layer>& layer : m_LayerStack)
 				layer->OnRender();
+
+			imGuiLayer->End();
 
 			m_Window->Update();
 		}
