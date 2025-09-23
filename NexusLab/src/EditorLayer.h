@@ -3,10 +3,10 @@
 #include "Core/Layer.h"
 #include "Renderer/Renderer.h"
 #include "OpenGL/OGLRenderer.h"
-#include "Renderer/Panels/MetricsPanel.h"
-#include "Renderer/Panels/SceneHierarchyPanel.h"
-#include "Renderer/Panels/ViewportPanel.h"
-#include "Renderer/Panels/RenderPanel.h"
+#include "Panels/MetricsPanel.h"
+#include "Panels/SceneHierarchyPanel.h"
+#include "Panels/ViewportPanel.h"
+#include "Panels/RenderPanel.h"
 
 namespace Nexus {
 

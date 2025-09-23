@@ -6,7 +6,6 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
 - [Features](#features)
 - [Prerequisites](#prerequisites)
 - [Build](#build)
-- [Usage](#usage)
 - [Resources](#resources)
 - [Dependencies](#dependencies)
 - [Models](#models)

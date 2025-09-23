@@ -8,7 +8,7 @@
 int main()
 {
 	Nexus::ApplicationSpecification applicationSpec;
-	applicationSpec.name = "Nexus Renderer";
+	applicationSpec.name = "Nexus Lab";
 	applicationSpec.windowSpec.width = 1400;
 	applicationSpec.windowSpec.height = 800;
 

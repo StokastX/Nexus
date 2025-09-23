@@ -7,9 +7,6 @@ find_package(OpenGL)
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_ARCHITECTURES native)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
 set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries")
 
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "Assimp lib only")
@@ -49,8 +46,9 @@ set (include_files
 	vendor/stb
 )
 
-add_executable(Nexus ${src_files})
+add_library(Nexus STATIC ${src_files})
 
+set_target_properties(Nexus PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 set_target_properties(Nexus PROPERTIES CUDA_ARCHITECTURES native)
 
 target_link_libraries(Nexus
@@ -83,9 +81,6 @@ target_compile_options(Nexus PRIVATE
 target_link_options(Nexus PRIVATE
   $<$<CONFIG:Release>:$<DEVICE_LINK:--dlink-time-opt>>
 )
-
-# Set Nexus as startup project in Visual Studio
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Nexus)
 
 # Display tree files in Visual Studio
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}
