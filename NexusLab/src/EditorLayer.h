@@ -21,6 +21,9 @@ namespace Nexus {
 
 		virtual void OnEvent(Event& e) override;
 
+		void LoadScene();
+		void LoadHdrMap();
+
 	private:
 		void RenderUI();
 		void SaveScreenshot();

@@ -57,14 +57,57 @@ namespace Nexus {
 	void EditorLayer::OnEvent(Event& e)
 	{
 		std::cout << "New event: " << e.ToString() << std::endl;
+		EventDispatcher dispatcher(e);
+
+		dispatcher.Dispatch<KeyPressedEvent>([this](KeyPressedEvent& event) {
+
+			if (event.GetKeyCode() == Key::O && Input::IsKeyPressed(Key::LeftControl))
+			{
+				LoadScene();
+				return true;
+			}
+			else if (event.GetKeyCode() == Key::H && Input::IsKeyPressed(Key::LeftControl))
+			{
+				LoadHdrMap();
+				return true;
+			}
+		});
+	}
+
+	void EditorLayer::LoadScene()
+	{
+		std::vector<const char*> filters = { "*.obj", "*.ply", "*.stl", "*.glb", "*.gltf", "*.fbx", "*.3ds" };
+		std::string fullPath = FileDialog::OpenFile(filters, "Scene File");
+		if (!fullPath.empty())
+		{
+			CheckCudaErrors(cudaDeviceSynchronize());
+			m_Renderer.Reset();
+			m_MetricsPanel.Reset();
+			m_Scene.Reset();
+
+			std::string fileName, filePath;
+			Utils::GetPathAndFileName(fullPath, filePath, fileName);
+			m_Scene.CreateMeshInstanceFromFile(filePath, fileName);
+			CheckCudaErrors(cudaDeviceSynchronize());
+		}
+	}
+
+	void EditorLayer::LoadHdrMap()
+	{
+		std::vector<const char*> filters = { "*.hdr", "*.exr" };
+		std::string fullPath = FileDialog::OpenFile(filters, "HDR File");
+		if (!fullPath.empty())
+		{
+			std::string fileName, filePath;
+			Utils::GetPathAndFileName(fullPath, filePath, fileName);
+			m_Scene.AddHDRMap(filePath, fileName);
+			m_Renderer.GetPathTracer()->ResetFrameNumber();
+		}
 	}
 
 	void EditorLayer::RenderUI()
 	{
 		ImGui::DockSpaceOverViewport();
-
-		bool openScene = ImGui::IsKeyChordPressed(ImGuiKey_ModCtrl | ImGuiKey_O);
-		bool openHdrMap = ImGui::IsKeyChordPressed(ImGuiKey_ModCtrl | ImGuiKey_H);
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 5.0f * ImGui::GetWindowDpiScale()));
 		bool menuBar = ImGui::BeginMainMenuBar();
@@ -73,42 +116,15 @@ namespace Nexus {
 		{
 			if (ImGui::BeginMenu("File"))
 			{
-				openScene |= ImGui::MenuItem("Open...", "Ctrl+O");
-				openHdrMap |= ImGui::MenuItem("Load HDR map", "Ctrl+H");
+				if (ImGui::MenuItem("Open...", "Ctrl+O"))
+					LoadScene();
+
+				if (ImGui::MenuItem("Load HDR map", "Ctrl+H"))
+					LoadHdrMap();
 
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();
-		}
-
-		if (openScene)
-		{
-			std::vector<const char*> filters = { "*.obj", "*.ply", "*.stl", "*.glb", "*.gltf", "*.fbx", "*.3ds" };
-			std::string fullPath = FileDialog::OpenFile(filters, "Scene File");
-			if (!fullPath.empty())
-			{
-				CheckCudaErrors(cudaDeviceSynchronize());
-				m_Renderer.Reset();
-				m_MetricsPanel.Reset();
-				m_Scene.Reset();
-
-				std::string fileName, filePath;
-				Utils::GetPathAndFileName(fullPath, filePath, fileName);
-				m_Scene.CreateMeshInstanceFromFile(filePath, fileName);
-				CheckCudaErrors(cudaDeviceSynchronize());
-			}
-		}
-		if (openHdrMap)
-		{
-			std::vector<const char*> filters = { "*.hdr", "*.exr" };
-			std::string fullPath = FileDialog::OpenFile(filters, "HDR File");
-			if (!fullPath.empty())
-			{
-				std::string fileName, filePath;
-				Utils::GetPathAndFileName(fullPath, filePath, fileName);
-				m_Scene.AddHDRMap(filePath, fileName);
-				m_Renderer.GetPathTracer()->ResetFrameNumber();
-			}
 		}
 
 		// Render ImGui panels
@@ -116,7 +132,6 @@ namespace Nexus {
 		m_RenderPanel.OnImGuiRender(m_MetricsPanel.FitRenderToViewport());
 		m_SceneHierarchyPanel.OnImGuiRender();
 		m_MetricsPanel.OnImGuiRender(m_Renderer.GetPathTracer()->GetFrameNumber());
-
 	}
 
 	void EditorLayer::SaveScreenshot()

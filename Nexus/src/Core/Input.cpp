@@ -4,11 +4,6 @@
 
 namespace Nexus {
 
-	void Input::Init(GLFWwindow* window)
-	{
-		glfwSetScrollCallback(window, ScrollCallback);
-	}
-
 	float2 Input::GetMousePosition()
 	{
 		double xpos, ypos;
@@ -16,15 +11,15 @@ namespace Nexus {
 		return make_float2(xpos, ypos);
 	}
 
-	bool Input::IsKeyDown(int key)
+	bool Input::IsKeyPressed(KeyCode keycode)
 	{
-		int state = glfwGetKey(Application::Get().GetWindow().GetHandle(), key);
-		return state == GLFW_PRESS;
+		int state = glfwGetKey(Application::Get().GetWindow().GetHandle(), keycode);
+		return state == GLFW_PRESS || state == GLFW_REPEAT;
 	}
 
-	bool Input::IsMouseButtonDown(int key)
+	bool Input::IsMouseButtonPressed(MouseCode button)
 	{
-		int state = glfwGetMouseButton(Application::Get().GetWindow().GetHandle(), key);
+		int state = glfwGetMouseButton(Application::Get().GetWindow().GetHandle(), button);
 		return state == GLFW_PRESS;
 	}
 
@@ -36,7 +31,7 @@ namespace Nexus {
 	void Input::ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 	{
 		// Store only Y offset (vertical scroll)
-		if (IsKeyDown(GLFW_KEY_LEFT_CONTROL))
+		if (IsKeyPressed(GLFW_KEY_LEFT_CONTROL))
 			m_ScrollOffsetY = (float)yoffset;
 	}
 

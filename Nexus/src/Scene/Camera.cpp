@@ -24,14 +24,13 @@ namespace Nexus {
 
 	}
 
-
 	void Camera::OnUpdate(float ts)
 	{
 		float2 mousePos = Input::GetMousePosition();
 		float2 delta = (mousePos - m_LastMousePosition) * 2.0f;
 		m_LastMousePosition = mousePos;
 
-		if (!Input::IsMouseButtonDown(GLFW_MOUSE_BUTTON_RIGHT))
+		if (!Input::IsMouseButtonPressed(Mouse::ButtonRight))
 		{
 			Input::SetCursorMode(GLFW_CURSOR_NORMAL);
 			return;
@@ -43,32 +42,32 @@ namespace Nexus {
 
 		float speed = 0.003f;
 
-		if (Input::IsKeyDown(GLFW_KEY_W))
+		if (Input::IsKeyPressed(GLFW_KEY_W))
 		{
 			m_Position += ts * speed * m_ForwardDirection;
 			m_Invalid = true;
 		}
-		else if (Input::IsKeyDown(GLFW_KEY_S))
+		else if (Input::IsKeyPressed(GLFW_KEY_S))
 		{
 			m_Position -= ts * speed * m_ForwardDirection;
 			m_Invalid = true;
 		}
-		if (Input::IsKeyDown(GLFW_KEY_A))
+		if (Input::IsKeyPressed(GLFW_KEY_A))
 		{
 			m_Position -= ts * speed * m_RightDirection;
 			m_Invalid = true;
 		}
-		else if (Input::IsKeyDown(GLFW_KEY_D))
+		else if (Input::IsKeyPressed(GLFW_KEY_D))
 		{
 			m_Position += ts * speed * m_RightDirection;
 			m_Invalid = true;
 		}
-		if (Input::IsKeyDown(GLFW_KEY_Q))
+		if (Input::IsKeyPressed(GLFW_KEY_Q))
 		{
 			m_Position -= ts * speed * upDirection;
 			m_Invalid = true;
 		}
-		else if (Input::IsKeyDown(GLFW_KEY_E))
+		else if (Input::IsKeyPressed(GLFW_KEY_E))
 		{
 			m_Position += ts * speed * upDirection;
 			m_Invalid = true;

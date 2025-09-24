@@ -3,7 +3,6 @@
 
 /*
  * This event system is adapted from the Cherno's game engine series.
- * Events are non-blocking and are processed in the main application loop.
 **/
 namespace Nexus {
 

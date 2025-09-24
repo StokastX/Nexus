@@ -21,7 +21,7 @@ namespace Nexus {
 
 	class Window
 	{
-		using EventCallbackFn = std::function<void(std::unique_ptr<Event> event)>;
+		using EventCallbackFn = std::function<void(Event& event)>;
 
 	public:
 		Window(const WindowSpecification& specification = WindowSpecification());

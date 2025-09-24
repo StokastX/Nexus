@@ -320,9 +320,7 @@ namespace Nexus {
 		for (int i = 0; i < scene->mNumMeshes; i++)
 		{
 			aiMesh* mesh = scene->mMeshes[i];
-			auto data = GetTrianglesFromAiMesh(mesh);
-			std::vector<NXB::Triangle> triangles = std::get<0>(data);
-			std::vector<TriangleData> triangleData = std::get<1>(data);
+			auto [triangles, triangleData] = GetTrianglesFromAiMesh(mesh);
 
 			std::string meshName = mesh->mName.data;
 			uint32_t mIdx = materialIdx[mesh->mMaterialIndex];
@@ -422,8 +420,6 @@ namespace Nexus {
 		const std::string filePath = path + filename;
 
 		Assimp::Importer importer;
-		// Pretransform all meshes for simplicity, but this will need to be removed
-		// in the future to implement proper scene hierarchy
 		const aiScene* objScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_TransformUVCoords | aiProcess_CalcTangentSpace);
 
 		std::vector<Mesh> meshes;
