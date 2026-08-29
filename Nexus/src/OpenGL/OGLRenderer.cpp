@@ -1,13 +1,14 @@
 #include "OGLRenderer.h"
 #include "GL/glew.h"
 #include "imgui.h"
+#include "Utils/Paths.h"
 
 namespace Nexus {
 
 	OGLRenderer::OGLRenderer(Scene* scene, uint2 resolution)
 		: m_Scene(scene), m_RenderTexture(resolution), m_InstanceTexture(resolution), m_PixelQuery(),
-		m_Shader("../../Nexus/src/OpenGL/Shaders/layout.vert", "../../Nexus/src/OpenGL/Shaders/layout.frag"),
-		m_GridShader("../../Nexus/src/OpenGL/Shaders/grid.vert", "../../Nexus/src/OpenGL/Shaders/grid.frag")
+		m_Shader(Paths::Resolve("src/OpenGL/Shaders/layout.vert"), Paths::Resolve("src/OpenGL/Shaders/layout.frag")),
+		m_GridShader(Paths::Resolve("src/OpenGL/Shaders/grid.vert"), Paths::Resolve("src/OpenGL/Shaders/grid.frag"))
 	{
 		glEnable(GL_BLEND);
 		glEnable(GL_DEPTH_TEST);

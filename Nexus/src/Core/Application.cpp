@@ -18,6 +18,7 @@ namespace Nexus {
 	Application::Application(const ApplicationSpecification& specification)
 		: m_Specification(specification)
 	{
+		assert(!s_Application);
 		s_Application = this;
 
 		glfwSetErrorCallback(GLFWErrorCallback);
@@ -38,7 +39,8 @@ namespace Nexus {
 			this->OnEvent(e);
 		});
 
-		PushLayer<ImGuiLayer>();
+		PushOverlay<ImGuiLayer>();
+		m_ImGuiLayer = static_cast<ImGuiLayer*>(m_LayerStack.back().get());
 	}
 
 	Application::~Application()
@@ -89,8 +91,6 @@ namespace Nexus {
 		// Main Application loop
 		while (m_Running)
 		{
-			glfwPollEvents();
-
 			float currentTime = GetTime();
 			float timestep = (currentTime - lastTime) * 1000.0f;
 			lastTime = currentTime;
@@ -99,14 +99,13 @@ namespace Nexus {
 			for (const std::unique_ptr<Layer>& layer : m_LayerStack)
 				layer->OnUpdate(timestep);
 
-			ImGuiLayer* imGuiLayer = static_cast<ImGuiLayer*>(m_LayerStack[0].get());
-			imGuiLayer->Begin();
+			m_ImGuiLayer->Begin();
 
 			// Layer render
 			for (const std::unique_ptr<Layer>& layer : m_LayerStack)
 				layer->OnRender();
 
-			imGuiLayer->End();
+			m_ImGuiLayer->End();
 
 			m_Window->Update();
 		}

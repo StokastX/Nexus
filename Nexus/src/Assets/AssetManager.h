@@ -27,7 +27,6 @@ namespace Nexus {
 		std::vector<Material>& GetMaterials() { return m_Materials; }
 		std::set<uint32_t>& GetInvalidMaterials() { return m_InvalidMaterials; }
 		void InvalidateMaterial(uint32_t index);
-		std::string GetMaterialTypesString();
 		std::string GetMaterialsString();
 		std::vector<Mesh>& GetMeshes() { return m_Meshes; }
 

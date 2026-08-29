@@ -1,4 +1,5 @@
 #include "ViewportPanel.h"
+#include "Core/Application.h"
 
 namespace Nexus {
 
@@ -10,7 +11,6 @@ namespace Nexus {
 	void ViewportPanel::OnImGuiRender()
 	{
 		ImGui::Begin("Viewport");
-		//if (ImGui::IsActive)
 
 		if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 		{
@@ -29,6 +29,7 @@ namespace Nexus {
 		m_Renderer->OnResize(make_uint2(renderSize.x, renderSize.y));
 
 		ImGui::Image((ImTextureID)m_Renderer->GetTexture().GetHandle(), renderSize, ImVec2(0, 1), ImVec2(1, 0));
+		Application::Get().GetImGuiLayer().BlockEvents(!ImGui::IsItemHovered());
 
 		ImGui::End();
 	}

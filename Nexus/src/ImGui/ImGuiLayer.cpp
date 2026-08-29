@@ -8,6 +8,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "Core/Application.h"
+#include "Utils/Paths.h"
 
 namespace Nexus {
 
@@ -19,7 +20,6 @@ namespace Nexus {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 		ImGui::StyleColorsCustomDark();
@@ -27,7 +27,7 @@ namespace Nexus {
 		float xscale, yscale;
 		glfwGetWindowContentScale(Application::Get().GetWindow().GetHandle(), &xscale, &yscale);
 
-		io.Fonts->AddFontFromFileTTF("assets/fonts/SF-Pro-Text-Regular.otf", 14.0f * xscale);
+		io.Fonts->AddFontFromFileTTF(Paths::Resolve("assets/fonts/SF-Pro-Text-Regular.otf").c_str(), 14.0f * xscale);
 		ImGui::GetStyle().ScaleAllSizes(xscale);
 
 		ImGui_ImplGlfw_InitForOpenGL(Application::Get().GetWindow().GetHandle(), true);
@@ -43,9 +43,12 @@ namespace Nexus {
 
 	void ImGuiLayer::OnEvent(Event& e)
 	{
-		ImGuiIO& io = ImGui::GetIO();
-		e.handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
-		e.handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
+		if (m_BlockEvents)
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			e.handled |= e.IsInCategory(EventCategoryMouse) & io.WantCaptureMouse;
+			e.handled |= e.IsInCategory(EventCategoryKeyboard) & io.WantCaptureKeyboard;
+		}
 	}
 
 	void ImGuiLayer::Begin()

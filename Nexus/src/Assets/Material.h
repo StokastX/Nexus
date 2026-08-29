@@ -26,27 +26,6 @@ namespace Nexus {
 		int32_t roughnessMapId = -1;
 		int32_t metalnessMapId = -1;
 		int32_t metallicRoughnessMapId = -1;
-
-		//static D_Material ToDevice(const Material& material)
-		//{
-		//	D_Material deviceMaterial;
-		//	memcpy(&deviceMaterial, &material, sizeof(D_Material));
-		//	return deviceMaterial;
-		//}
-
-		static std::string GetMaterialTypesString()
-		{
-			std::string materialTypes;
-			materialTypes.append("Diffuse");
-			materialTypes.push_back('\0');
-			materialTypes.append("Dielectric");
-			materialTypes.push_back('\0');
-			materialTypes.append("Plastic");
-			materialTypes.push_back('\0');
-			materialTypes.append("Conductor");
-			materialTypes.push_back('\0');
-			return materialTypes;
-		}
 	};
 
 }

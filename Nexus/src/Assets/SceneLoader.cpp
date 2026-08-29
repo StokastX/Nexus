@@ -97,21 +97,21 @@ namespace Nexus {
 
 			aiColor3D baseColor(0.0f);
 			material->Get(AI_MATKEY_BASE_COLOR, baseColor);
-			newMaterial.baseColor = make_float3(baseColor.r, baseColor.g, baseColor.b);
+			newMaterial.baseColor = clamp(make_float3(baseColor.r, baseColor.g, baseColor.b), 0.0f, 1.0f);
 			material->Get(AI_MATKEY_METALLIC_FACTOR, newMaterial.metalness);
 			material->Get(AI_MATKEY_ROUGHNESS_FACTOR, newMaterial.roughness);
 			material->Get(AI_MATKEY_SPECULAR_FACTOR, newMaterial.specularWeight);
 
 			aiColor3D specularColor(1.0f);
 			material->Get(AI_MATKEY_COLOR_SPECULAR, specularColor);
-			newMaterial.specularColor = make_float3(specularColor.r, specularColor.g, specularColor.b);
+			newMaterial.specularColor = clamp(make_float3(specularColor.r, specularColor.g, specularColor.b), 0.0f, 1.0f);
 
 			material->Get(AI_MATKEY_TRANSMISSION_FACTOR, newMaterial.transmission);
 			material->Get(AI_MATKEY_REFRACTI, newMaterial.ior);
 
 			aiColor3D emission(0.0f);
 			material->Get(AI_MATKEY_COLOR_EMISSIVE, emission);
-			newMaterial.emissionColor = make_float3(emission.r, emission.g, emission.b);
+			newMaterial.emissionColor = clamp(make_float3(emission.r, emission.g, emission.b), 0.0f, 1.0f);
 
 			if (fmaxf(newMaterial.emissionColor) > 0.0f)
 				newMaterial.intensity = 1.0f;

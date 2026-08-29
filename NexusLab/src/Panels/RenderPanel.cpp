@@ -14,7 +14,8 @@ namespace Nexus {
 
 		ImGui::Begin("Render", nullptr, ImGuiWindowFlags_NoScrollbar);
 
-		float zoomDelta = Input::GetScrollOffsetY();
+		//float zoomDelta = Input::GetScrollOffsetY();
+		float zoomDelta = ImGui::GetIO().MouseWheel * ImGui::IsKeyDown(ImGuiKey_LeftCtrl);
 		if (zoomDelta != 0.0f)
 		{
 			ImVec2 mousePos = ImGui::GetMousePos();

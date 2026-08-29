@@ -169,7 +169,6 @@ namespace Nexus {
 
 			std::vector<Material>& materials = assetManager.GetMaterials();
 			std::string materialsString = assetManager.GetMaterialsString();
-			std::string materialTypes = Material::GetMaterialTypesString();
 
 			if (ImGui::TreeNodeEx("Material", flags))
 			{

@@ -97,17 +97,4 @@ namespace Nexus {
 		}
 		return materialsString;
 	}
-
-	std::string AssetManager::GetMaterialTypesString()
-	{
-		std::string materialTypes;
-		materialTypes.append("Diffuse");
-		materialTypes.push_back('\0');
-		materialTypes.append("Dielectric");
-		materialTypes.push_back('\0');
-		materialTypes.append("Conductor");
-		materialTypes.push_back('\0');
-		return materialTypes;
-	}
-
 }
