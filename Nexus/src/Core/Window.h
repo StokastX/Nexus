@@ -36,10 +36,11 @@ namespace Nexus {
 
 		int2 GetFramebufferSize();
 
-		bool ShouldClose() const;
 		GLFWwindow* GetHandle() const { return m_Handle; }
 
 	private:
+		void BindCudaToContextDevice();
+
 		WindowSpecification m_Specification;
 		GLFWwindow* m_Handle = nullptr;
 

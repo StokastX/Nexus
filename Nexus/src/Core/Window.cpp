@@ -1,5 +1,7 @@
 #include "Window.h"
 #include <cassert>
+#include <cuda_gl_interop.h>
+#include "Utils/Utils.h"
 #include "Events/ApplicationEvent.h"
 #include "Events/KeyEvent.h"
 #include "Events/MouseEvent.h"
@@ -37,6 +39,8 @@ namespace Nexus {
 
 		if (glewInit() != GLEW_OK)
 			std::cout << "Window: Error initializing GLEW" << std::endl;
+
+		BindCudaToContextDevice();
 
 		glfwSetWindowUserPointer(m_Handle, this);
 
@@ -136,8 +140,35 @@ namespace Nexus {
 		m_Handle = nullptr;
 	}
 
+
+	// CUDA-OpenGL interop only works when the GL context and the CUDA context are on the
+	// same physical device. Bind CUDA to whichever device is actually driving the context,
+	// and fail loudly rather than letting cudaGraphicsGLRegisterBuffer() report a bare
+	// cudaErrorOperatingSystem (304) later on.
+	void Window::BindCudaToContextDevice()
+	{
+		unsigned int deviceCount = 0;
+		int devices[8] = {};
+		cudaError_t result = cudaGLGetDevices(&deviceCount, devices, 8, cudaGLDeviceListAll);
+		cudaGetLastError();
+
+		if (result != cudaSuccess || deviceCount == 0)
+		{
+			std::cerr << "Window: the OpenGL context is running on '" << glGetString(GL_RENDERER)
+				<< "', which is not a CUDA device. CUDA-OpenGL interop cannot work." << std::endl
+				<< "        On a hybrid-graphics laptop, force this executable onto the NVIDIA GPU "
+				<< "(Windows Settings > System > Display > Graphics, or the NVIDIA Control Panel)."
+				<< std::endl;
+			assert(false);
+			return;
+		}
+
+		CheckCudaErrors(cudaSetDevice(devices[0]));
+	}
+
 	void Window::Update()
 	{
+		glfwPollEvents();
 		glfwSwapBuffers(m_Handle);
 	}
 
