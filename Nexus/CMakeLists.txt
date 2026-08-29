@@ -67,6 +67,13 @@ target_include_directories(Nexus
 	${OPENGL_INCLUDE_DIR}
 )
 
+# Runtime data (shaders, fonts, demo scenes) is loaded from the source tree, so bake its location
+# in rather than depending on the working directory the executable happens to be launched with.
+# Restricted to C++ sources: nvcc mangles quoted string defines on its command line.
+target_compile_definitions(Nexus PRIVATE
+	$<$<COMPILE_LANGUAGE:CXX>:NEXUS_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}">
+)
+
 # CUDA optimizations
 target_compile_options(Nexus PRIVATE
   $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Debug>>:
@@ -76,6 +83,12 @@ target_compile_options(Nexus PRIVATE
     --use_fast_math -rdc=true
   >
 )
+
+if (MSVC)
+	target_compile_options(Nexus PRIVATE
+		$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/Zc:preprocessor>
+	)
+endif()
 
 # CUDA device link-time optimization (DLTO)
 target_link_options(Nexus PRIVATE
