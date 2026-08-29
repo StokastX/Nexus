@@ -90,7 +90,12 @@ if (MSVC)
 	)
 endif()
 
-# CUDA device link-time optimization (DLTO)
+# CUDA device link-time optimization (DLTO).
+# -dlto is needed at compile time as well as at device link time
+target_compile_options(Nexus PRIVATE
+  $<$<AND:$<COMPILE_LANGUAGE:CUDA>,$<CONFIG:Release>>:-dlto>
+)
+
 target_link_options(Nexus PRIVATE
   $<$<CONFIG:Release>:$<DEVICE_LINK:--dlink-time-opt>>
 )

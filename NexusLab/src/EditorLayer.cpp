@@ -56,7 +56,6 @@ namespace Nexus {
 
 	void EditorLayer::OnEvent(Event& e)
 	{
-		std::cout << "New event: " << e.ToString() << std::endl;
 		EventDispatcher dispatcher(e);
 
 		dispatcher.Dispatch<KeyPressedEvent>([this](KeyPressedEvent& event) {
@@ -71,6 +70,8 @@ namespace Nexus {
 				LoadHdrMap();
 				return true;
 			}
+
+			return false;
 		});
 	}
 
