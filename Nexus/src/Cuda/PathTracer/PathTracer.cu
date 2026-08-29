@@ -27,7 +27,7 @@ namespace Nexus {
 	__device__ __constant__ uint32_t* renderBuffer;
 
 	__device__ __constant__ D_Scene scene;
-	__device__ __constant__ NXB::BVH tlas;
+	__device__ __constant__ NXB::D_BVH tlas;
 	__device__ __constant__ D_Mesh* meshes;
 	__device__ __constant__ D_PathStateSOA pathState;
 	__device__ __constant__ D_TraceRequestSOA traceRequest;
@@ -592,9 +592,9 @@ namespace Nexus {
 		return target;
 	}
 
-	NXB::BVH* GetDeviceTLASAddress()
+	NXB::D_BVH* GetDeviceTLASAddress()
 	{
-		NXB::BVH* target;
+		NXB::D_BVH* target;
 		CheckCudaErrors(cudaGetSymbolAddress((void**)&target, tlas));
 		return target;
 	}

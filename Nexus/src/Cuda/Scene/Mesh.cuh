@@ -6,7 +6,7 @@ namespace Nexus {
 
 	struct D_Mesh
 	{
-		NXB::BVH bvh;
+		NXB::D_BVH bvh;
 		NXB::Triangle* triangles;
 		D_TriangleData* triangleData;
 	};

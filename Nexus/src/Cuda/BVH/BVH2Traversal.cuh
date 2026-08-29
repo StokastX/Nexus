@@ -13,7 +13,7 @@ namespace Nexus {
 
 #ifndef USE_BVH8
 
-	inline __device__ void BVH2Trace(const NXB::BVH2& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
+	inline __device__ void BVH2Trace(const NXB::BVH2::DeviceView& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
 	{
 		D_Mesh mesh;
 		NXB::BVH2::Node node;
@@ -128,7 +128,7 @@ namespace Nexus {
 		}
 	}
 
-	inline __device__ void BVH2TraceShadow(const NXB::BVH2& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_ShadowTraceRequestSOA shadowTraceRequest, int32_t traceSize, int32_t* traceCount, float3* pathRadiance)
+	inline __device__ void BVH2TraceShadow(const NXB::BVH2::DeviceView& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_ShadowTraceRequestSOA shadowTraceRequest, int32_t traceSize, int32_t* traceCount, float3* pathRadiance)
 	{
 		D_Mesh mesh;
 		NXB::BVH2::Node node;
@@ -257,7 +257,7 @@ namespace Nexus {
 	}
 
 
-	inline __device__ void BVH2TraceVisualize(const NXB::BVH2& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, D_PathStateSOA pathState, uint32_t bounce, int32_t traceSize, int32_t* traceCount)
+	inline __device__ void BVH2TraceVisualize(const NXB::BVH2::DeviceView& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, D_PathStateSOA pathState, uint32_t bounce, int32_t traceSize, int32_t* traceCount)
 	{
 		D_Mesh mesh;
 		NXB::BVH2::Node node;
@@ -383,7 +383,7 @@ namespace Nexus {
 	}
 
 
-	inline __device__ void BVH2TraceVisualizeWireframe(NXB::BVH2& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, D_PathStateSOA pathState, uint32_t bounce, int32_t traceSize, int32_t* traceCount)
+	inline __device__ void BVH2TraceVisualizeWireframe(NXB::BVH2::DeviceView& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, D_PathStateSOA pathState, uint32_t bounce, int32_t traceSize, int32_t* traceCount)
 	{
 		D_Mesh mesh;
 		NXB::BVH2::Node node;

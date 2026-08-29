@@ -64,6 +64,7 @@ namespace Nexus {
 		std::set<uint32_t> m_InvalidLights;
 
 		std::shared_ptr<Texture> m_HdrMap;
+		NXB::BVH m_Tlas;
 
 		AssetManager m_AssetManager;
 
@@ -75,7 +76,7 @@ namespace Nexus {
 		cudaTextureObject_t m_DeviceHdrMap;
 		DeviceVector<MeshInstance, D_MeshInstance> m_DeviceMeshInstances;
 		DeviceVector<Light, D_Light> m_DeviceLights;
-		DeviceInstance<NXB::BVH> m_DeviceTlas;
+		DeviceInstance<NXB::D_BVH> m_DeviceTlas;
 	};
 
 }

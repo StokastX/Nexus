@@ -27,7 +27,7 @@ namespace Nexus {
 			rotation = mesh.rotation;
 			scale = mesh.scale;
 			position = mesh.position;
-			meshBounds = mesh.bvh.bounds;
+			meshBounds = mesh.bvh.Bounds();
 			meshIdx = mIdx;
 			materialIdx = matIdx;
 		}

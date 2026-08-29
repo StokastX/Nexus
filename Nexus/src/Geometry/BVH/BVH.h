@@ -7,7 +7,9 @@ namespace NXB
 {
 #ifdef USE_BVH8
 	using BVH = BVH8;
+	using D_BVH = BVH8::DeviceView;
 #else
 	using BVH = BVH2;
+	using D_BVH = BVH2::DeviceView;
 #endif
 }

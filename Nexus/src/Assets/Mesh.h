@@ -41,8 +41,8 @@ namespace Nexus {
 			bvh = NXB::BuildBVH2<NXB::Triangle>(deviceTriangles.Data(), deviceTriangles.Size(), buildConfig);
 #endif
 
-			std::cout << "Triangle count: " << bvh.primCount << std::endl;
-			std::cout << "Node count: " << bvh.nodeCount << std::endl;
+			std::cout << "Triangle count: " << bvh.PrimCount() << std::endl;
+			std::cout << "Node count: " << bvh.NodeCount() << std::endl;
 
 			std::cout << std::endl << "========== Building done ==========" << std::endl << std::endl;
 
@@ -86,19 +86,11 @@ namespace Nexus {
 			triangleData(std::move(other.triangleData)),
 			deviceTriangles(std::move(other.deviceTriangles)),
 			deviceTriangleData(std::move(other.deviceTriangleData)),
+			bvh(std::move(other.bvh)),
 			vao(other.vao),
 			vbo(other.vbo),
 			vboNormals(other.vboNormals)
 		{
-			bvh.bounds = other.bvh.bounds;
-			bvh.nodeCount = other.bvh.nodeCount;
-			bvh.nodes = other.bvh.nodes;
-			bvh.primCount = other.bvh.primCount;
-			other.bvh.nodes = nullptr;
-#ifdef USE_BVH8
-			bvh.primIdx = other.bvh.primIdx;
-			other.bvh.primIdx = nullptr;
-#endif
 			other.vao = 0;
 			other.vbo = 0;
 			other.vboNormals = 0;
@@ -106,7 +98,6 @@ namespace Nexus {
 
 		~Mesh()
 		{
-			NXB::FreeDeviceBVH(bvh);
 			// Free OpenGL buffers
 			glDeleteVertexArrays(1, &vao);
 			glDeleteBuffers(1, &vbo);
@@ -118,7 +109,7 @@ namespace Nexus {
 			D_Mesh deviceMesh;
 			deviceMesh.triangles = mesh.deviceTriangles.Data();
 			deviceMesh.triangleData = mesh.deviceTriangleData.Data();
-			deviceMesh.bvh = mesh.bvh;
+			deviceMesh.bvh = mesh.bvh.View();
 			return deviceMesh;
 		}
 

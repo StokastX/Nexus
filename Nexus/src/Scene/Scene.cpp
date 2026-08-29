@@ -17,7 +17,6 @@ namespace Nexus {
 
 	Scene::~Scene()
 	{
-		NXB::FreeDeviceBVH(m_DeviceTlas.Instance());
 	}
 
 	void Scene::Reset()
@@ -30,7 +29,7 @@ namespace Nexus {
 		m_DeviceLights.Clear();
 		m_AssetManager.Reset();
 		m_Camera->Invalidate();
-		NXB::FreeDeviceBVH(m_DeviceTlas.Instance());
+		m_Tlas = NXB::BVH();
 	}
 
 	void Scene::AddMaterial(Material& material)
@@ -78,10 +77,11 @@ namespace Nexus {
 		DeviceVector<NXB::AABB> deviceBounds = instancesBounds;
 
 #ifdef USE_BVH8
-		m_DeviceTlas = NXB::BuildBVH8<NXB::AABB>(deviceBounds.Data(), instancesBounds.size());
+		m_Tlas = NXB::BuildBVH8<NXB::AABB>(deviceBounds.Data(), instancesBounds.size());
 #else
-		m_DeviceTlas = NXB::BuildBVH2<NXB::AABB>(deviceBounds.Data(), instancesBounds.size());
+		m_Tlas = NXB::BuildBVH2<NXB::AABB>(deviceBounds.Data(), instancesBounds.size());
 #endif
+		m_DeviceTlas = m_Tlas.View();
 	}
 
 	MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)

@@ -148,7 +148,7 @@ namespace Nexus {
 		triangleEntry.y = (hitMask & 0x00ffffff);
 	}
 
-	inline __device__ void BVH8Trace(const NXB::BVH8& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
+	inline __device__ void BVH8Trace(const NXB::BVH8::DeviceView& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, int32_t traceSize, int32_t* traceCount)
 	{
 		__shared__ uint2 sharedStack[BLOCK_SIZE * SHARED_STACK_SIZE];
 		uint2 stack[TRAVERSAL_STACK_SIZE - SHARED_STACK_SIZE];
@@ -327,7 +327,7 @@ namespace Nexus {
 
 
 	// Shadow ray tracing: true if any hit
-	inline __device__ void BVH8TraceShadow(const NXB::BVH8& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_ShadowTraceRequestSOA shadowTraceRequest, int32_t traceSize, int32_t* traceCount, float3* pathRadiance)
+	inline __device__ void BVH8TraceShadow(const NXB::BVH8::DeviceView& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_ShadowTraceRequestSOA shadowTraceRequest, int32_t traceSize, int32_t* traceCount, float3* pathRadiance)
 	{
 		__shared__ uint2 sharedStack[BLOCK_SIZE * SHARED_STACK_SIZE];
 		uint2 stack[TRAVERSAL_STACK_SIZE - SHARED_STACK_SIZE];
@@ -522,7 +522,7 @@ namespace Nexus {
 		}
 	}
 
-	inline __device__ void BVH8TraceVisualize(const NXB::BVH8& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, D_PathStateSOA pathState, int32_t traceSize, int32_t* traceCount)
+	inline __device__ void BVH8TraceVisualize(const NXB::BVH8::DeviceView& tlas, D_Mesh* meshes, D_MeshInstance* meshInstances, D_TraceRequestSOA traceRequest, D_PathStateSOA pathState, int32_t traceSize, int32_t* traceCount)
 	{
 		__shared__ uint2 sharedStack[BLOCK_SIZE * SHARED_STACK_SIZE];
 		uint2 stack[TRAVERSAL_STACK_SIZE - SHARED_STACK_SIZE];

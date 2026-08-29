@@ -79,7 +79,7 @@ namespace Nexus {
 	uint32_t** GetDeviceRenderBufferAddress();
 	uint32_t* GetDeviceFrameNumberAddress();
 	uint32_t* GetDeviceBounceAddress();
-	NXB::BVH* GetDeviceTLASAddress();
+	NXB::D_BVH* GetDeviceTLASAddress();
 	D_Mesh** GetDeviceMeshesAdress();
 
 	D_PathStateSOA* GetDevicePathStateAddress();
