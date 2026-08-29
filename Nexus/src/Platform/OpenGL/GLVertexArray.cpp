@@ -1,41 +1,45 @@
-#pragma once
 #include "GLVertexArray.h"
+
 #include <GL/glew.h>
+#include <cassert>
+#include <utility>
 
 namespace Nexus {
 
-	static GLenum ShaderDataTypeToOpenGLBaseType(ShaderDataType type)
+	static GLenum ShaderDataTypeToGLBaseType(ShaderDataType type)
 	{
 		switch (type)
 		{
-			case ShaderDataType::Float:    return GL_FLOAT;
-			case ShaderDataType::Float2:   return GL_FLOAT;
-			case ShaderDataType::Float3:   return GL_FLOAT;
-			case ShaderDataType::Float4:   return GL_FLOAT;
-			case ShaderDataType::Int:      return GL_INT;
-			case ShaderDataType::Int2:     return GL_INT;
-			case ShaderDataType::Int3:     return GL_INT;
-			case ShaderDataType::Int4:     return GL_INT;
-			case ShaderDataType::Bool:     return GL_BOOL;
+			case ShaderDataType::Float:  case ShaderDataType::Float2:
+			case ShaderDataType::Float3: case ShaderDataType::Float4:
+			case ShaderDataType::Mat3:   case ShaderDataType::Mat4:
+				return GL_FLOAT;
+			case ShaderDataType::Int:    case ShaderDataType::Int2:
+			case ShaderDataType::Int3:   case ShaderDataType::Int4:
+				return GL_INT;
+			case ShaderDataType::UInt:   case ShaderDataType::UInt2:
+			case ShaderDataType::UInt3:  case ShaderDataType::UInt4:
+				return GL_UNSIGNED_INT;
+			case ShaderDataType::UByte4:
+				return GL_UNSIGNED_BYTE;
+			case ShaderDataType::None:
+				break;
 		}
 
-		assert(false, "Unknown ShaderDataType!");
-		return 0;
+		// Note the &&, not a comma: assert(false, "message") asserts on the string literal,
+		// which is a non-null pointer, and therefore never fires.
+		assert(false && "Unknown ShaderDataType");
+		return GL_FLOAT;
 	}
 
 	GLVertexArray::GLVertexArray()
 	{
-		glCreateVertexArrays(1, &m_Handle);
-	}
-
-	GLVertexArray::~GLVertexArray()
-	{
-		glDeleteVertexArrays(1, &m_Handle);
+		glCreateVertexArrays(1, m_Handle.AddressOf());
 	}
 
 	void GLVertexArray::Bind() const
 	{
-		glBindVertexArray(m_Handle);
+		glBindVertexArray(m_Handle.Get());
 	}
 
 	void GLVertexArray::Unbind() const
@@ -43,63 +47,45 @@ namespace Nexus {
 		glBindVertexArray(0);
 	}
 
-	void GLVertexArray::AddVertexBuffer(const std::shared_ptr<VertexBuffer>& vertexBuffer)
+	void GLVertexArray::AddVertexBuffer(GLVertexBuffer&& vertexBuffer)
 	{
-		assert(vertexBuffer->GetLayout().GetElements().size(), "Vertex Buffer has no layout!");
+		const BufferLayout& layout = vertexBuffer.GetLayout();
+		assert(!layout.IsEmpty() && "Vertex buffer has no layout");
+		assert(layout.GetStride() > 0 && "Vertex buffer layout has zero stride");
 
-		glBindVertexArray(m_Handle);
-		vertexBuffer->Bind();
+		const uint32_t bindingIndex = m_BindingIndex++;
+		glVertexArrayVertexBuffer(m_Handle.Get(), bindingIndex, vertexBuffer.GetHandle(), 0, layout.GetStride());
 
-		const BufferLayout& layout = vertexBuffer->GetLayout();
 		for (const BufferElement& element : layout)
 		{
-			switch (element.Type)
+			const uint32_t componentCount = element.GetComponentCount();
+			const GLenum baseType = ShaderDataTypeToGLBaseType(element.Type);
+
+			// Every type but a matrix is a single slot, so this loop runs once for them.
+			for (uint32_t slot = 0; slot < element.GetSlotCount(); slot++)
 			{
-				case ShaderDataType::Float:
-				case ShaderDataType::Float2:
-				case ShaderDataType::Float3:
-				case ShaderDataType::Float4:
-				{
-					glEnableVertexAttribArray(m_VertexBufferIndex);
-					glVertexAttribPointer(m_VertexBufferIndex,
-						element.GetComponentCount(),
-						ShaderDataTypeToOpenGLBaseType(element.Type),
-						element.Normalized ? GL_TRUE : GL_FALSE,
-						layout.GetStride(),
-						(const void*)element.Offset);
-					m_VertexBufferIndex++;
-					break;
-				}
-				case ShaderDataType::Int:
-				case ShaderDataType::Int2:
-				case ShaderDataType::Int3:
-				case ShaderDataType::Int4:
-				case ShaderDataType::Bool:
-				{
-					glEnableVertexAttribArray(m_VertexBufferIndex);
-					glVertexAttribIPointer(m_VertexBufferIndex,
-						element.GetComponentCount(),
-						ShaderDataTypeToOpenGLBaseType(element.Type),
-						layout.GetStride(),
-						(const void*)element.Offset);
-					m_VertexBufferIndex++;
-					break;
-				}
-				default:
-					assert(false, "Unknown ShaderDataType!");
+				const uint32_t attributeIndex = m_AttributeIndex++;
+				const uint32_t relativeOffset = element.Offset + slot * element.GetSlotSize();
+
+				glEnableVertexArrayAttrib(m_Handle.Get(), attributeIndex);
+
+				if (ShaderDataTypeIsInteger(element.Type))
+					glVertexArrayAttribIFormat(m_Handle.Get(), attributeIndex, componentCount, baseType, relativeOffset);
+				else
+					glVertexArrayAttribFormat(m_Handle.Get(), attributeIndex, componentCount, baseType,
+						element.Normalized ? GL_TRUE : GL_FALSE, relativeOffset);
+
+				glVertexArrayAttribBinding(m_Handle.Get(), attributeIndex, bindingIndex);
 			}
 		}
 
-		m_VertexBuffers.push_back(vertexBuffer);
+		m_VertexBuffers.push_back(std::move(vertexBuffer));
 	}
 
-	void GLVertexArray::SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer)
+	void GLVertexArray::SetIndexBuffer(GLIndexBuffer&& indexBuffer)
 	{
-		glBindVertexArray(m_Handle);
-		indexBuffer->Bind();
-
-		m_IndexBuffer = indexBuffer;
+		glVertexArrayElementBuffer(m_Handle.Get(), indexBuffer.GetHandle());
+		m_IndexBuffer.emplace(std::move(indexBuffer));
 	}
 
 }
-

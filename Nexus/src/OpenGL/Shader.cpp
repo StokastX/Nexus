@@ -50,11 +50,11 @@ namespace Nexus {
 		glCompileShader(fragment);
 		CheckCompileErrors(fragment, "FRAGMENT");
 		// shader Program
-		m_Id = glCreateProgram();
-		glAttachShader(m_Id, vertex);
-		glAttachShader(m_Id, fragment);
-		glLinkProgram(m_Id);
-		CheckCompileErrors(m_Id, "PROGRAM");
+		m_Id.Reset(glCreateProgram());
+		glAttachShader(m_Id.Get(), vertex);
+		glAttachShader(m_Id.Get(), fragment);
+		glLinkProgram(m_Id.Get());
+		CheckCompileErrors(m_Id.Get(), "PROGRAM");
 		// delete the shaders as they're linked into our program now and no longer necessary
 		glDeleteShader(vertex);
 		glDeleteShader(fragment);
@@ -62,43 +62,43 @@ namespace Nexus {
 
 	void Shader::Use()
 	{
-		glUseProgram(m_Id);
+		glUseProgram(m_Id.Get());
 	}
 
 	void Shader::SetBool(const std::string& name, bool value)
 	{
-		glUniform1i(glGetUniformLocation(m_Id, name.c_str()), (int)value);
+		glUniform1i(glGetUniformLocation(m_Id.Get(), name.c_str()), (int)value);
 	}
 
 	void Shader::SetInt(const std::string& name, int value)
 	{
-		glUniform1i(glGetUniformLocation(m_Id, name.c_str()), value);
+		glUniform1i(glGetUniformLocation(m_Id.Get(), name.c_str()), value);
 	}
 
 	void Shader::SetFloat(const std::string& name, float value)
 	{
-		glUniform1f(glGetUniformLocation(m_Id, name.c_str()), value);
+		glUniform1f(glGetUniformLocation(m_Id.Get(), name.c_str()), value);
 	}
 
 	void Shader::SetVec2(const std::string& name, const float2& value)
 	{
-		glUniform2fv(glGetUniformLocation(m_Id, name.c_str()), 1, &value.x);
+		glUniform2fv(glGetUniformLocation(m_Id.Get(), name.c_str()), 1, &value.x);
 	}
 
 	void Shader::SetVec3(const std::string& name, const float3& value)
 	{
-		glUniform3fv(glGetUniformLocation(m_Id, name.c_str()), 1, &value.x);
+		glUniform3fv(glGetUniformLocation(m_Id.Get(), name.c_str()), 1, &value.x);
 	}
 
 	void Shader::SetVec4(const std::string& name, const float4& value)
 	{
-		glUniform4fv(glGetUniformLocation(m_Id, name.c_str()), 1, &value.x);
+		glUniform4fv(glGetUniformLocation(m_Id.Get(), name.c_str()), 1, &value.x);
 	}
 
 	void Shader::SetMat4(const std::string& name, const Mat4& mat)
 	{
 		// Transpose the matrix since Mat4 is row-major
-		glUniformMatrix4fv(glGetUniformLocation(m_Id, name.c_str()), 1, GL_TRUE, &mat.cell[0]);
+		glUniformMatrix4fv(glGetUniformLocation(m_Id.Get(), name.c_str()), 1, GL_TRUE, &mat.cell[0]);
 	}
 
 	void Shader::CheckCompileErrors(uint32_t shader, const std::string& type)

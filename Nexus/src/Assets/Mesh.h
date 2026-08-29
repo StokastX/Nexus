@@ -1,13 +1,14 @@
 #pragma once
 
 #include <vector>
+#include <type_traits>
 #include "NXB/BVHBuilder.h"
 #include "Math/Mat4.h"
 #include "Cuda/Scene/Mesh.cuh"
 #include "Geometry/Triangle.h"
 #include "Device/CudaMemory.h"
 #include "Device/DeviceVector.h"
-#include <GL/glew.h>
+#include "Platform/OpenGL/GLVertexArray.h"
 
 namespace Nexus {
 
@@ -55,54 +56,28 @@ namespace Nexus {
 				normals[i * 3 + 2] = triangleData[i].normal2;
 			}
 
-			// OpenGL buffers initialization
-			glGenVertexArrays(1, &vao);
-			glGenBuffers(1, &vbo);
-			glGenBuffers(1, &vboNormals);
-			glBindVertexArray(vao);
+			// OpenGL buffers initialization. The triangle array is uploaded as a flat stream of
+			// vertices rather than of triangles, which only works because NXB::Triangle is exactly
+			// three float3 with no padding.
+			static_assert(sizeof(NXB::Triangle) == 3 * sizeof(float3),
+				"Triangles are uploaded as a flat vertex stream, which assumes no padding");
 
-			glBindBuffer(GL_ARRAY_BUFFER, vbo);
-			glBufferData(GL_ARRAY_BUFFER, triangles.size() * sizeof(NXB::Triangle), triangles.data(), GL_STATIC_DRAW);
-			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float3), 0);
-			glEnableVertexAttribArray(0);
+			// Attribute locations are handed out in the order buffers are added, so positions land
+			// on location 0 and normals on location 1, matching layout.vert.
+			GLVertexBuffer positionBuffer(triangles.data(), static_cast<uint32_t>(triangles.size() * sizeof(NXB::Triangle)));
+			positionBuffer.SetLayout({ { ShaderDataType::Float3, "aPos" } });
+			vertexArray.AddVertexBuffer(std::move(positionBuffer));
 
-			glBindBuffer(GL_ARRAY_BUFFER, vboNormals);
-			glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(float3), normals.data(), GL_STATIC_DRAW);
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float3), 0);
-			glEnableVertexAttribArray(1);
-
-			glBindVertexArray(0);
+			GLVertexBuffer normalBuffer(normals.data(), static_cast<uint32_t>(normals.size() * sizeof(float3)));
+			normalBuffer.SetLayout({ { ShaderDataType::Float3, "aNormal" } });
+			vertexArray.AddVertexBuffer(std::move(normalBuffer));
 		}
 
-		Mesh(const Mesh& other) = default;
-
-		Mesh(Mesh&& other) noexcept
-			: name(other.name),
-			position(other.position),
-			rotation(other.rotation),
-			scale(other.scale),
-			materialIdx(other.materialIdx),
-			triangles(std::move(other.triangles)),
-			triangleData(std::move(other.triangleData)),
-			deviceTriangles(std::move(other.deviceTriangles)),
-			deviceTriangleData(std::move(other.deviceTriangleData)),
-			bvh(std::move(other.bvh)),
-			vao(other.vao),
-			vbo(other.vbo),
-			vboNormals(other.vboNormals)
-		{
-			other.vao = 0;
-			other.vbo = 0;
-			other.vboNormals = 0;
-		}
-
-		~Mesh()
-		{
-			// Free OpenGL buffers
-			glDeleteVertexArrays(1, &vao);
-			glDeleteBuffers(1, &vbo);
-			glDeleteBuffers(1, &vboNormals);
-		}
+		/*
+		 * No destructor and no copy or move members: every member owns its own storage, so the
+		 * compiler-generated ones are correct. The copy constructor is implicitly deleted because
+		 * GLVertexArray is move-only, which is the point.
+		 */
 
 		static D_Mesh ToDevice(const Mesh& mesh)
 		{
@@ -131,10 +106,15 @@ namespace Nexus {
 		DeviceVector<NXB::Triangle> deviceTriangles;
 		DeviceVector<TriangleData, D_TriangleData> deviceTriangleData;
 
-		// OpenGL buffers
-		uint32_t vbo = 0;
-		uint32_t vboNormals = 0;
-		uint32_t vao = 0;
+		// OpenGL buffers: positions on attribute location 0, normals on location 1.
+		GLVertexArray vertexArray;
 	};
+
+	// Mesh owns GL object names, so copying one used to duplicate them and hand two owners the
+	// same buffers. Asserted rather than merely commented, so re-introducing a copy path fails
+	// to compile instead of corrupting geometry at run time.
+	static_assert(!std::is_copy_constructible_v<Mesh>, "Mesh must stay move-only");
+	static_assert(!std::is_copy_assignable_v<Mesh>, "Mesh must stay move-only");
+	static_assert(std::is_move_constructible_v<Mesh>, "Mesh is stored in a std::vector and must be movable");
 
 }

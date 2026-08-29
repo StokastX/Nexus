@@ -2,6 +2,7 @@
 #include <iostream>
 #include "Utils/cuda_math.h"
 #include "Math/Mat4.h"
+#include "Platform/OpenGL/GLHandle.h"
 
 namespace Nexus {
 
@@ -18,13 +19,13 @@ namespace Nexus {
 		void SetVec3(const std::string& name, const float3& value);
 		void SetVec4(const std::string& name, const float4& value);
 		void SetMat4(const std::string& name, const Mat4& mat);
-		uint32_t GetId() { return m_Id; }
+		uint32_t GetId() const { return m_Id.Get(); }
 
 	private:
 		void CheckCompileErrors(uint32_t shader, const std::string& type);
 
 	private:
-		uint32_t m_Id;
+		GLProgramHandle m_Id;
 	};
 
 }

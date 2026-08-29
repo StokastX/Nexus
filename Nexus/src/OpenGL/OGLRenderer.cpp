@@ -14,13 +14,13 @@ namespace Nexus {
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_STENCIL_TEST);
 
-		glGenFramebuffers(1, &m_FrameBuffer);
-		glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer);
+		glGenFramebuffers(1, m_FrameBuffer.AddressOf());
+		glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer.Get());
 
-		glGenRenderbuffers(1, &m_DepthStencilRbo);
-		glBindRenderbuffer(GL_RENDERBUFFER, m_DepthStencilRbo);
+		glGenRenderbuffers(1, m_DepthStencilRbo.AddressOf());
+		glBindRenderbuffer(GL_RENDERBUFFER, m_DepthStencilRbo.Get());
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_DepthStencilRbo);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_DepthStencilRbo.Get());
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_RenderTexture.GetHandle(), 0);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, m_InstanceTexture.GetHandle(), 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -33,26 +33,16 @@ namespace Nexus {
 									-1000.0f, 0.0f, 1000.0f,
 									1000.0f, 0.0f, 1000.0f };
 
-		glGenVertexArrays(1, &m_GridVao);
-		glGenBuffers(1, &m_GridVbo);
-		glBindVertexArray(m_GridVao);
-
-		glBindBuffer(GL_ARRAY_BUFFER, m_GridVbo);
-		glBufferData(GL_ARRAY_BUFFER, 18 * sizeof(float), gridVertices, GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float3), 0);
-		glEnableVertexAttribArray(0);
-	}
-
-	OGLRenderer::~OGLRenderer()
-	{
-
+		GLVertexBuffer gridBuffer(gridVertices, sizeof(gridVertices));
+		gridBuffer.SetLayout({ { ShaderDataType::Float3, "aPos" } });
+		m_GridVertexArray.AddVertexBuffer(std::move(gridBuffer));
 	}
 
 	void OGLRenderer::Render(const SelectionContext& selectionContext)
 	{
 		m_Shader.Use();
 
-		glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer.Get());
 
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 		glClearColor(0.24f, 0.24f, 0.24f, 1.0f);
@@ -114,7 +104,7 @@ namespace Nexus {
 			MeshInstance& meshInstance = meshInstances[i];
 			m_Shader.SetMat4("uModel", meshInstance.GetTransfrom());
 			m_Shader.SetMat4("uModelInvTrans", meshInstance.GetTransfrom().Inverted().Transposed());
-			glBindVertexArray(meshes[meshInstance.meshIdx].vao);
+			meshes[meshInstance.meshIdx].vertexArray.Bind();
 			glDrawArrays(GL_TRIANGLES, 0, 3 * meshes[meshInstance.meshIdx].triangles.size());
 
 			if (i == selectIdx)
@@ -137,7 +127,7 @@ namespace Nexus {
 			glLineWidth(4.0f * ImGui::GetWindowDpiScale());
 			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-			glBindVertexArray(meshes[meshInstance.meshIdx].vao);
+			meshes[meshInstance.meshIdx].vertexArray.Bind();
 			glDrawArrays(GL_TRIANGLES, 0, 3 * meshes[meshInstance.meshIdx].triangles.size());
 
 			m_Shader.SetBool("uOutline", false);
@@ -153,7 +143,7 @@ namespace Nexus {
 		m_GridShader.SetMat4("uView", camera->GetViewMatrix());
 		m_GridShader.SetMat4("uProj", camera->GetProjectionMatrix());
 		m_GridShader.SetVec3("uCamPosWorld", camera->GetPosition());
-		glBindVertexArray(m_GridVao);
+		m_GridVertexArray.Bind();
 		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -166,9 +156,9 @@ namespace Nexus {
 		{
 			m_RenderTexture.OnResize(resolution);
 			m_InstanceTexture.OnResize(resolution);
-			glBindRenderbuffer(GL_RENDERBUFFER, m_DepthStencilRbo);
+			glBindRenderbuffer(GL_RENDERBUFFER, m_DepthStencilRbo.Get());
 			glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, resolution.x, resolution.y);
-			glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer);
+			glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer.Get());
 			glViewport(0, 0, resolution.x, resolution.y);
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		}
@@ -179,7 +169,7 @@ namespace Nexus {
 		glFlush();
 		glFinish();
 
-		glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer.Get());
 		GLubyte data[4];
 		glReadBuffer(GL_COLOR_ATTACHMENT1);
 		glReadPixels(m_PixelQuery.pixel.x, m_PixelQuery.pixel.y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);

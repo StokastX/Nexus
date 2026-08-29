@@ -3,6 +3,7 @@
 #include "Scene/Scene.h"
 #include "Shader.h"
 #include "OGLTexture.h"
+#include "Platform/OpenGL/GLVertexArray.h"
 
 namespace Nexus {
 
@@ -16,7 +17,6 @@ namespace Nexus {
 	{
 	public:
 		OGLRenderer(Scene* scene, uint2 resolution = make_uint2(1));
-		~OGLRenderer();
 		void Render(const SelectionContext& selectionContext);
 		void OnResize(uint2 resolution);
 		OGLTexture& GetTexture() { return m_RenderTexture; }
@@ -31,10 +31,9 @@ namespace Nexus {
 		Scene* m_Scene;
 		Shader m_Shader;
 		Shader m_GridShader;
-		uint32_t m_FrameBuffer = 0;
-		uint32_t m_DepthStencilRbo = 0;
-		uint32_t m_GridVao = 0;
-		uint32_t m_GridVbo = 0;
+		GLFramebufferHandle m_FrameBuffer;
+		GLRenderbufferHandle m_DepthStencilRbo;
+		GLVertexArray m_GridVertexArray;
 		OGLTexture m_RenderTexture;
 		OGLTexture m_InstanceTexture;
 		PixelQuery m_PixelQuery;
