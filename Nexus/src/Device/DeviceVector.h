@@ -4,7 +4,6 @@
 #include "Allocators/DeviceAllocator.h"
 #include "CudaMemory.h"
 #include "DeviceInstance.h"
-#include "Memory/Vector.h"
 
 /*
  * Device vector for trivial types (does not handle copy / move constructors
@@ -60,29 +59,11 @@ namespace Nexus {
 				CudaMemory::CopyAsync<TDevice>(m_Data, (TDevice*)hostVector.data(), hostVector.size(), cudaMemcpyHostToDevice);
 			else
 			{
-				Vector<TDevice> deviceInstances(hostVector.size());
+				std::vector<TDevice> deviceInstances(hostVector.size());
 				for (size_t i = 0; i < hostVector.size(); i++)
 					deviceInstances[i] = THost::ToDevice(hostVector[i]);
 
-				CudaMemory::CopyAsync<TDevice>(m_Data, deviceInstances.Data(), hostVector.size(), cudaMemcpyHostToDevice);
-			}
-		}
-
-		DeviceVector(const Vector<THost>& hostVector, DeviceAllocator<TDevice>* allocator = nullptr)
-			: m_Allocator(allocator)
-		{
-			Realloc(hostVector.Size());
-			m_Size = hostVector.Size();
-
-			if constexpr (is_trivially_copyable_to_device<THost>)
-				CudaMemory::Copy<TDevice>(m_Data, (TDevice*)hostVector.Data(), hostVector.Size(), cudaMemcpyHostToDevice);
-			else
-			{
-				Vector<TDevice> deviceInstances(hostVector.Size());
-				for (size_t i = 0; i < hostVector.Size(); i++)
-					deviceInstances[i] = THost::ToDevice(hostVector[i]);
-
-				CudaMemory::Copy<TDevice>(m_Data, deviceInstances.Data(), hostVector.Size(), cudaMemcpyHostToDevice);
+				CudaMemory::CopyAsync<TDevice>(m_Data, deviceInstances.data(), hostVector.size(), cudaMemcpyHostToDevice);
 			}
 		}
 
