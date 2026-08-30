@@ -3,7 +3,6 @@
 #include <device_launch_parameters.h>
 #include <cuda_runtime.h>
 #include <iostream>
-#include "OpenGL/PixelBuffer.h"
 #include "Scene/Scene.h"
 
 // Number of threads in a block
@@ -76,7 +75,7 @@ namespace Nexus {
 
 	D_Scene* GetDeviceSceneAddress();
 	float3** GetDeviceAccumulationBufferAddress();
-	uint32_t** GetDeviceRenderBufferAddress();
+	cudaSurfaceObject_t* GetDeviceRenderSurfaceAddress();
 	uint32_t* GetDeviceFrameNumberAddress();
 	uint32_t* GetDeviceBounceAddress();
 	NXB::D_BVH* GetDeviceTLASAddress();

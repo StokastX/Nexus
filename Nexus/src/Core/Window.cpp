@@ -143,7 +143,7 @@ namespace Nexus {
 
 	// CUDA-OpenGL interop only works when the GL context and the CUDA context are on the
 	// same physical device. Bind CUDA to whichever device is actually driving the context,
-	// and fail loudly rather than letting cudaGraphicsGLRegisterBuffer() report a bare
+	// and fail loudly rather than letting cudaGraphicsGLRegisterImage() report a bare
 	// cudaErrorOperatingSystem (304) later on.
 	void Window::BindCudaToContextDevice()
 	{

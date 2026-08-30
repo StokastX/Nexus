@@ -31,22 +31,11 @@ namespace Nexus {
 		if (!m_Scene->IsEmpty())
 		{
 			m_PathTracer.UpdateDeviceScene(*m_Scene);
-			m_PathTracer.Render(*m_Scene);
 
-			// Unpack the pixel buffer written by cuda to the renderer texture
-			UnpackToTexture();
+			m_PathTracer.Render(*m_Scene, m_RenderTexture);
 		}
 		else
 			m_PathTracer.ResetFrameNumber();
-	}
-
-	void Renderer::UnpackToTexture()
-	{
-		m_RenderTexture.Bind();
-		const PixelBuffer& pixelBuffer = m_PathTracer.GetPixelBuffer();
-		pixelBuffer.Bind();
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_RenderTexture.GetWidth(), m_RenderTexture.GetHeight(), GL_RGBA, GL_UNSIGNED_BYTE, 0);
-		pixelBuffer.Unbind();
 	}
 
 	void Renderer::OnResize(uint2 resolution)

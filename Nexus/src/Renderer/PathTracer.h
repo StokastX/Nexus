@@ -1,6 +1,6 @@
 #pragma once
 #include "Device/Kernels/CUDAKernel.h"
-#include "OpenGL/PixelBuffer.h"
+#include "OpenGL/InteropTexture.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Device/DeviceVector.h"
 #include "Device/Kernels/CUDAGraph.h"
@@ -17,7 +17,9 @@ namespace Nexus {
 		void FreeDeviceBuffers();
 		void Reset();
 		void ResetFrameNumber();
-		void Render(const Scene& scene);
+		// `target` is the display texture the accumulate kernel writes into. It is mapped for
+		// CUDA for the duration of the call and handed back to OpenGL before returning.
+		void Render(const Scene& scene, InteropTexture& target);
 		void OnResize(uint2 resolution);
 
 		void UpdateDeviceScene(const Scene& scene);
@@ -28,7 +30,6 @@ namespace Nexus {
 		int32_t GetSelectedInstance() { return m_PixelQuery->instanceIdx; }
 		int32_t SynchronizePixelQuery();
 		uint32_t GetFrameNumber() const { return m_FrameNumber; }
-		const PixelBuffer& GetPixelBuffer() { return m_PixelBuffer; }
 
 	private:
 		CUDAKernel m_GenerateKernel;
@@ -50,9 +51,7 @@ namespace Nexus {
 		DeviceInstance<float3*> m_AccumulationBuffer;
 		DeviceInstance<uint32_t> m_DeviceFrameNumber;
 		DeviceInstance<uint32_t> m_DeviceBounce;
-		DeviceInstance<uint32_t*> m_RenderBuffer;
-
-		PixelBuffer m_PixelBuffer;
+		DeviceInstance<cudaSurfaceObject_t> m_RenderSurface;
 
 		DeviceInstance<Scene, D_Scene> m_Scene;
 

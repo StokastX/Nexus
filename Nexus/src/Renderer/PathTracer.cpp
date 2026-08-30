@@ -6,9 +6,8 @@ namespace Nexus {
 
 	PathTracer::PathTracer(uint2 resolution)
 		: m_Resolution(resolution),
-		m_PixelBuffer(resolution),
 		m_AccumulationBuffer(GetDeviceAccumulationBufferAddress()),
-		m_RenderBuffer(GetDeviceRenderBufferAddress()),
+		m_RenderSurface(GetDeviceRenderSurfaceAddress()),
 		m_Scene(GetDeviceSceneAddress()),
 		m_DeviceFrameNumber(GetDeviceFrameNumberAddress()),
 		m_DeviceBounce(GetDeviceBounceAddress()),
@@ -165,16 +164,13 @@ namespace Nexus {
 		m_FrameNumber = 0;
 	}
 
-	void PathTracer::Render(const Scene& scene)
+	void PathTracer::Render(const Scene& scene, InteropTexture& target)
 	{
 		m_FrameNumber++;
 
-		CheckCudaErrors(cudaGraphicsMapResources(1, &m_PixelBuffer.GetCudaResource()));
-		size_t size = 0;
-		uint32_t* devicePtr = 0;
-		CheckCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)&devicePtr, &size, m_PixelBuffer.GetCudaResource()));
-
-		m_RenderBuffer = devicePtr;
+		// The accumulate kernel writes the display texture in place, so OpenGL must keep its hands
+		// off it until UnmapSurface below.
+		m_RenderSurface = target.MapSurface();
 
 		m_DeviceFrameNumber = m_FrameNumber;
 		m_DeviceBounce = 0;
@@ -198,7 +194,7 @@ namespace Nexus {
 		m_AccumulateKernel.Launch();
 
 		CheckCudaErrors(cudaGetLastError());
-		CheckCudaErrors(cudaGraphicsUnmapResources(1, &m_PixelBuffer.GetCudaResource(), 0));
+		target.UnmapSurface();
 	}
 
 	void PathTracer::OnResize(uint2 resolution)
@@ -206,7 +202,6 @@ namespace Nexus {
 		if ((m_Resolution.x != resolution.x || m_Resolution.y != resolution.y) && resolution.x != 0 && resolution.y != 0)
 		{
 			m_FrameNumber = 0;
-			m_PixelBuffer.OnResize(resolution);
 
 			m_Resolution = resolution;
 

@@ -137,7 +137,7 @@ namespace Nexus {
 
 	void EditorLayer::SaveScreenshot()
 	{
-		OGLTexture& renderTexture = m_Renderer.GetTexture();
+		InteropTexture& renderTexture = m_Renderer.GetTexture();
 		int width = renderTexture.GetWidth();
 		int height = renderTexture.GetHeight();
 		std::vector<unsigned char> pixels(width * height * 4);

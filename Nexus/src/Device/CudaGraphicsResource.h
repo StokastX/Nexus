@@ -11,7 +11,7 @@
  * implicitly generated copy hands two owners the same registration, and the second unregister is
  * a CUDA error rather than a crash, so it goes unnoticed.
  *
- * Wrapping it lets the enclosing class (PixelBuffer) declare no special members at all.
+ * Wrapping it lets the enclosing class (InteropTexture) declare no special members at all.
  */
 namespace Nexus {
 
@@ -25,9 +25,10 @@ namespace Nexus {
 		CudaGraphicsResource& operator=(const CudaGraphicsResource&) = delete;
 
 		CudaGraphicsResource(CudaGraphicsResource&& other) noexcept
-			: m_Resource(other.m_Resource)
+			: m_Resource(other.m_Resource), m_Mapped(other.m_Mapped)
 		{
 			other.m_Resource = nullptr;
+			other.m_Mapped = false;
 		}
 
 		CudaGraphicsResource& operator=(CudaGraphicsResource&& other) noexcept
@@ -36,16 +37,33 @@ namespace Nexus {
 			{
 				Unregister();
 				m_Resource = other.m_Resource;
+				m_Mapped = other.m_Mapped;
 				other.m_Resource = nullptr;
+				other.m_Mapped = false;
 			}
 			return *this;
 		}
 
-		// Registers an OpenGL buffer for CUDA access, releasing any previous registration.
-		void RegisterBuffer(uint32_t glBuffer, unsigned int flags);
+		// Registers an OpenGL texture for CUDA access, releasing any previous registration.
+		// `target` is a GLenum, taken as unsigned int so that including this header does not drag
+		// in glew -- same reason the GLDelete adapters are declared over uint32_t.
+		void RegisterImage(uint32_t glTexture, unsigned int target, unsigned int flags);
 
 		// Releases the registration. Safe to call on an empty resource.
 		void Unregister();
+
+		// Hand the resource to CUDA and back. OpenGL must not touch the underlying object while it
+		// is mapped. Both are idempotent, so the mapped state can never go out of step with the
+		// number of calls made.
+		void Map();
+		void Unmap();
+
+		// The array backing an image registration. Only meaningful between Map and Unmap, and the
+		// array a mapping returns is not guaranteed to be the one the previous mapping returned --
+		// re-fetch it after every Map rather than caching it across frames.
+		cudaArray_t GetMappedArray(uint32_t arrayIndex = 0, uint32_t mipLevel = 0) const;
+
+		bool IsMapped() const { return m_Mapped; }
 
 		// Non-const overload returns a reference because the CUDA map/unmap entry points take
 		// the address of the resource.
@@ -56,6 +74,7 @@ namespace Nexus {
 
 	private:
 		cudaGraphicsResource_t m_Resource = nullptr;
+		bool m_Mapped = false;
 	};
 
 }

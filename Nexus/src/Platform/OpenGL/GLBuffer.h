@@ -8,8 +8,8 @@ namespace Nexus {
 
 	/*
 	 * Concrete OpenGL buffer objects. Deliberately not virtual: the renderer targets one graphics
-	 * API, and the CUDA interop that the important buffers exist for (see PixelBuffer) cannot be
-	 * expressed through a backend-neutral interface anyway.
+	 * API, and the CUDA interop some resources exist for (see InteropTexture) cannot be expressed
+	 * through a backend-neutral interface anyway.
 	 *
 	 * Both types are move-only, inherited from the GLHandle members.
 	 */

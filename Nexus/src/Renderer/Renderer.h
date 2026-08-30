@@ -1,6 +1,6 @@
 #pragma once
 
-#include "OpenGL/OGLTexture.h"
+#include "OpenGL/InteropTexture.h"
 #include "Scene/Scene.h"
 #include "PathTracer.h"
 
@@ -17,15 +17,14 @@ namespace Nexus {
 		void Reset();
 		void OnResize(uint2 resolution);
 		void Render();
-		void UnpackToTexture();
 
 		PathTracer* GetPathTracer() { return &m_PathTracer; }
 		Scene* GetScene() { return m_Scene; }
-		OGLTexture& GetTexture() { return m_RenderTexture; }
+		InteropTexture& GetTexture() { return m_RenderTexture; }
 		uint2 GetResolution() { return m_RenderTexture.GetResolution(); }
 
 	private:
-		OGLTexture m_RenderTexture;
+		InteropTexture m_RenderTexture;
 		Scene* m_Scene;
 
 		PathTracer m_PathTracer;

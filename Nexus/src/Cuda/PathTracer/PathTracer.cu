@@ -24,7 +24,7 @@ namespace Nexus {
 	__device__ __constant__ uint32_t bounce;
 
 	__device__ __constant__ float3* accumulationBuffer;
-	__device__ __constant__ uint32_t* renderBuffer;
+	__device__ __constant__ cudaSurfaceObject_t renderSurface;
 
 	__device__ __constant__ D_Scene scene;
 	__device__ __constant__ NXB::D_BVH tlas;
@@ -554,7 +554,11 @@ namespace Nexus {
 		default:
 			break;
 		}
-		renderBuffer[index] = ColorUtils::ToColorUInt(ColorUtils::LinearToGamma(color));
+		// ToColorUInt packs a<<24|b<<16|g<<8|r, which on a little-endian device is the byte order
+		// R,G,B,A that the GL_RGBA8 texture expects, so the packed word crosses into the surface
+		// unchanged. Note surf2Dwrite takes the x offset in bytes rather than in texels.
+		const uint32_t packedColor = ColorUtils::ToColorUInt(ColorUtils::LinearToGamma(color));
+		surf2Dwrite(packedColor, renderSurface, (index % resolution.x) * sizeof(uint32_t), index / resolution.x);
 	}
 
 	D_Scene* GetDeviceSceneAddress()
@@ -571,11 +575,11 @@ namespace Nexus {
 		return buffer;
 	}
 
-	uint32_t** GetDeviceRenderBufferAddress()
+	cudaSurfaceObject_t* GetDeviceRenderSurfaceAddress()
 	{
-		uint32_t** buffer;
-		CheckCudaErrors(cudaGetSymbolAddress((void**)&buffer, renderBuffer));
-		return buffer;
+		cudaSurfaceObject_t* surface;
+		CheckCudaErrors(cudaGetSymbolAddress((void**)&surface, renderSurface));
+		return surface;
 	}
 
 	uint32_t* GetDeviceFrameNumberAddress()
