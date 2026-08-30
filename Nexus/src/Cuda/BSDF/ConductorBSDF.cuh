@@ -7,57 +7,61 @@
 #include "Microfacet.cuh"
 #include "Fresnel.cuh"
 
-struct D_ConductorBSDF
-{
-	float2 alpha;
+namespace Nexus {
 
-	inline __device__ void PrepareBSDFData(const float3& wi, const D_Material& material)
+	struct D_ConductorBSDF
 	{
-		alpha.x = Square(material.roughness) * sqrtf(2.0f / (1.0f + Square(1.0f - material.anisotropy)));
-		alpha.y = (1.0f - material.anisotropy) * alpha.x;
-		alpha = clamp(alpha, 1.0e-4f, 1.0f);
-	}
+		float2 alpha;
 
-	inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& bsdf, float& pdf)
-	{
-		const float3 m = normalize(wo + wi);
-		const float wiDotM = dot(wi, m);
-		float3 F82 = material.specularColor * Fresnel::SchlickMetallicReflectance(material.baseColor, fabs(wiDotM));
-		float3 F = material.specularWeight * Fresnel::SchlickMetallicF82(material.baseColor, F82, fabs(wiDotM));
-		const float D = Microfacet::D_GGXAnisotropic(m, alpha);
-		const float G1 = Microfacet::G1_GGX(wi, alpha);
-		const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
+		inline __device__ void PrepareBSDFData(const float3& wi, const D_Material& material)
+		{
+			alpha.x = Square(material.roughness) * sqrtf(2.0f / (1.0f + Square(1.0f - material.anisotropy)));
+			alpha.y = (1.0f - material.anisotropy) * alpha.x;
+			alpha = clamp(alpha, 1.0e-4f, 1.0f);
+		}
 
-		// BRDF times woDotN
-		bsdf = F * G2 * D / (4.0f * fabs(wi.z));
+		inline __device__ bool Eval(const D_Material& material, const float3& wi, const float3& wo, float3& bsdf, float& pdf)
+		{
+			const float3 m = normalize(wo + wi);
+			const float wiDotM = dot(wi, m);
+			float3 F82 = material.specularColor * Fresnel::SchlickMetallicReflectance(material.baseColor, fabs(wiDotM));
+			float3 F = material.specularWeight * Fresnel::SchlickMetallicF82(material.baseColor, F82, fabs(wiDotM));
+			const float D = Microfacet::D_GGXAnisotropic(m, alpha);
+			const float G1 = Microfacet::G1_GGX(wi, alpha);
+			const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
 
-		pdf = Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
+			// BRDF times woDotN
+			bsdf = F * G2 * D / (4.0f * fabs(wi.z));
 
-		return Sampler::IsPdfValid(pdf);
-	}
+			pdf = Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
 
-	inline __device__ bool Sample(const D_Material& material, const float3& wi, float3& wo, float3& throughput, float& pdf, unsigned int& rngState)
-	{
-		const float3 m = Microfacet::SampleVNDF_GGX(wi, alpha, rngState);
+			return Sampler::IsPdfValid(pdf);
+		}
 
-		const float wiDotM = dot(wi, m);
+		inline __device__ bool Sample(const D_Material& material, const float3& wi, float3& wo, float3& throughput, float& pdf, unsigned int& rngState)
+		{
+			const float3 m = Microfacet::SampleVNDF_GGX(wi, alpha, rngState);
 
-		float3 F82 = material.specularColor * Fresnel::SchlickMetallicReflectance(material.baseColor, fabs(wiDotM));
-		float3 F = material.specularWeight * Fresnel::SchlickMetallicF82(material.baseColor, F82, fabs(wiDotM));
+			const float wiDotM = dot(wi, m);
 
-		wo = reflect(-wi, m);
+			float3 F82 = material.specularColor * Fresnel::SchlickMetallicReflectance(material.baseColor, fabs(wiDotM));
+			float3 F = material.specularWeight * Fresnel::SchlickMetallicF82(material.baseColor, F82, fabs(wiDotM));
 
-		// If the new ray is under the hemisphere, return
-		if (wo.z * wi.z < 0.0f)
-			return false;
+			wo = reflect(-wi, m);
 
-		const float D = Microfacet::D_GGXAnisotropic(m, alpha);
-		const float G1 = Microfacet::G1_GGX(wi, alpha);
-		const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
+			// If the new ray is under the hemisphere, return
+			if (wo.z * wi.z < 0.0f)
+				return false;
 
-		throughput = F * G2 / G1;
-		pdf = Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
+			const float D = Microfacet::D_GGXAnisotropic(m, alpha);
+			const float G1 = Microfacet::G1_GGX(wi, alpha);
+			const float G2 = Microfacet::G2_GGX(wi, wo, alpha);
 
-		return Sampler::IsPdfValid(pdf);
-	}
-};
+			throughput = F * G2 / G1;
+			pdf = Microfacet::ReflectionPdf_GGX(D, G1, fabs(wi.z));
+
+			return Sampler::IsPdfValid(pdf);
+		}
+	};
+
+}

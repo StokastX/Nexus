@@ -6,7 +6,6 @@ Interactive physically based GPU path tracer from scratch written in C++ using C
 - [Features](#features)
 - [Prerequisites](#prerequisites)
 - [Build](#build)
-- [Usage](#usage)
 - [Resources](#resources)
 - [Dependencies](#dependencies)
 - [Models](#models)
@@ -77,46 +76,63 @@ The project has been tested on both **Windows** (with Visual Studio) and **Ubunt
 - On Windows (Visual Studio): Open the generated solution file in Visual Studio. Right-click on the Nexus target, set it as the startup project, and press F5 to build and run.
 
 ## Resources
-Here are the main resources I used for this project.
 
-#### Path tracing in general
-- [Eric Veach's thesis](https://graphics.stanford.edu/papers/veach_thesis/thesis.pdf). The best resource to understand all the theory behind Monte Carlo path tracing. It is code agnostic and fairly theorical but it helped me a lot to implement importance sampling, next event estimation and multiple importance sampling.
-- [Physically based rendering book](https://www.pbr-book.org/4ed/contents), the reference book for path tracing detailing a complete path tracer implementation.
-- [Ray Tracing Gems II: Next Generation Real-Time Rendering with DXR, Vulkan, and OptiX](https://www.realtimerendering.com/raytracinggems/rtg2/index.html)
+These are the main references I relied on while building this project. They range from theoretical foundations to practical guides, and I highly recommend them if you’re interested in ray tracing and physically based rendering.
 
-#### Getting started on ray tracing
-- The Cherno's [Ray tracing series](https://www.youtube.com/playlist?list=PLlrATfBNZ98edc5GshdBtREv5asFW3yXl)
-- [Ray Tracing in one weekend book series](https://raytracing.github.io)
-- [ScratchPixel website](https://scratchapixel.com)
-- To get started with CUDA ray tracing: [Accelerated Ray Tracing in one weekend in CUDA](https://developer.nvidia.com/blog/accelerated-ray-tracing-cuda/)
 
-#### BVH
-- Jacco Bikker's [guides](https://jacco.ompf2.com/2022/04/13/how-to-build-a-bvh-part-1-basics/) on SAH-based BVHs really helped me implement my first BVH and traversal on the GPU which was surprisingly fast.
-- [Stich et al. 2009](https://www.nvidia.in/docs/IO/77714/sbvh.pdf) explain in details binned building and spatial splits for BVH2.
-- [Ylitie et al. 2017](https://research.nvidia.com/sites/default/files/publications/ylitie2017hpg-paper.pdf) for compressed wide BVHs.
+#### Path Tracing (General)
+- [**Eric Veach’s PhD Thesis**](https://graphics.stanford.edu/papers/veach_thesis/thesis.pdf) — The definitive resource on the theory of Monte Carlo path tracing. Although quite theoretical and code-agnostic, it helped me a lot to implement importance sampling, next event estimation, and multiple importance sampling.
+- [**Physically Based Rendering: From Theory to Implementation**](https://www.pbr-book.org/4ed/contents) — This is the go-to reference for implementing a complete path tracer from the ground up.
+- [**Ray Tracing Gems II**](https://www.realtimerendering.com/raytracinggems/rtg2/index.html) — A collection of modern techniques for real-time ray tracing using DXR, Vulkan, and OptiX.
 
-#### PBR materials
-- [Crash Course in BRDF Implementation](https://boksajak.github.io/files/CrashCourseBRDF.pdf) detailing the theory and implementation for diffuse and microfacet models.
-- [Walter et al. 2007](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwilsq_av4qGAxWOSFUIHdm4A64QFnoECBMQAQ&url=https%3A%2F%2Fwww.graphics.cornell.edu%2F~bjw%2Fmicrofacetbsdf.pdf&usg=AOvVaw0iX18V7ncCyVX6K-TPfdO3&opi=89978449). I used this paper to implement my rough dielectric BSDF.
-- [Weidlich and Wilkie 2007](https://www.cg.tuwien.ac.at/research/publications/2007/weidlich_2007_almfs/weidlich_2007_almfs-paper.pdf) for layered BSDFs (not yet implemented in my path tracer, but I will use it for my rough plastic BSDF).
+
+#### Getting Started with Ray Tracing
+- [**The Cherno’s YouTube Series**](https://www.youtube.com/playlist?list=PLlrATfBNZ98edc5GshdBtREv5asFW3yXl) — Great for beginners to understand the basics of ray tracing step by step.
+- [**Ray Tracing in One Weekend Series**](https://raytracing.github.io) — A classic starting point for building a ray tracer in C++.
+- [**Scratchapixel**](https://scratchapixel.com) — Excellent explanations of computer graphics fundamentals with code examples.
+- [**Accelerated Ray Tracing in One Weekend in CUDA**](https://developer.nvidia.com/blog/accelerated-ray-tracing-cuda/) — A hands-on introduction to GPU-based ray tracing.
+
+
+#### BVH (Bounding Volume Hierarchies)
+- [**Jacco Bikker’s BVH Guides**](https://jacco.ompf2.com/2022/04/13/how-to-build-a-bvh-part-1-basics/) — A practical introduction to SAH-based BVHs, which helped me implement my first GPU BVH builder and traversal (surprisingly fast!).
+- [**Stich et al. 2009**](https://www.nvidia.in/docs/IO/77714/sbvh.pdf) — Detailed explanation of binned building and spatial splits for BVH2.
+- [**Ylitie et al. 2017**](https://research.nvidia.com/sites/default/files/publications/ylitie2017hpg-paper.pdf) — Reference for compressed wide BVHs, useful for GPU acceleration.
+
+
+#### Physically Based Materials
+- [**Crash Course in BRDF Implementation**](https://boksajak.github.io/files/CrashCourseBRDF.pdf) — A clear overview of diffuse and microfacet BRDFs, both theory and implementation.
+- [**Walter et al. 2007**](https://www.graphics.cornell.edu/~bjw/microfacetbsdf.pdf) — Basis for my implementation of rough dielectric BSDFs.
+- [**Weidlich & Wilkie 2007**](https://www.cg.tuwien.ac.at/research/publications/2007/weidlich_2007_almfs/weidlich_2007_almfs-paper.pdf) — Explores layered BSDFs (planned for future use in my rough plastic BSDF).
+
 
 #### Sampling
-- [Computer Graphics at TU Wien videos](https://www.youtube.com/watch?v=FU1dbi827LY) for next event estimation and multiple importance sampling.
+- [**TU Wien Computer Graphics Lectures**](https://www.youtube.com/watch?v=FU1dbi827LY) — Great explanation of next event estimation and multiple importance sampling.
 
-#### GPU optimization
-- [Aila and Laine 2009](https://research.nvidia.com/sites/default/files/pubs/2009-08_Understanding-the-Efficiency/aila2009hpg_paper.pdf) to understand GPU architecture, traversal optimization and persistent threads.
-- [Laine et al. 2013](https://research.nvidia.com/sites/default/files/pubs/2013-07_Megakernels-Considered-Harmful/laine2013hpg_paper.pdf) for wavefront path tracing.
 
-I also had a look at other renderer implementations such as Blender's [cycles](https://github.com/blender/cycles), [Tungsten renderer](https://github.com/tunabrain/tungsten), and [Jan van Bergen's CUDA ray tracer](https://github.com/jan-van-bergen/GPU-Raytracer).
+#### GPU Optimization
+- [**Aila & Laine 2009**](https://research.nvidia.com/sites/default/files/pubs/2009-08_Understanding-the-Efficiency/aila2009hpg_paper.pdf) — Key insights into GPU architecture, traversal efficiency, and persistent threads.
+- [**Laine et al. 2013**](https://research.nvidia.com/sites/default/files/pubs/2013-07_Megakernels-Considered-Harmful/laine2013hpg_paper.pdf) — About wavefront path tracing and why megakernels can be problematic.
+
+
+#### Renderer Implementations
+I also studied existing production and hobby renderers for reference and inspiration:
+- [**Blender Cycles**](https://github.com/blender/cycles)  
+- [**Tungsten Renderer**](https://github.com/tunabrain/tungsten)  
+- [**Jan van Bergen’s CUDA Ray Tracer**](https://github.com/jan-van-bergen/GPU-Raytracer)  
+
 
 ## Dependencies
-- [GLFW](https://www.glfw.org) and [GLEW](https://glew.sourceforge.net)
-- [CUDA](https://developer.nvidia.com/cuda-downloads) 12.4
-- [CUDA math helper](https://github.com/NVIDIA/cuda-samples/blob/master/Common/helper_math.h) for common operations on CUDA vector types
-- [Assimp](https://github.com/assimp/assimp) for model loading
-- [ImGui](https://github.com/ocornut/imgui) for user interface
-- [stb](https://github.com/nothings/stb) for importing and exporting images
-- [tinyfiledialogs](https://sourceforge.net/projects/tinyfiledialogs/)
+
+This project relies on the following libraries and frameworks:
+
+- [**GLFW**](https://www.glfw.org) and [**GLEW**](https://glew.sourceforge.net) — Window and OpenGL context management.
+- [**CUDA 12.4**](https://developer.nvidia.com/cuda-downloads) — For GPU acceleration.
+- [**CUDA Helper Math**](https://github.com/NVIDIA/cuda-samples/blob/master/Common/helper_math.h) — Common operations for CUDA vector types.
+- [**Assimp**](https://github.com/assimp/assimp) — Model import and loading.
+- [**Dear ImGui**](https://github.com/ocornut/imgui) — User interface.
+- [**stb**](https://github.com/nothings/stb) — Image import/export utilities.
+- [**tinyfiledialogs**](https://sourceforge.net/projects/tinyfiledialogs/) — Simple cross-platform file dialogs.
+
 
 ## Models
 - [LuxCore example scenes](https://luxcorerender.org/example-scenes/)

@@ -7,37 +7,41 @@
 
 #include "Renderer/RenderSettings.h"
 
-struct D_RenderSettings
-{
-	uint2 resolution;
+namespace Nexus {
 
-	bool useMIS;
-	bool visualizeBvh;
-	bool wireFrameBvh;
-	unsigned char pathLength;
+	struct D_RenderSettings
+	{
+		uint2 resolution;
 
-	float3 backgroundColor;
-	float backgroundIntensity;
-	ColorUtils::ToneMapping toneMapping;
-	float exposure;
-};
+		bool useMIS;
+		bool visualizeBvh;
+		bool wireFrameBvh;
+		unsigned char pathLength;
 
-struct D_Scene
-{
-	bool hasHdrMap;
-	cudaTextureObject_t hdrMap;
+		float3 backgroundColor;
+		float backgroundIntensity;
+		ColorUtils::ToneMapping toneMapping;
+		float exposure;
+	};
 
-	cudaTextureObject_t* textures;
+	struct D_Scene
+	{
+		bool hasHdrMap;
+		cudaTextureObject_t hdrMap;
 
-	//D_TLAS tlas;
+		cudaTextureObject_t* textures;
 
-	D_Light* lights;
-	uint32_t lightCount;
+		//D_TLAS tlas;
 
-	D_Material* materials;
-	D_Camera camera;
+		D_Light* lights;
+		uint32_t lightCount;
 
-	D_MeshInstance* meshInstances;
+		D_Material* materials;
+		D_Camera camera;
 
-	D_RenderSettings renderSettings;
-};
+		D_MeshInstance* meshInstances;
+
+		D_RenderSettings renderSettings;
+	};
+
+}

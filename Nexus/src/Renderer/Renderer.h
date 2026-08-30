@@ -1,31 +1,33 @@
 #pragma once
 
-#include "OpenGL/OGLTexture.h"
+#include "OpenGL/InteropTexture.h"
 #include "Scene/Scene.h"
 #include "PathTracer.h"
 
-constexpr uint32_t MaxRenderResolution = 10000;
+namespace Nexus {
 
-class Renderer
-{
-public:
-	Renderer(uint2 resolution, Scene* scene);
-	~Renderer();
+	constexpr uint32_t MaxRenderResolution = 10000;
 
-	void Reset();
-	void OnResize(uint2 resolution);
-	void Render(Scene& scene, float deltaTime);
-	void UnpackToTexture();
+	class Renderer
+	{
+	public:
+		Renderer(Scene* scene, uint2 resolution = make_uint2(1));
+		~Renderer();
 
-	PathTracer* GetPathTracer() { return &m_PathTracer; }
-	Scene* GetScene() { return m_Scene; }
-	OGLTexture& GetTexture() { return m_RenderTexture; }
-	uint2 GetResolution() { return m_RenderTexture.GetResolution(); }
+		void Reset();
+		void OnResize(uint2 resolution);
+		void Render();
 
-private:
-	OGLTexture m_RenderTexture;
-	Scene* m_Scene;
+		PathTracer* GetPathTracer() { return &m_PathTracer; }
+		Scene* GetScene() { return m_Scene; }
+		InteropTexture& GetTexture() { return m_RenderTexture; }
+		uint2 GetResolution() { return m_RenderTexture.GetResolution(); }
 
-	PathTracer m_PathTracer;
-};
+	private:
+		InteropTexture m_RenderTexture;
+		Scene* m_Scene;
 
+		PathTracer m_PathTracer;
+	};
+
+}

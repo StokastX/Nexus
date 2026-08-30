@@ -13,104 +13,106 @@
  * Likewise, if THost implements a static void DestructFromDevice() method,
  * it will be used for destructing the device instance.
  */
-template<typename THost, typename TDevice = THost>
-class DeviceInstance
-{
-public:
-	DeviceInstance() = default;
+namespace Nexus {
 
-	DeviceInstance(TDevice* devicePtr)
-		: m_DevicePtr(devicePtr), m_OwnsPtr(false)
+	template<typename THost, typename TDevice = THost>
+	class DeviceInstance
 	{
-		m_Instance = Get();
-	}
+	public:
+		DeviceInstance() = default;
 
-	DeviceInstance(const THost& hostInstance)
-		: m_OwnsPtr(true)
-	{
-		m_DevicePtr = CudaMemory::Allocate<TDevice>(1);
-		SetDeviceInstance(hostInstance);
-	}
-
-	DeviceInstance(const DeviceInstance<THost, TDevice>& other)
-		: m_Instance(other.m_Instance)
-	{
-		//assert(is_trivially_copyable_to_device<THost>);
-		m_OwnsPtr = true;
-		m_DevicePtr = CudaMemory::Allocate<TDevice>(1);
-		CudaMemory::CopyAsync<TDevice>(other.m_DevicePtr, m_DevicePtr, 1, cudaMemcpyDeviceToDevice);
-	}
-
-	DeviceInstance(DeviceInstance<THost, TDevice>&& other)
-		: m_OwnsPtr(other.m_OwnsPtr), m_DevicePtr(other.m_DevicePtr), m_Instance(other.m_Instance)
-	{
-		other.m_DevicePtr = nullptr;
-	}
-
-	~DeviceInstance()
-	{
-		if (m_OwnsPtr && m_DevicePtr)
+		DeviceInstance(TDevice* devicePtr)
+			: m_DevicePtr(devicePtr), m_OwnsPtr(false)
 		{
-			CudaMemory::Free(m_DevicePtr);
-			m_DevicePtr = nullptr;
+			m_Instance = Get();
 		}
-	}
 
-	void operator=(const THost& hostInstance)
-	{
-		DestructDeviceInstance();
-		SetDeviceInstance(hostInstance);
-	}
-
-
-	TDevice* operator->()
-	{
-		// Get the instance from copyAsync
-		return &m_Instance;
-	}
-
-	TDevice Instance() { return m_Instance; }
-
-	TDevice* Data() { return m_DevicePtr; }
-
-	// Get the latest instance from device
-	void Synchronize() { m_Instance = Get(); }
-
-private:
-
-	TDevice Get()
-	{
-		TDevice target;
-		CudaMemory::Copy(&target, m_DevicePtr, 1, cudaMemcpyDeviceToHost);
-		return target;
-	}
-
-	void SetDeviceInstance(const THost& hostInstance)
-	{
-		if constexpr (!is_trivially_copyable_to_device<THost>)
+		DeviceInstance(const THost& hostInstance)
+			: m_OwnsPtr(true)
 		{
-			TDevice deviceInstance = THost::ToDevice(hostInstance);
-			CudaMemory::CopyAsync<TDevice>(m_DevicePtr, &deviceInstance, 1, cudaMemcpyHostToDevice);
-			m_Instance = deviceInstance;
+			m_DevicePtr = CudaMemory::Allocate<TDevice>(1);
+			SetDeviceInstance(hostInstance);
 		}
-		else
+
+		DeviceInstance(const DeviceInstance<THost, TDevice>& other)
+			: m_Instance(other.m_Instance)
 		{
-			CudaMemory::CopyAsync<TDevice>(m_DevicePtr, (TDevice*)&hostInstance, 1, cudaMemcpyHostToDevice);
-			m_Instance = *(TDevice*)&hostInstance;
+			//assert(is_trivially_copyable_to_device<THost>);
+			m_OwnsPtr = true;
+			m_DevicePtr = CudaMemory::Allocate<TDevice>(1);
+			CudaMemory::CopyAsync<TDevice>(other.m_DevicePtr, m_DevicePtr, 1, cudaMemcpyDeviceToDevice);
 		}
-	}
 
-	void DestructDeviceInstance()
-	{
-		if constexpr (!is_trivially_destructible_from_device<THost>)
-			THost::DestructFromDevice(m_Instance);
-	}
+		DeviceInstance(DeviceInstance<THost, TDevice>&& other)
+			: m_OwnsPtr(other.m_OwnsPtr), m_DevicePtr(other.m_DevicePtr), m_Instance(other.m_Instance)
+		{
+			other.m_DevicePtr = nullptr;
+		}
 
-private:
-	TDevice* m_DevicePtr = nullptr;
-	TDevice m_Instance;
+		~DeviceInstance()
+		{
+			if (m_OwnsPtr && m_DevicePtr)
+			{
+				CudaMemory::Free(m_DevicePtr);
+				m_DevicePtr = nullptr;
+			}
+		}
 
-	bool m_OwnsPtr = false;
-};
+		void operator=(const THost& hostInstance)
+		{
+			DestructDeviceInstance();
+			SetDeviceInstance(hostInstance);
+		}
 
 
+		TDevice* operator->()
+		{
+			// Get the instance from copyAsync
+			return &m_Instance;
+		}
+
+		TDevice Instance() { return m_Instance; }
+
+		TDevice* Data() { return m_DevicePtr; }
+
+		// Get the latest instance from device
+		void Synchronize() { m_Instance = Get(); }
+
+	private:
+
+		TDevice Get()
+		{
+			TDevice target;
+			CudaMemory::Copy(&target, m_DevicePtr, 1, cudaMemcpyDeviceToHost);
+			return target;
+		}
+
+		void SetDeviceInstance(const THost& hostInstance)
+		{
+			if constexpr (!is_trivially_copyable_to_device<THost>)
+			{
+				TDevice deviceInstance = THost::ToDevice(hostInstance);
+				CudaMemory::CopyAsync<TDevice>(m_DevicePtr, &deviceInstance, 1, cudaMemcpyHostToDevice);
+				m_Instance = deviceInstance;
+			}
+			else
+			{
+				CudaMemory::CopyAsync<TDevice>(m_DevicePtr, (TDevice*)&hostInstance, 1, cudaMemcpyHostToDevice);
+				m_Instance = *(TDevice*)&hostInstance;
+			}
+		}
+
+		void DestructDeviceInstance()
+		{
+			if constexpr (!is_trivially_destructible_from_device<THost>)
+				THost::DestructFromDevice(m_Instance);
+		}
+
+	private:
+		TDevice* m_DevicePtr = nullptr;
+		TDevice m_Instance;
+
+		bool m_OwnsPtr = false;
+	};
+
+}

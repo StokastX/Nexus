@@ -9,8 +9,12 @@
 #include "Assets/AssetManager.h"
 #include "Scene/Scene.h"
 
-class SceneLoader
-{
-public:
-	static void LoadScene(const std::string& path, const std::string& filename, Scene* scene, AssetManager* assetManager);
-};
+namespace Nexus {
+
+	class SceneLoader
+	{
+	public:
+		static void LoadScene(const std::string& path, const std::string& filename, Scene* scene, AssetManager* assetManager);
+	};
+
+}

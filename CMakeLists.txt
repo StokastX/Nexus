@@ -9,7 +9,11 @@ project("Nexus Renderer")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
 add_subdirectory(Nexus)
+add_subdirectory(NexusLab)
 
 file(COPY ${CMAKE_SOURCE_DIR}/Nexus/assets/fonts DESTINATION ${CMAKE_BINARY_DIR}/Nexus/assets/)
 
