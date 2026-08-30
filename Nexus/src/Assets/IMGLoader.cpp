@@ -29,7 +29,7 @@ namespace Nexus {
 		if (pixels == nullptr)
 			std::cout << "IMGLoader: Failed to load texture " << filepath << std::endl;
 
-		return std::make_shared<Texture>(width, height, channels, HDR, pixels);
+		return std::make_shared<Texture>(width, height, channels, HDR, StbImageData(pixels));
 	}
 
 	std::shared_ptr<Texture> IMGLoader::LoadIMG(const aiTexture* texture)
@@ -40,7 +40,7 @@ namespace Nexus {
 		if (pixels == nullptr)
 			std::cout << "IMGLoader: Failed to load an embedded texture" << std::endl;
 
-		return std::make_shared<Texture>(width, height, channels, false, pixels);
+		return std::make_shared<Texture>(width, height, channels, false, StbImageData(pixels));
 	}
 
 }
