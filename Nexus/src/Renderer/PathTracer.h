@@ -3,6 +3,7 @@
 #include "OpenGL/InteropTexture.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Device/DeviceVector.h"
+#include "Scene/Scene.h"
 #include "Device/Kernels/CUDAGraph.h"
 
 
@@ -53,7 +54,7 @@ namespace Nexus {
 		DeviceInstance<uint32_t> m_DeviceBounce;
 		DeviceInstance<cudaSurfaceObject_t> m_RenderSurface;
 
-		DeviceInstance<Scene, D_Scene> m_Scene;
+		DeviceInstance<Scene> m_Scene;
 
 		DeviceInstance<D_PixelQuery> m_PixelQuery;
 		bool m_PixelQueryPending = false;

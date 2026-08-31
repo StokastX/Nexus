@@ -11,14 +11,14 @@ namespace Nexus {
 		stbi_image_free(pixels);
 	}
 
-	Texture::Texture(uint32_t w, uint32_t h, uint32_t c, bool isHDR, StbImageData d)
-		: width(w), height(h), channels(c), HDR(isHDR), pixels(std::move(d))
+	Texture::Texture(uint32_t w, uint32_t h, uint32_t c, bool isHDR, Type t, StbImageData d)
+		: width(w), height(h), channels(c), HDR(isHDR), type(t), pixels(std::move(d))
 	{
 	}
 
 	void Texture::UploadToDevice()
 	{
-		deviceTexture = CudaTexture(pixels.get(), width, height, HDR, sRGB);
+		deviceTexture = CudaTexture(pixels.get(), width, height, HDR, IsSRGB());
 	}
 
 }

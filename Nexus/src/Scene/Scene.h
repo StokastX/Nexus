@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include "Device/DeviceVector.h"
+#include "Device/DeviceTraits.h"
 
 #include "Camera.h"
 #include "Geometry/Sphere.h"
@@ -14,6 +15,13 @@
 #include "Cuda/Scene/Light.cuh"
 
 namespace Nexus {
+
+	class Scene;
+
+	// Declared up front so the class below can befriend it: the conversion reads private
+	// state, which a non-intrusive trait otherwise cannot reach.
+	template<>
+	struct DeviceTraits<Scene>;
 
 	class Scene
 	{
@@ -47,8 +55,7 @@ namespace Nexus {
 		std::vector<Light>& GetLights() { return m_Lights; }
 		void RemoveLight(const size_t index);
 
-		// Create or update the device scene and returns a D_Scene object
-		static D_Scene ToDevice(const Scene& scene);
+		friend struct DeviceTraits<Scene>;
 
 	private:
 		// Update the list of lights based on the changed material given by index
@@ -73,9 +80,20 @@ namespace Nexus {
 		bool m_Invalid = true;
 
 		// Device members
-		DeviceVector<MeshInstance, D_MeshInstance> m_DeviceMeshInstances;
-		DeviceVector<Light, D_Light> m_DeviceLights;
+		DeviceVector<MeshInstance> m_DeviceMeshInstances;
+		DeviceVector<Light> m_DeviceLights;
 		DeviceInstance<NXB::D_BVH> m_DeviceTlas;
+	};
+
+
+	// Gathers the device pointers the Scene and its AssetManager already own into a flat POD the
+	// kernels read. Allocates nothing.
+	template<>
+	struct DeviceTraits<Scene>
+	{
+		using DeviceType = D_Scene;
+
+		static D_Scene ToDevice(const Scene& scene);
 	};
 
 }

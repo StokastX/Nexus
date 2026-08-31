@@ -12,19 +12,14 @@ namespace Nexus {
 		m_Materials.clear();
 		m_InvalidMaterials.clear();
 		m_Textures.clear();
+		m_TextureIds.clear();
 		m_DeviceTextureHandles.Clear();
 		m_DeviceMaterials.Clear();
 		m_Meshes.clear();
 		m_DeviceMeshes.Clear();
 	}
 
-	uint32_t AssetManager::AddMesh(Mesh&& mesh)
-	{
-		m_Meshes.push_back(std::move(mesh));
-		return m_Meshes.size() - 1;
-	}
-
-	uint32_t AssetManager::AddMesh(const std::string name, uint32_t materialIdx, const std::vector<NXB::Triangle>& triangles, const std::vector<TriangleData>& triangleData)
+	uint32_t AssetManager::AddMesh(const std::string& name, uint32_t materialIdx, const std::vector<NXB::Triangle>& triangles, const std::vector<TriangleData>& triangleData)
 	{
 		m_Meshes.emplace_back(name, triangles, triangleData, materialIdx);
 
@@ -58,15 +53,39 @@ namespace Nexus {
 		m_InvalidMaterials.insert(index);
 	}
 
-	int AssetManager::AddTexture(std::shared_ptr<Texture> texture)
+	int AssetManager::AddTexture(const std::string& filePath, Texture::Type type)
 	{
-		if (texture->pixels == nullptr)
+		// Keyed on the type as well as the path: the same file can serve as a base colour map in one
+		// material and a roughness map in another, and those want opposite sRGB handling. Sharing one
+		// entry between them would give one of the two the wrong decode.
+		const std::string key = filePath + '#' + std::to_string(static_cast<int>(type));
+
+		auto cached = m_TextureIds.find(key);
+		if (cached != m_TextureIds.end())
+			return cached->second;
+
+		const int id = StoreTexture(IMGLoader::LoadIMG(filePath, type));
+		if (id != -1)
+			m_TextureIds.emplace(key, id);
+
+		return id;
+	}
+
+	int AssetManager::AddTexture(const aiTexture* embedded, Texture::Type type)
+	{
+		// Embedded textures carry no path to key the cache on.
+		return StoreTexture(IMGLoader::LoadIMG(embedded, type));
+	}
+
+	int AssetManager::StoreTexture(std::shared_ptr<Texture> texture)
+	{
+		if (!texture)
 			return -1;
 
 		texture->UploadToDevice();
 		m_Textures.push_back(texture);
 		m_DeviceTextureHandles.PushBack(texture->deviceTexture.Handle());
-		return m_Textures.size() - 1;
+		return static_cast<int>(m_Textures.size()) - 1;
 	}
 
 	void AssetManager::ApplyTextureToMaterial(int materialIdx, int diffuseMapId)

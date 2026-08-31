@@ -2,6 +2,7 @@
 #include <string>
 #include "Cuda/Scene/Material.cuh"
 #include "Utils/cuda_math.h"
+#include "Device/DeviceTraits.h"
 
 namespace Nexus {
 
@@ -28,5 +29,39 @@ namespace Nexus {
 		int32_t metallicRoughnessMapId = -1;
 	};
 
-}
 
+	template<>
+	struct DeviceTraits<Material>
+	{
+		using DeviceType = D_Material;
+
+		static D_Material ToDevice(const Material& material)
+		{
+			D_Material deviceMaterial;
+			deviceMaterial.baseColor = material.baseColor;
+			deviceMaterial.metalness = material.metalness;
+			deviceMaterial.roughness = material.roughness;
+			deviceMaterial.anisotropy = material.anisotropy;
+			deviceMaterial.specularWeight = material.specularWeight;
+			deviceMaterial.specularColor = material.specularColor;
+			deviceMaterial.ior = material.ior;
+			deviceMaterial.transmission = material.transmission;
+			deviceMaterial.emissionColor = material.emissionColor;
+			deviceMaterial.intensity = material.intensity;
+			deviceMaterial.opacity = material.opacity;
+			deviceMaterial.baseColorMapId = material.baseColorMapId;
+			deviceMaterial.emissiveMapId = material.emissiveMapId;
+			deviceMaterial.normalMapId = material.normalMapId;
+			deviceMaterial.roughnessMapId = material.roughnessMapId;
+			deviceMaterial.metalnessMapId = material.metalnessMapId;
+			deviceMaterial.metallicRoughnessMapId = material.metallicRoughnessMapId;
+			return deviceMaterial;
+		}
+	};
+
+	// The two are meant to stay field-for-field identical; this catches a field added to one and
+	// not the other. Drop it the day they are deliberately allowed to diverge.
+	static_assert(sizeof(Material) == sizeof(D_Material),
+		"Material and D_Material have diverged -- update DeviceTraits<Material>::ToDevice");
+
+}

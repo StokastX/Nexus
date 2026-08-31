@@ -6,8 +6,16 @@
 #include "Geometry/Ray.h"
 #include "Cuda/Scene/Camera.cuh"
 #include "Math/Mat4.h"
+#include "Device/DeviceTraits.h"
 
 namespace Nexus {
+
+	class Camera;
+
+	// Declared up front so the class below can befriend it: the conversion reads private
+	// state, which a non-intrusive trait otherwise cannot reach.
+	template<>
+	struct DeviceTraits<Camera>;
 
 	class Camera
 	{
@@ -42,7 +50,7 @@ namespace Nexus {
 		void SetInvalid(bool invalid) { m_Invalid = invalid; }
 		void Invalidate() { m_Invalid = true; }
 
-		static D_Camera ToDevice(const Camera& camera);
+		friend struct DeviceTraits<Camera>;
 
 	private:
 		float2 m_LastMousePosition = make_float2(0.0f, 0.0);
@@ -55,6 +63,15 @@ namespace Nexus {
 		float3 m_RightDirection = cross(m_ForwardDirection, make_float3(0.0f, 1.0f, 0.0f));
 
 		bool m_Invalid = true;
+	};
+
+
+	template<>
+	struct DeviceTraits<Camera>
+	{
+		using DeviceType = D_Camera;
+
+		static D_Camera ToDevice(const Camera& camera);
 	};
 
 }

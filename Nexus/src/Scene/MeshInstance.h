@@ -4,6 +4,7 @@
 #include "Cuda/Scene/MeshInstance.cuh"
 #include "NXB/BVHBuilder.h"
 #include "Geometry/BVH/BVH.h"
+#include "Device/DeviceTraits.h"
 
 namespace Nexus {
 
@@ -65,6 +66,23 @@ namespace Nexus {
 			return bounds;
 		}
 
+		std::string name;
+
+		NXB::AABB meshBounds;
+		uint32_t meshIdx = INVALID_IDX;
+		uint32_t materialIdx = INVALID_IDX;
+
+		float3 rotation = make_float3(0.0f);
+		float3 scale = make_float3(1.0f);
+		float3 position = make_float3(0.0f);
+	};
+
+
+	template<>
+	struct DeviceTraits<MeshInstance>
+	{
+		using DeviceType = D_MeshInstance;
+
 		static D_MeshInstance ToDevice(const MeshInstance& meshInstance)
 		{
 			Mat4 transformationMatrix = meshInstance.GetTransfrom();
@@ -77,16 +95,6 @@ namespace Nexus {
 			std::memcpy(&deviceInstance.bounds, &bounds, sizeof(bounds));
 			return deviceInstance;
 		}
-
-		std::string name;
-
-		NXB::AABB meshBounds;
-		uint32_t meshIdx = INVALID_IDX;
-		uint32_t materialIdx = INVALID_IDX;
-
-		float3 rotation = make_float3(0.0f);
-		float3 scale = make_float3(1.0f);
-		float3 position = make_float3(0.0f);
 	};
 
 }

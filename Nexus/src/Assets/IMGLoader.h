@@ -11,10 +11,10 @@ namespace Nexus {
 		IMGLoader();
 		~IMGLoader();
 
-		static std::shared_ptr<Texture> LoadIMG(const std::string& pathfile);
+		static std::shared_ptr<Texture> LoadIMG(const std::string& pathfile, Texture::Type type);
 
 		// Load a texture embedded in an Assimp model
-		static std::shared_ptr<Texture> LoadIMG(const aiTexture* texture);
+		static std::shared_ptr<Texture> LoadIMG(const aiTexture* texture, Texture::Type type);
 
 	private:
 

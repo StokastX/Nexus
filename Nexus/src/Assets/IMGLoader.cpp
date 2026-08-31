@@ -12,7 +12,7 @@ namespace Nexus {
 	{
 	}
 
-	std::shared_ptr<Texture> IMGLoader::LoadIMG(const std::string& filepath)
+	std::shared_ptr<Texture> IMGLoader::LoadIMG(const std::string& filepath, Texture::Type type)
 	{
 		int width, height, channels;
 
@@ -26,21 +26,38 @@ namespace Nexus {
 		else
 			pixels = stbi_load(filepath.c_str(), &width, &height, &channels, 4);
 
+		// Returning null rather than an empty Texture: stb writes width/height only on success, so
+		// a Texture built from a failed load carries uninitialised dimensions that later reach
+		// cudaMallocArray. One representation of failure, checked at the call site.
 		if (pixels == nullptr)
+		{
 			std::cout << "IMGLoader: Failed to load texture " << filepath << std::endl;
+			return nullptr;
+		}
 
-		return std::make_shared<Texture>(width, height, channels, HDR, StbImageData(pixels));
+		return std::make_shared<Texture>(width, height, channels, HDR, type, StbImageData(pixels));
 	}
 
-	std::shared_ptr<Texture> IMGLoader::LoadIMG(const aiTexture* texture)
+	std::shared_ptr<Texture> IMGLoader::LoadIMG(const aiTexture* texture, Texture::Type type)
 	{
+		// mHeight != 0 means the embedded texture is raw ARGB rather than an encoded file, which
+		// stbi_load_from_memory cannot read.
+		if (texture->mHeight != 0)
+		{
+			std::cout << "IMGLoader: Unsupported uncompressed embedded texture" << std::endl;
+			return nullptr;
+		}
+
 		int width, height, channels;
 		unsigned char* pixels = stbi_load_from_memory((const stbi_uc*)texture->pcData, texture->mWidth, &width, &height, &channels, 4);
 
 		if (pixels == nullptr)
+		{
 			std::cout << "IMGLoader: Failed to load an embedded texture" << std::endl;
+			return nullptr;
+		}
 
-		return std::make_shared<Texture>(width, height, channels, false, StbImageData(pixels));
+		return std::make_shared<Texture>(width, height, channels, false, type, StbImageData(pixels));
 	}
 
 }

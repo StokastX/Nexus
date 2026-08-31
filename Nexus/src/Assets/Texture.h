@@ -34,14 +34,13 @@ namespace Nexus {
 			METALNESS,
 			METALLICROUGHNESS,
 			EMISSIVE,
-			NORMALS
+			NORMALS,
+			ENVIRONMENT
 		};
-
-		Texture() = default;
 
 		// Takes ownership of the buffer. Passing a StbImageData rather than a raw void* is what
 		// makes that visible at the call site.
-		Texture(uint32_t w, uint32_t h, uint32_t c, bool isHDR, StbImageData d);
+		Texture(uint32_t w, uint32_t h, uint32_t c, bool isHDR, Type t, StbImageData d);
 
 		// Nothing in the codebase copies a Texture -- they are held through shared_ptr, and the
 		// device-resident copy is the CudaTexture member below.
@@ -53,10 +52,30 @@ namespace Nexus {
 		Texture(Texture&&) noexcept = default;
 		Texture& operator=(Texture&&) noexcept = default;
 
-		// Uploads the pixels and builds the sampler. Explicit rather than done in the constructor,
-		// because sRGB is set after loading (Scene::AddHDRMap clears it) and because IMGLoader
-		// produces Textures that never reach the GPU at all.
+		// Uploads the pixels and builds the sampler. Explicit rather than done in the constructor
+		// because a Texture is a loaded image first and a device resource second; IMGLoader itself
+		// needs no CUDA context. A Texture that exists always has pixels -- LoadIMG returns null on
+		// failure -- so this can never be asked to upload nothing.
 		void UploadToDevice();
+
+		/*
+		 * Whether the pixels carry an sRGB encoding the sampler has to undo.
+		 *
+		 * Derived rather than stored: it is a consequence of what the texture means, and holding
+		 * it as a second field meant every load site had to set two things in agreement -- which
+		 * two of the six already got only by falling through to the default.
+		 *
+		 * HDR wins over the type: .hdr and .exr store linear radiance as floats, so there is no
+		 * encoding to undo. An 8-bit environment map is still sRGB, which is why HDR and not the
+		 * role is what makes it linear.
+		 */
+		bool IsSRGB() const
+		{
+			if (HDR)
+				return false;
+
+			return type == Type::DIFFUSE || type == Type::EMISSIVE || type == Type::ENVIRONMENT;
+		}
 
 		uint32_t width = 0;
 		uint32_t height = 0;
@@ -65,14 +84,13 @@ namespace Nexus {
 		// IMGLoader asks stb for 4 -- so never size an allocation or a copy from this.
 		uint32_t channels = 0;
 
-		bool sRGB = true;
 		bool HDR = false;
+		Type type = Type::DIFFUSE;
 
 		StbImageData pixels;
 
 		// The device-resident copy, owned here the same way Mesh owns its DeviceVectors.
 		CudaTexture deviceTexture;
-		Type type = Type::DIFFUSE;
 	};
 
 }

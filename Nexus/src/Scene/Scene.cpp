@@ -10,7 +10,6 @@ namespace Nexus {
 	Scene::Scene(uint2 resolution)
 		: m_Camera(std::make_shared<Camera>(resolution)), m_DeviceTlas(GetDeviceTLASAddress())
 	{
-		m_HdrMap = std::make_shared<Texture>();
 		m_RenderSettings.resolution = resolution;
 	}
 
@@ -107,9 +106,14 @@ namespace Nexus {
 
 	void Scene::AddHDRMap(const std::string& filePath, const std::string& fileName)
 	{
-		m_HdrMap = IMGLoader::LoadIMG(filePath + fileName);
-		m_HdrMap->sRGB = false;
-		m_HdrMap->UploadToDevice();
+		std::shared_ptr<Texture> hdrMap = IMGLoader::LoadIMG(filePath + fileName, Texture::Type::ENVIRONMENT);
+
+		// Keep whatever map is already loaded if this one failed, rather than clearing it.
+		if (!hdrMap)
+			return;
+
+		hdrMap->UploadToDevice();
+		m_HdrMap = std::move(hdrMap);
 	}
 
 	void Scene::InvalidateMeshInstance(uint32_t instanceId)
@@ -137,12 +141,12 @@ namespace Nexus {
 		m_Lights.erase(m_Lights.begin() + index);
 	}
 
-	D_Scene Scene::ToDevice(const Scene& scene)
+	D_Scene DeviceTraits<Scene>::ToDevice(const Scene& scene)
 	{
 		D_Scene deviceScene;
 
 		const DeviceVector<cudaTextureObject_t>& deviceTextures = scene.m_AssetManager.GetDeviceTextureHandles();
-		const DeviceVector<Material, D_Material>& deviceMaterials = scene.m_AssetManager.GetDeviceMaterials();
+		const DeviceVector<Material>& deviceMaterials = scene.m_AssetManager.GetDeviceMaterials();
 
 		deviceScene.textures = deviceTextures.Data();
 		deviceScene.materials = deviceMaterials.Data();
@@ -150,11 +154,11 @@ namespace Nexus {
 		deviceScene.lights = scene.m_DeviceLights.Data();
 		deviceScene.lightCount = scene.m_DeviceLights.Size();
 
-		deviceScene.renderSettings = *(D_RenderSettings*)&scene.m_RenderSettings;
+		deviceScene.renderSettings = ConvertToDevice(scene.m_RenderSettings);
 
-		deviceScene.hasHdrMap = scene.m_HdrMap->pixels != nullptr;
-		deviceScene.hdrMap = scene.m_HdrMap->deviceTexture.Handle();
-		deviceScene.camera = Camera::ToDevice(*scene.m_Camera);
+		deviceScene.hasHdrMap = scene.m_HdrMap != nullptr;
+		deviceScene.hdrMap = scene.m_HdrMap ? scene.m_HdrMap->deviceTexture.Handle() : 0;
+		deviceScene.camera = ConvertToDevice(*scene.m_Camera);
 
 		return deviceScene;
 	}

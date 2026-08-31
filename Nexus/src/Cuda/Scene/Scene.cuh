@@ -4,8 +4,9 @@
 #include "Material.cuh"
 #include "Camera.cuh"
 #include "Light.cuh"
+#include "MeshInstance.cuh"
 
-#include "Renderer/RenderSettings.h"
+#include "Utils/ColorUtils.h"
 
 namespace Nexus {
 
@@ -15,7 +16,7 @@ namespace Nexus {
 
 		bool useMIS;
 		bool visualizeBvh;
-		bool wireFrameBvh;
+		bool wireframeBvh;
 		unsigned char pathLength;
 
 		float3 backgroundColor;

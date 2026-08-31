@@ -4,25 +4,25 @@
 #include "Allocators/DeviceAllocator.h"
 #include "CudaMemory.h"
 #include "DeviceInstance.h"
+#include "DeviceTraits.h"
 
 /*
- * Device vector for trivial types (does not handle copy / move constructors
- * since it is not possible to construct an object on the GPU from the host with CUDA).
- * The objects will just be copied over to the device, non trivial conversions
- * from a CPU to GPU instance must therefore be handled by the user.
- * 
- * If THost implements a static TDevice ToDevice() method, this method 
- * will be used to create a device instance and copy it to the device
- * when using the assignment operator.
- * Likewise, if THost implements a static void DestructFromDevice() method,
- * it will be used for destructing the device instance.
+ * Device array of the device representation of THost, as named by DeviceTraits<THost>.
+ *
+ * No constructor or destructor ever runs on an element -- an object cannot be constructed on the
+ * GPU from the host -- so an element is either bitwise-copied or passed through the
+ * specialisation ToDevice on its way over. Elements never own device memory: everything that
+ * allocates is an RAII type on the host side (DeviceVector itself, CudaTexture), which is why
+ * clearing this vector is only a size reset.
  */
 namespace Nexus {
 
-	template<typename THost, typename TDevice = THost>
+	template<typename THost>
 	class DeviceVector
 	{
 	public:
+		using TDevice = DeviceType_t<THost>;
+
 		DeviceVector()
 		{
 			Realloc(2);
@@ -35,7 +35,7 @@ namespace Nexus {
 			m_Size = size;
 		}
 
-		DeviceVector(const DeviceVector<THost, TDevice>& other)
+		DeviceVector(const DeviceVector<THost>& other)
 			: m_Allocator(other.m_Allocator)
 		{
 			Realloc(other.Size());
@@ -43,7 +43,7 @@ namespace Nexus {
 			CudaMemory::CopyAsync<TDevice>(m_Data, other.Data(), other.Size(), cudaMemcpyDeviceToDevice);
 		}
 
-		DeviceVector(DeviceVector<THost, TDevice>&& other)
+		DeviceVector(DeviceVector<THost>&& other)
 			: m_Allocator(other.m_Allocator), m_Capacity(other.m_Capacity), m_Size(other.m_Size), m_Data(other.m_Data)
 		{
 			other.m_Data = nullptr;
@@ -55,13 +55,15 @@ namespace Nexus {
 			Realloc(hostVector.size());
 			m_Size = hostVector.size();
 
-			if constexpr (is_trivially_copyable_to_device<THost>)
+			// The one place the policy changes the transfer strategy rather than only the value: a
+			// bulk-copyable host array is already a valid device array, so it crosses in one copy.
+			if constexpr (isBulkCopyable_v<THost>)
 				CudaMemory::CopyAsync<TDevice>(m_Data, (TDevice*)hostVector.data(), hostVector.size(), cudaMemcpyHostToDevice);
 			else
 			{
 				std::vector<TDevice> deviceInstances(hostVector.size());
 				for (size_t i = 0; i < hostVector.size(); i++)
-					deviceInstances[i] = THost::ToDevice(hostVector[i]);
+					deviceInstances[i] = DeviceTraits<THost>::ToDevice(hostVector[i]);
 
 				CudaMemory::CopyAsync<TDevice>(m_Data, deviceInstances.data(), hostVector.size(), cudaMemcpyHostToDevice);
 			}
@@ -75,14 +77,7 @@ namespace Nexus {
 				DeviceAllocator<TDevice>::Free(m_Allocator, m_Data);
 		}
 
-		void Reset(size_t newCapacity)
-		{
-			DeviceAllocator<TDevice>::Free(m_Allocator, m_Data);
-			m_Data = DeviceAllocator<TDevice>::Alloc(m_Allocator, newCapacity);
-			m_Capacity = newCapacity;
-		}
-
-		DeviceVector<THost, TDevice>& operator=(const DeviceVector<THost, TDevice>& other)
+		DeviceVector<THost>& operator=(const DeviceVector<THost>& other)
 		{
 			if (this != &other)
 			{
@@ -96,7 +91,7 @@ namespace Nexus {
 			return *this;
 		}
 
-		DeviceVector<THost, TDevice>& operator=(DeviceVector<THost, TDevice>&& other)
+		DeviceVector<THost>& operator=(DeviceVector<THost>&& other)
 		{
 			if (this != &other)
 			{
@@ -116,13 +111,8 @@ namespace Nexus {
 			if (m_Size >= m_Capacity)
 				Realloc(m_Capacity + m_Capacity / 2);
 
-			if constexpr (is_trivially_copyable_to_device<THost>)
-				CudaMemory::CopyAsync<TDevice>(m_Data + m_Size, (TDevice*)&value, 1, cudaMemcpyHostToDevice);
-			else
-			{
-				TDevice deviceInstance = THost::ToDevice(value);
-				CudaMemory::CopyAsync<TDevice>(m_Data + m_Size, &deviceInstance, 1, cudaMemcpyHostToDevice);
-			}
+			TDevice deviceInstance = ConvertToDevice(value);
+			CudaMemory::CopyAsync<TDevice>(m_Data + m_Size, &deviceInstance, 1, cudaMemcpyHostToDevice);
 			m_Size++;
 		}
 
@@ -131,13 +121,8 @@ namespace Nexus {
 			if (m_Size >= m_Capacity)
 				Realloc(m_Capacity + m_Capacity / 2);
 
-			if constexpr (is_trivially_copyable_to_device<THost>)
-				CudaMemory::CopyAsync<TDevice>(m_Data + m_Size, (TDevice*)&value, 1, cudaMemcpyHostToDevice);
-			else
-			{
-				TDevice deviceInstance = THost::ToDevice(value);
-				CudaMemory::CopyAsync<TDevice>(m_Data + m_Size, &deviceInstance, 1, cudaMemcpyHostToDevice);
-			}
+			TDevice deviceInstance = ConvertToDevice(value);
+			CudaMemory::CopyAsync<TDevice>(m_Data + m_Size, &deviceInstance, 1, cudaMemcpyHostToDevice);
 			m_Size++;
 		}
 
@@ -145,18 +130,10 @@ namespace Nexus {
 		{
 			assert(m_Size > 0);
 			m_Size--;
-			if constexpr (!is_trivially_destructible_from_device<THost>)
-				THost::DestructFromDevice(DeviceInstance<THost, TDevice>(m_Data + m_Size).Instance());
 		}
 
 		void Clear()
 		{
-			if constexpr (!is_trivially_destructible_from_device<THost>)
-			{
-				for (size_t i = 0; i < m_Size; i++)
-					THost::DestructFromDevice(DeviceInstance<THost, TDevice>(m_Data + i).Instance());
-			}
-
 			m_Size = 0;
 		}
 
@@ -164,10 +141,10 @@ namespace Nexus {
 
 		TDevice* Data() const { return m_Data; }
 
-		DeviceInstance<THost, TDevice> operator[] (size_t index)
+		DeviceInstance<THost> operator[] (size_t index)
 		{
 			assert(index >= 0 && index < m_Size);
-			return DeviceInstance<THost, TDevice>(m_Data + index);
+			return DeviceInstance<THost>(m_Data + index);
 		}
 
 	private:
@@ -177,7 +154,9 @@ namespace Nexus {
 
 			size_t size = std::min(newCapacity, m_Size);
 
-			CudaMemory::CopyAsync<TDevice>(newBlock, m_Data, size, cudaMemcpyDeviceToDevice);
+			// m_Data is null on the first Realloc, from the default constructor.
+			if (m_Data && size > 0)
+				CudaMemory::CopyAsync<TDevice>(newBlock, m_Data, size, cudaMemcpyDeviceToDevice);
 
 			DeviceAllocator<TDevice>::Free(m_Allocator, m_Data);
 			m_Data = newBlock;

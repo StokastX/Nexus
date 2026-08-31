@@ -144,7 +144,7 @@ namespace Nexus {
 		return Ray(m_Position, direction);
 	}
 
-	D_Camera Camera::ToDevice(const Camera& camera)
+	D_Camera DeviceTraits<Camera>::ToDevice(const Camera& camera)
 	{
 		D_Camera deviceCamera;
 

@@ -123,21 +123,11 @@ namespace Nexus {
 				aiString mPath;
 				if (material->GetTexture(aiTextureType_DIFFUSE, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 				{
-					std::shared_ptr<Texture> newTexture;
-					const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
-					if (texture)
-					{
-						if (texture->mHeight == 0)
-						{
-							newTexture = IMGLoader::LoadIMG(texture);
-						}
-					}
-					else {
-						const std::string materialPath = path + mPath.C_Str();
-						newTexture = IMGLoader::LoadIMG(materialPath);
-					}
-					newTexture->type = Texture::Type::DIFFUSE;
-					newMaterial.baseColorMapId = assetManager->AddTexture(newTexture);
+					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
+					if (embedded)
+						newMaterial.baseColorMapId = assetManager->AddTexture(embedded, Texture::Type::DIFFUSE);
+					else
+						newMaterial.baseColorMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::DIFFUSE);
 				}
 			}
 			if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
@@ -145,23 +135,11 @@ namespace Nexus {
 				aiString mPath;
 				if (material->GetTexture(aiTextureType_NORMALS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 				{
-					std::shared_ptr<Texture> newTexture;
-					const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
-					if (texture)
-					{
-						if (texture->mHeight == 0)
-						{
-							newTexture = IMGLoader::LoadIMG(texture);
-						}
-					}
+					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
+					if (embedded)
+						newMaterial.normalMapId = assetManager->AddTexture(embedded, Texture::Type::NORMALS);
 					else
-					{
-						const std::string materialPath = path + mPath.C_Str();
-						newTexture = IMGLoader::LoadIMG(materialPath);
-					}
-					newTexture->sRGB = false;
-					newTexture->type = Texture::Type::NORMALS;
-					newMaterial.normalMapId = assetManager->AddTexture(newTexture);
+						newMaterial.normalMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::NORMALS);
 				}
 			}
 			if (material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
@@ -169,23 +147,11 @@ namespace Nexus {
 				aiString mPath;
 				if (material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 				{
-					std::shared_ptr<Texture> newTexture;
-					const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
-					if (texture)
-					{
-						if (texture->mHeight == 0)
-						{
-							newTexture = IMGLoader::LoadIMG(texture);
-						}
-					}
+					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
+					if (embedded)
+						newMaterial.roughnessMapId = assetManager->AddTexture(embedded, Texture::Type::ROUGHNESS);
 					else
-					{
-						const std::string materialPath = path + mPath.C_Str();
-						newTexture = IMGLoader::LoadIMG(materialPath);
-					}
-					newTexture->sRGB = false;
-					newTexture->type = Texture::Type::ROUGHNESS;
-					newMaterial.roughnessMapId = assetManager->AddTexture(newTexture);
+						newMaterial.roughnessMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::ROUGHNESS);
 				}
 			}
 			if (material->GetTextureCount(aiTextureType_METALNESS) > 0)
@@ -193,23 +159,11 @@ namespace Nexus {
 				aiString mPath;
 				if (material->GetTexture(aiTextureType_METALNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 				{
-					std::shared_ptr<Texture> newTexture;
-					const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
-					if (texture)
-					{
-						if (texture->mHeight == 0)
-						{
-							newTexture = IMGLoader::LoadIMG(texture);
-						}
-					}
+					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
+					if (embedded)
+						newMaterial.metalnessMapId = assetManager->AddTexture(embedded, Texture::Type::METALNESS);
 					else
-					{
-						const std::string materialPath = path + mPath.C_Str();
-						newTexture = IMGLoader::LoadIMG(materialPath);
-					}
-					newTexture->sRGB = false;
-					newTexture->type = Texture::Type::METALNESS;
-					newMaterial.metalnessMapId = assetManager->AddTexture(newTexture);
+						newMaterial.metalnessMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::METALNESS);
 				}
 			}
 			if (material->GetTextureCount(aiTextureType_GLTF_METALLIC_ROUGHNESS) > 0)
@@ -217,23 +171,11 @@ namespace Nexus {
 				aiString mPath;
 				if (material->GetTexture(aiTextureType_GLTF_METALLIC_ROUGHNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 				{
-					std::shared_ptr<Texture> newTexture;
-					const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
-					if (texture)
-					{
-						if (texture->mHeight == 0)
-						{
-							newTexture = IMGLoader::LoadIMG(texture);
-						}
-					}
+					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
+					if (embedded)
+						newMaterial.metallicRoughnessMapId = assetManager->AddTexture(embedded, Texture::Type::METALLICROUGHNESS);
 					else
-					{
-						const std::string materialPath = path + mPath.C_Str();
-						newTexture = IMGLoader::LoadIMG(materialPath);
-					}
-					newTexture->sRGB = false;
-					newTexture->type = Texture::Type::METALLICROUGHNESS;
-					newMaterial.metallicRoughnessMapId = assetManager->AddTexture(newTexture);
+						newMaterial.metallicRoughnessMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::METALLICROUGHNESS);
 				}
 			}
 			if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0)
@@ -241,22 +183,11 @@ namespace Nexus {
 				aiString mPath;
 				if (material->GetTexture(aiTextureType_EMISSIVE, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
 				{
-					std::shared_ptr<Texture> newTexture;
-					const aiTexture* texture = scene->GetEmbeddedTexture(mPath.data);
-					if (texture)
-					{
-						if (texture->mHeight == 0)
-						{
-							newTexture = IMGLoader::LoadIMG(texture);
-						}
-					}
+					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
+					if (embedded)
+						newMaterial.emissiveMapId = assetManager->AddTexture(embedded, Texture::Type::EMISSIVE);
 					else
-					{
-						const std::string materialPath = path + mPath.C_Str();
-						newTexture = IMGLoader::LoadIMG(materialPath);
-					}
-					newTexture->type = Texture::Type::EMISSIVE;
-					newMaterial.emissiveMapId = assetManager->AddTexture(newTexture);
+						newMaterial.emissiveMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::EMISSIVE);
 				}
 			}
 			materialIdx[i] = assetManager->AddMaterial(newMaterial);

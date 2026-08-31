@@ -8,6 +8,7 @@
 #include "Geometry/Triangle.h"
 #include "Device/CudaMemory.h"
 #include "Device/DeviceVector.h"
+#include "Device/DeviceTraits.h"
 #include "Platform/OpenGL/GLVertexArray.h"
 
 namespace Nexus {
@@ -79,15 +80,6 @@ namespace Nexus {
 		 * GLVertexArray is move-only, which is the point.
 		 */
 
-		static D_Mesh ToDevice(const Mesh& mesh)
-		{
-			D_Mesh deviceMesh;
-			deviceMesh.triangles = mesh.deviceTriangles.Data();
-			deviceMesh.triangleData = mesh.deviceTriangleData.Data();
-			deviceMesh.bvh = mesh.bvh.View();
-			return deviceMesh;
-		}
-
 		std::string name;
 
 		// Transform component of the mesh at loading
@@ -116,5 +108,23 @@ namespace Nexus {
 	static_assert(!std::is_copy_constructible_v<Mesh>, "Mesh must stay move-only");
 	static_assert(!std::is_copy_assignable_v<Mesh>, "Mesh must stay move-only");
 	static_assert(std::is_move_constructible_v<Mesh>, "Mesh is stored in a std::vector and must be movable");
+
+
+	// Gathers pointers into memory the Mesh already owns -- nothing is allocated here, so there is
+	// no matching teardown.
+	template<>
+	struct DeviceTraits<Mesh>
+	{
+		using DeviceType = D_Mesh;
+
+		static D_Mesh ToDevice(const Mesh& mesh)
+		{
+			D_Mesh deviceMesh;
+			deviceMesh.triangles = mesh.deviceTriangles.Data();
+			deviceMesh.triangleData = mesh.deviceTriangleData.Data();
+			deviceMesh.bvh = mesh.bvh.View();
+			return deviceMesh;
+		}
+	};
 
 }

@@ -107,7 +107,7 @@ namespace Nexus {
 #else
 		if (!scene.renderSettings.visualizeBvh)
 			BVH2Trace(tlas, meshes, scene.meshInstances, traceRequest, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
-		else if (!scene.renderSettings.wireFrameBvh)
+		else if (!scene.renderSettings.wireframeBvh)
 			BVH2TraceVisualize(tlas, meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
 		else
 			BVH2TraceVisualizeWireframe(tlas, meshes, scene.meshInstances, traceRequest, pathState, bounce, queueSize.traceSize[bounce], &queueSize.traceCount[bounce]);
