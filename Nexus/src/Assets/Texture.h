@@ -4,6 +4,7 @@
 #include <memory>
 #include <cuda_runtime_api.h>
 #include <Utils/cuda_math.h>
+#include "Device/CudaTexture.h"
 
 namespace Nexus {
 
@@ -42,10 +43,8 @@ namespace Nexus {
 		// makes that visible at the call site.
 		Texture(uint32_t w, uint32_t h, uint32_t c, bool isHDR, StbImageData d);
 
-		// Nothing in the codebase copies a Texture -- they are held through shared_ptr and reach the
-		// device through ToDevice. The hand-written copy that used to live here allocated with new[]
-		// against a free() release, and sized itself from `channels`; both were wrong, and neither
-		// was ever noticed because the code never ran. Deleting the copy makes it a compile error.
+		// Nothing in the codebase copies a Texture -- they are held through shared_ptr, and the
+		// device-resident copy is the CudaTexture member below.
 		Texture(const Texture&) = delete;
 		Texture& operator=(const Texture&) = delete;
 
@@ -54,8 +53,10 @@ namespace Nexus {
 		Texture(Texture&&) noexcept = default;
 		Texture& operator=(Texture&&) noexcept = default;
 
-		static cudaTextureObject_t ToDevice(const Texture& texture);
-		static void DestructFromDevice(const cudaTextureObject_t& texture);
+		// Uploads the pixels and builds the sampler. Explicit rather than done in the constructor,
+		// because sRGB is set after loading (Scene::AddHDRMap clears it) and because IMGLoader
+		// produces Textures that never reach the GPU at all.
+		void UploadToDevice();
 
 		uint32_t width = 0;
 		uint32_t height = 0;
@@ -68,6 +69,9 @@ namespace Nexus {
 		bool HDR = false;
 
 		StbImageData pixels;
+
+		// The device-resident copy, owned here the same way Mesh owns its DeviceVectors.
+		CudaTexture deviceTexture;
 		Type type = Type::DIFFUSE;
 	};
 

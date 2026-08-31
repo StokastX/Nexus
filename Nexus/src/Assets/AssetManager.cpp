@@ -12,7 +12,7 @@ namespace Nexus {
 		m_Materials.clear();
 		m_InvalidMaterials.clear();
 		m_Textures.clear();
-		m_DeviceTextures.Clear();
+		m_DeviceTextureHandles.Clear();
 		m_DeviceMaterials.Clear();
 		m_Meshes.clear();
 		m_DeviceMeshes.Clear();
@@ -63,8 +63,9 @@ namespace Nexus {
 		if (texture->pixels == nullptr)
 			return -1;
 
+		texture->UploadToDevice();
 		m_Textures.push_back(texture);
-		m_DeviceTextures.PushBack(*texture);
+		m_DeviceTextureHandles.PushBack(texture->deviceTexture.Handle());
 		return m_Textures.size() - 1;
 	}
 

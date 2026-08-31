@@ -31,11 +31,11 @@ namespace Nexus {
 		std::vector<Mesh>& GetMeshes() { return m_Meshes; }
 
 		DeviceVector<Material, D_Material>& GetDeviceMaterials() { return m_DeviceMaterials; }
-		DeviceVector<Texture, cudaTextureObject_t>& GetDeviceTextures() { return m_DeviceTextures; }
+		DeviceVector<cudaTextureObject_t>& GetDeviceTextureHandles() { return m_DeviceTextureHandles; }
 		DeviceVector<Mesh, D_Mesh>& GetDeviceMeshes() { return m_DeviceMeshes; }
 
 		const DeviceVector<Material, D_Material>& GetDeviceMaterials() const { return m_DeviceMaterials; }
-		const DeviceVector<Texture, cudaTextureObject_t>& GetDeviceTextures() const { return m_DeviceTextures; }
+		const DeviceVector<cudaTextureObject_t>& GetDeviceTextureHandles() const { return m_DeviceTextureHandles; }
 
 		int AddTexture(std::shared_ptr<Texture> texture);
 		void ApplyTextureToMaterial(int materialIdx, int diffuseMapId);
@@ -52,7 +52,9 @@ namespace Nexus {
 
 		// Device members
 		DeviceVector<Material, D_Material> m_DeviceMaterials;
-		DeviceVector<Texture, cudaTextureObject_t> m_DeviceTextures;
+		// The flat handle array the kernel indexes. Each texture's memory is owned by the
+		// CudaTexture inside the Texture in m_Textures above; these are only its handles.
+		DeviceVector<cudaTextureObject_t> m_DeviceTextureHandles;
 		DeviceVector<Mesh, D_Mesh> m_DeviceMeshes;
 		DeviceInstance<D_Mesh*> m_DeviceMeshesAdress;
 	};

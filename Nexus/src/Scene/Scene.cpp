@@ -11,7 +11,6 @@ namespace Nexus {
 		: m_Camera(std::make_shared<Camera>(resolution)), m_DeviceTlas(GetDeviceTLASAddress())
 	{
 		m_HdrMap = std::make_shared<Texture>();
-		m_DeviceHdrMap = 0;
 		m_RenderSettings.resolution = resolution;
 	}
 
@@ -110,7 +109,7 @@ namespace Nexus {
 	{
 		m_HdrMap = IMGLoader::LoadIMG(filePath + fileName);
 		m_HdrMap->sRGB = false;
-		m_DeviceHdrMap = Texture::ToDevice(*m_HdrMap);
+		m_HdrMap->UploadToDevice();
 	}
 
 	void Scene::InvalidateMeshInstance(uint32_t instanceId)
@@ -142,7 +141,7 @@ namespace Nexus {
 	{
 		D_Scene deviceScene;
 
-		const DeviceVector<Texture, cudaTextureObject_t>& deviceTextures = scene.m_AssetManager.GetDeviceTextures();
+		const DeviceVector<cudaTextureObject_t>& deviceTextures = scene.m_AssetManager.GetDeviceTextureHandles();
 		const DeviceVector<Material, D_Material>& deviceMaterials = scene.m_AssetManager.GetDeviceMaterials();
 
 		deviceScene.textures = deviceTextures.Data();
@@ -154,8 +153,7 @@ namespace Nexus {
 		deviceScene.renderSettings = *(D_RenderSettings*)&scene.m_RenderSettings;
 
 		deviceScene.hasHdrMap = scene.m_HdrMap->pixels != nullptr;
-		// TODO: clear m_DeviceHdrMap when reset
-		deviceScene.hdrMap = scene.m_DeviceHdrMap;
+		deviceScene.hdrMap = scene.m_HdrMap->deviceTexture.Handle();
 		deviceScene.camera = Camera::ToDevice(*scene.m_Camera);
 
 		return deviceScene;

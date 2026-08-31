@@ -1,10 +1,7 @@
 #include "Texture.h"
-#include <cuda_runtime_api.h>
-#include <cstring>
 #include <cstdint>
 #include <utility>
 #include "stb_image.h"
-#include "Utils/Utils.h"
 
 
 namespace Nexus {
@@ -19,48 +16,9 @@ namespace Nexus {
 	{
 	}
 
-	cudaTextureObject_t Texture::ToDevice(const Texture& texture)
+	void Texture::UploadToDevice()
 	{
-		// Channel descriptor for 4 Channels (RGBA)
-		cudaChannelFormatDesc channelDesc;
-		if (texture.HDR)
-			channelDesc = cudaCreateChannelDesc(32, 32, 32, 32, cudaChannelFormatKindFloat);
-		else
-			channelDesc = cudaCreateChannelDesc(8, 8, 8, 8, cudaChannelFormatKindUnsigned);
-		cudaArray_t cuArray;
-
-		CheckCudaErrors(cudaMallocArray(&cuArray, &channelDesc, texture.width, texture.height));
-
-		uint32_t elementSize = 4 * (texture.HDR ? sizeof(float) : sizeof(unsigned char));
-		const size_t spitch = texture.width * elementSize;
-		CheckCudaErrors(cudaMemcpy2DToArray(cuArray, 0, 0, texture.pixels.get(), spitch, texture.width * elementSize, texture.height, cudaMemcpyHostToDevice));
-
-		cudaResourceDesc resDesc;
-		memset(&resDesc, 0, sizeof(resDesc));
-		resDesc.resType = cudaResourceTypeArray;
-		resDesc.res.array.array = cuArray;
-
-		cudaTextureDesc texDesc;
-		memset(&texDesc, 0, sizeof(texDesc));
-		texDesc.addressMode[0] = cudaAddressModeWrap;
-		texDesc.addressMode[1] = cudaAddressModeWrap;
-		texDesc.sRGB = texture.sRGB;
-		texDesc.filterMode = cudaFilterModeLinear;
-		texDesc.readMode = texture.HDR ? cudaReadModeElementType : cudaReadModeNormalizedFloat;
-		texDesc.normalizedCoords = 1;
-
-		cudaTextureObject_t texObject = 0;
-		CheckCudaErrors(cudaCreateTextureObject(&texObject, &resDesc, &texDesc, NULL));
-
-		return texObject;
-	}
-
-	void Texture::DestructFromDevice(const cudaTextureObject_t& texture)
-	{
-		cudaResourceDesc resDesc;
-		CheckCudaErrors(cudaGetTextureObjectResourceDesc(&resDesc, texture));
-		CheckCudaErrors(cudaDestroyTextureObject(texture));
-		CheckCudaErrors(cudaFreeArray(resDesc.res.array.array));
+		deviceTexture = CudaTexture(pixels.get(), width, height, HDR, sRGB);
 	}
 
 }
