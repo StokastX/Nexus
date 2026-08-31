@@ -29,7 +29,7 @@ namespace Nexus {
 
 		static D_RenderSettings ToDevice(const RenderSettings& settings)
 		{
-			D_RenderSettings deviceSettings;
+			D_RenderSettings deviceSettings{};
 			deviceSettings.resolution = settings.resolution;
 			deviceSettings.useMIS = settings.useMIS;
 			deviceSettings.visualizeBvh = settings.visualizeBvh;

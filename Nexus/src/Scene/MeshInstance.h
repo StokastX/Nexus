@@ -86,7 +86,7 @@ namespace Nexus {
 		static D_MeshInstance ToDevice(const MeshInstance& meshInstance)
 		{
 			Mat4 transformationMatrix = meshInstance.GetTransfrom();
-			D_MeshInstance deviceInstance;
+			D_MeshInstance deviceInstance{};
 			deviceInstance.meshIdx = meshInstance.meshIdx;
 			deviceInstance.materialIdx = meshInstance.materialIdx;
 			deviceInstance.transform = transformationMatrix;

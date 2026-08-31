@@ -119,7 +119,7 @@ namespace Nexus {
 
 		static D_Mesh ToDevice(const Mesh& mesh)
 		{
-			D_Mesh deviceMesh;
+			D_Mesh deviceMesh{};
 			deviceMesh.triangles = mesh.deviceTriangles.Data();
 			deviceMesh.triangleData = mesh.deviceTriangleData.Data();
 			deviceMesh.bvh = mesh.bvh.View();

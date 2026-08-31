@@ -37,7 +37,7 @@ namespace Nexus {
 
 		static D_Material ToDevice(const Material& material)
 		{
-			D_Material deviceMaterial;
+			D_Material deviceMaterial{};
 			deviceMaterial.baseColor = material.baseColor;
 			deviceMaterial.metalness = material.metalness;
 			deviceMaterial.roughness = material.roughness;

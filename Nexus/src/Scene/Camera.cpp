@@ -146,7 +146,7 @@ namespace Nexus {
 
 	D_Camera DeviceTraits<Camera>::ToDevice(const Camera& camera)
 	{
-		D_Camera deviceCamera;
+		D_Camera deviceCamera{};
 
 		float3 forwardDirection = camera.m_ForwardDirection;
 		float3 upDirection = cross(camera.m_RightDirection, forwardDirection);

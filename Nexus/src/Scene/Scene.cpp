@@ -143,7 +143,7 @@ namespace Nexus {
 
 	D_Scene DeviceTraits<Scene>::ToDevice(const Scene& scene)
 	{
-		D_Scene deviceScene;
+		D_Scene deviceScene{};
 
 		const DeviceVector<cudaTextureObject_t>& deviceTextures = scene.m_AssetManager.GetDeviceTextureHandles();
 		const DeviceVector<Material>& deviceMaterials = scene.m_AssetManager.GetDeviceMaterials();

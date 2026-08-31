@@ -22,6 +22,29 @@
  * the host/device pair rather than of the host class. The cost is one ODR rule: a specialisation
  * must be visible everywhere DeviceVector<THost> is instantiated, so each one lives immediately
  * below its host type, in the same header.
+ *
+ *
+ * OWNERSHIP
+ *
+ *     A host object owns its device resources. ToDevice produces a non-owning flat view of them.
+ *
+ * Every host type obeys this; they differ only in how many resources they own. Mesh owns three
+ * (two DeviceVectors and a BVH) and D_Mesh is three pointers into them. Texture owns one
+ * (a CudaTexture) and its device form is the bare sampler handle. Material owns none, so its
+ * conversion is a field copy -- the same rule with n = 0, not an exception to it.
+ *
+ * Two things follow, and both are load-bearing:
+ *
+ *  - No ToDevice allocates, and none has a matching teardown. Releasing device memory is always
+ *    the job of an RAII owner on the host side (DeviceVector, CudaTexture, NXB::BVH), never of
+ *    the POD that points at it. This is why DeviceVector::Clear is only a size reset.
+ *  - A D_ view is valid exactly as long as the host object that produced it. Storing one past
+ *    the lifetime of its source dangles, which is why they are rebuilt per frame rather than
+ *    cached.
+ *
+ * ToDevice must value-initialise the object it returns (D_Material deviceMaterial{}), so that
+ * two conversions of equal host state are equal bytewise. MirroredVector compares converted
+ * values with memcmp to decide what to re-upload, and indeterminate padding would defeat it.
  */
 namespace Nexus {
 

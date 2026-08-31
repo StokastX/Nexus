@@ -67,7 +67,7 @@ namespace Nexus {
 		// alternative happens to be largest, regardless of which one was written.
 		static D_Light ToDevice(const Light& light)
 		{
-			D_Light deviceLight;
+			D_Light deviceLight{};
 			deviceLight.type = static_cast<D_Light::Type>(light.type);
 
 			switch (light.type)
