@@ -1,7 +1,5 @@
 #pragma once
 #include "Utils/cuda_math.h"
-#include "Assets/Material.h"
-#include "Cuda/Geometry/Triangle.cuh"
 
 
 namespace Nexus {

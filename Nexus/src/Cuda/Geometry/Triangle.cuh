@@ -5,27 +5,10 @@
 #include <cuda_runtime_api.h>
 #include "Ray.cuh"
 #include "Geometry/BVH/BVH.h"
+#include "Geometry/Triangle.h"
 
 
 namespace Nexus {
-
-	struct D_TriangleData
-	{
-		// Normals
-		float3 normal0;
-		float3 normal1;
-		float3 normal2;
-
-		// Tangents
-		float3 tangent0;
-		float3 tangent1;
-		float3 tangent2;
-
-		// Texture coordinates
-		float2 texCoord0;
-		float2 texCoord1;
-		float2 texCoord2;
-	};
 
 	// M�ller-Trumbore intersection algorithm. See https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 	__device__ __forceinline__ void TriangleTrace(const NXB::Triangle& triangle, D_Ray& r, D_Intersection& intersection, const uint32_t instIdx, const uint32_t primIdx)

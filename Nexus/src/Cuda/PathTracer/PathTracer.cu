@@ -208,7 +208,7 @@ namespace Nexus {
 			Sampler::UniformSampleMesh(meshes[instance.meshIdx].bvh.primCount, rngState, triangleIdx, uv);
 
 			NXB::Triangle triangle = meshes[instance.meshIdx].triangles[triangleIdx];
-			D_TriangleData triangleData = meshes[instance.meshIdx].triangleData[triangleIdx];
+			TriangleData triangleData = meshes[instance.meshIdx].triangleData[triangleIdx];
 
 			float3 p = Barycentric(triangle.v0, triangle.v1, triangle.v2, uv);
 			p = instance.transform.TransformPoint(p);
@@ -367,7 +367,7 @@ namespace Nexus {
 
 		const D_MeshInstance instance = scene.meshInstances[intersection.instanceIdx];
 		const NXB::Triangle triangle = meshes[instance.meshIdx].triangles[intersection.triIdx];
-		const D_TriangleData triangleData = meshes[instance.meshIdx].triangleData[intersection.triIdx];
+		const TriangleData triangleData = meshes[instance.meshIdx].triangleData[intersection.triIdx];
 
 		D_Material material = scene.materials[instance.materialIdx];
 

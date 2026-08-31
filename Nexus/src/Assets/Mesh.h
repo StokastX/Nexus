@@ -104,7 +104,7 @@ namespace Nexus {
 		std::vector<TriangleData> triangleData;
 
 		DeviceVector<NXB::Triangle> deviceTriangles;
-		DeviceVector<TriangleData, D_TriangleData> deviceTriangleData;
+		DeviceVector<TriangleData> deviceTriangleData;
 
 		// OpenGL buffers: positions on attribute location 0, normals on location 1.
 		GLVertexArray vertexArray;

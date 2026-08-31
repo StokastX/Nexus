@@ -8,7 +8,7 @@ namespace Nexus {
 	{
 		NXB::D_BVH bvh;
 		NXB::Triangle* triangles;
-		D_TriangleData* triangleData;
+		TriangleData* triangleData;
 	};
 
 }
