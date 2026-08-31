@@ -88,12 +88,6 @@ namespace Nexus {
 		return static_cast<int>(m_Textures.size()) - 1;
 	}
 
-	void AssetManager::ApplyTextureToMaterial(int materialIdx, int diffuseMapId)
-	{
-		m_Materials[materialIdx].baseColorMapId = diffuseMapId;
-		InvalidateMaterial(materialIdx);
-	}
-
 	bool AssetManager::SendDataToDevice()
 	{
 		bool invalid = false;

@@ -49,7 +49,6 @@ namespace Nexus {
 		 */
 		int AddTexture(const std::string& filePath, Texture::Type type);
 		int AddTexture(const aiTexture* embedded, Texture::Type type);
-		void ApplyTextureToMaterial(int materialIdx, int diffuseMapId);
 
 		bool SendDataToDevice();
 
