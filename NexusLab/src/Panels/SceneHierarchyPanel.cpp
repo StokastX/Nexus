@@ -28,11 +28,11 @@ namespace Nexus {
 		ImGui::Begin("Hierarchy panel");
 		ImGui::PopStyleVar();
 
-		std::vector<MeshInstance>& meshInstances = m_Context->GetMeshInstances();
+		MirroredVector<MeshInstance>& meshInstances = m_Context->GetMeshInstances();
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
-		for (int i = 0; i < meshInstances.size(); i++)
+		for (int i = 0; i < meshInstances.Size(); i++)
 		{
-			MeshInstance& meshInstance = meshInstances[i];
+			const MeshInstance& meshInstance = meshInstances[i];
 			bool itemSelected = m_SelectionContext.type == SelectionContext::Type::INSTANCE && m_SelectionContext.idx == i;
 			ImGuiTreeNodeFlags flags = (itemSelected ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
 			flags |= ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
@@ -45,8 +45,8 @@ namespace Nexus {
 				ImGui::TreePop();
 		}
 
-		std::vector<Light>& lights = m_Context->GetLights();
-		for (uint32_t i = 0; i < lights.size(); i++)
+		MirroredVector<Light>& lights = m_Context->GetLights();
+		for (uint32_t i = 0; i < lights.Size(); i++)
 		{
 			const Light& light = lights[i];
 			if (light.type == Light::Type::MESH)
@@ -149,79 +149,54 @@ namespace Nexus {
 		ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.0f);
 		if (selectionContext.type == SelectionContext::Type::INSTANCE)
 		{
-			MeshInstance& meshInstance = m_Context->GetMeshInstances()[selectionContext.idx];
+			auto meshInstance = m_Context->GetMeshInstances().Mutate(selectionContext.idx);
 
 			if (ImGui::TreeNodeEx("Transform", flags))
 			{
-				if (DrawFloat3Control("Location", meshInstance.position))
-					m_Context->InvalidateMeshInstance(selectionContext.idx);
-
-				if (DrawFloat3Control("Rotation", meshInstance.rotation))
-					m_Context->InvalidateMeshInstance(selectionContext.idx);
-
-				if (DrawFloat3Control("Scale", meshInstance.scale, 1.0f, 0.01f, "%.3f"))
-					m_Context->InvalidateMeshInstance(selectionContext.idx);
+				DrawFloat3Control("Location", meshInstance->position);
+				DrawFloat3Control("Rotation", meshInstance->rotation);
+				DrawFloat3Control("Scale", meshInstance->scale, 1.0f, 0.01f, "%.3f");
 
 				ImGui::TreePop();
 			}
 
 			AssetManager& assetManager = m_Context->GetAssetManager();
 
-			std::vector<Material>& materials = assetManager.GetMaterials();
+			MirroredVector<Material>& materials = assetManager.GetMaterials();
 			std::string materialsString = assetManager.GetMaterialsString();
 
 			if (ImGui::TreeNodeEx("Material", flags))
 			{
-				if (meshInstance.materialIdx == -1)
+				if (meshInstance->materialIdx == -1)
 				{
 					if (ImGui::Button("Custom material"))
-						meshInstance.materialIdx = 0;
+						meshInstance->materialIdx = 0;
 				}
 				else
 				{
-					int materialIdx = meshInstance.materialIdx;
+					int materialIdx = meshInstance->materialIdx;
 					if (ImGui::Combo("Id", &materialIdx, materialsString.c_str()))
-						m_Context->InvalidateMeshInstance(selectionContext.idx);
+						meshInstance->materialIdx = materialIdx;
 
-					meshInstance.materialIdx = materialIdx;
+					auto material = materials.Mutate(meshInstance->materialIdx);
 
-					Material& material = materials[meshInstance.materialIdx];
-
-					if (ImGui::ColorEdit3("Base color", (float*)&material.baseColor))
-						assetManager.InvalidateMaterial(meshInstance.materialIdx);
-					if (ImGui::DragFloat("Metalness", &material.metalness, 0.01f, 0.0f, 1.0f))
-						assetManager.InvalidateMaterial(meshInstance.materialIdx);
-					if (ImGui::DragFloat("Roughness", &material.roughness, 0.01f, 0.0f, 1.0f))
-						assetManager.InvalidateMaterial(meshInstance.materialIdx);
-					if (ImGui::DragFloat("IOR", &material.ior, 0.01f, 1.0f, 2.5f))
-						assetManager.InvalidateMaterial(meshInstance.materialIdx);
-					if (ImGui::DragFloat("Transmission", &material.transmission, 0.01f, 0.0f, 1.0f))
-						assetManager.InvalidateMaterial(meshInstance.materialIdx);
-					if (ImGui::DragFloat("Opacity", (float*)&material.opacity, 0.01f, 0.0f, 1.0f))
-						assetManager.InvalidateMaterial(meshInstance.materialIdx);
+					ImGui::ColorEdit3("Base color", (float*)&material->baseColor);
+					ImGui::DragFloat("Metalness", &material->metalness, 0.01f, 0.0f, 1.0f);
+					ImGui::DragFloat("Roughness", &material->roughness, 0.01f, 0.0f, 1.0f);
+					ImGui::DragFloat("IOR", &material->ior, 0.01f, 1.0f, 2.5f);
+					ImGui::DragFloat("Transmission", &material->transmission, 0.01f, 0.0f, 1.0f);
+					ImGui::DragFloat("Opacity", (float*)&material->opacity, 0.01f, 0.0f, 1.0f);
 					if (ImGui::TreeNodeEx("Specular", flags))
 					{
-						if (ImGui::DragFloat("Specular weight", &material.specularWeight, 0.01f, 0.0f, 1.0f))
-							assetManager.InvalidateMaterial(meshInstance.materialIdx);
-						if (ImGui::ColorEdit3("Specular color", (float*)&material.specularColor))
-							assetManager.InvalidateMaterial(meshInstance.materialIdx);
-						if (ImGui::DragFloat("Anisotropy", &material.anisotropy, 0.01f, 0.0f, 1.0f))
-							assetManager.InvalidateMaterial(meshInstance.materialIdx);
+						ImGui::DragFloat("Specular weight", &material->specularWeight, 0.01f, 0.0f, 1.0f);
+						ImGui::ColorEdit3("Specular color", (float*)&material->specularColor);
+						ImGui::DragFloat("Anisotropy", &material->anisotropy, 0.01f, 0.0f, 1.0f);
 						ImGui::TreePop();
 					}
 					if (ImGui::TreeNodeEx("Emission", flags & ~ImGuiTreeNodeFlags_DefaultOpen))
 					{
-						if (ImGui::ColorEdit3("Emission color", (float*)&material.emissionColor))
-						{
-							// Invalidate mesh instance to update lighting
-							m_Context->InvalidateMeshInstance(selectionContext.idx);
-							assetManager.InvalidateMaterial(meshInstance.materialIdx);
-						}
-						if (ImGui::DragFloat("Intensity", (float*)&material.intensity, 0.1f, 0.0f, 1000.0f))
-						{
-							m_Context->InvalidateMeshInstance(selectionContext.idx);
-							assetManager.InvalidateMaterial(meshInstance.materialIdx);
-						}
+						ImGui::ColorEdit3("Emission color", (float*)&material->emissionColor);
+						ImGui::DragFloat("Intensity", (float*)&material->intensity, 0.1f, 0.0f, 1000.0f);
 						ImGui::TreePop();
 					}
 				}
@@ -230,44 +205,33 @@ namespace Nexus {
 		}
 		else if (selectionContext.type == SelectionContext::Type::LIGHT)
 		{
-			Light& light = m_Context->GetLights()[selectionContext.idx];
+			auto light = m_Context->GetLights().Mutate(selectionContext.idx);
 			if (ImGui::TreeNodeEx("Light", flags))
 			{
-				int currentIndex = static_cast<int>(light.type);
+				int currentIndex = static_cast<int>(light->type);
 				if (ImGui::Combo("Type", &currentIndex, lightTypeNames, IM_ARRAYSIZE(lightTypeNames)))
-					light.type = static_cast<Light::Type>(currentIndex);
+					light->type = static_cast<Light::Type>(currentIndex);
 
-				switch (light.type)
+				switch (light->type)
 				{
 				case Light::Type::POINT:
-					if (DrawFloat3Control("Location", light.point.position))
-						m_Context->InvalidateLight(selectionContext.idx);
-					if (ImGui::ColorEdit3("Color", (float*)&light.point.color))
-						m_Context->InvalidateLight(selectionContext.idx);
-					if (ImGui::DragFloat("Intensity", &light.point.intensity, 0.1f, 0.0f, 1000.0f))
-						m_Context->InvalidateLight(selectionContext.idx);
+					DrawFloat3Control("Location", light->point.position);
+					ImGui::ColorEdit3("Color", (float*)&light->point.color);
+					ImGui::DragFloat("Intensity", &light->point.intensity, 0.1f, 0.0f, 1000.0f);
 					break;
 
 				case Light::Type::SPOT:
-					if (DrawFloat3Control("Location", light.spot.position))
-						m_Context->InvalidateLight(selectionContext.idx);
-					if (ImGui::ColorEdit3("Color", (float*)&light.spot.color))
-						m_Context->InvalidateLight(selectionContext.idx);
-					if (ImGui::DragFloat("Intensity", &light.spot.intensity, 0.1f, 0.0f, 1000.0f))
-						m_Context->InvalidateLight(selectionContext.idx);
-					if (ImGui::DragFloat("Falloff Start", &light.spot.falloffStart, 0.1f, 0.0f, 180.0f))
-						m_Context->InvalidateLight(selectionContext.idx);
-					if (ImGui::DragFloat("Falloff End", &light.spot.falloffEnd, 0.1f, 0.0f, 180.0f))
-						m_Context->InvalidateLight(selectionContext.idx);
+					DrawFloat3Control("Location", light->spot.position);
+					ImGui::ColorEdit3("Color", (float*)&light->spot.color);
+					ImGui::DragFloat("Intensity", &light->spot.intensity, 0.1f, 0.0f, 1000.0f);
+					ImGui::DragFloat("Falloff Start", &light->spot.falloffStart, 0.1f, 0.0f, 180.0f);
+					ImGui::DragFloat("Falloff End", &light->spot.falloffEnd, 0.1f, 0.0f, 180.0f);
 					break;
 
 				case Light::Type::DIRECTIONAL:
-					if (DrawFloat3Control("Direction", light.directional.direction))
-						m_Context->InvalidateLight(selectionContext.idx);
-					if (ImGui::ColorEdit3("Color", (float*)&light.directional.color))
-						m_Context->InvalidateLight(selectionContext.idx);
-					if (ImGui::DragFloat("Intensity", &light.directional.intensity, 0.1f, 0.0f, 1000.0f))
-						m_Context->InvalidateLight(selectionContext.idx);
+					DrawFloat3Control("Direction", light->directional.direction);
+					ImGui::ColorEdit3("Color", (float*)&light->directional.color);
+					ImGui::DragFloat("Intensity", &light->directional.intensity, 0.1f, 0.0f, 1000.0f);
 					break;
 				default:
 					break;

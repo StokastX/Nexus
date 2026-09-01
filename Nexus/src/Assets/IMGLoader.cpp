@@ -12,7 +12,7 @@ namespace Nexus {
 	{
 	}
 
-	std::shared_ptr<Texture> IMGLoader::LoadIMG(const std::string& filepath, Texture::Type type)
+	std::optional<Texture> IMGLoader::LoadIMG(const std::string& filepath, Texture::Type type)
 	{
 		int width, height, channels;
 
@@ -32,20 +32,20 @@ namespace Nexus {
 		if (pixels == nullptr)
 		{
 			std::cout << "IMGLoader: Failed to load texture " << filepath << std::endl;
-			return nullptr;
+			return std::nullopt;
 		}
 
-		return std::make_shared<Texture>(width, height, channels, HDR, type, StbImageData(pixels));
+		return Texture(width, height, channels, HDR, type, StbImageData(pixels));
 	}
 
-	std::shared_ptr<Texture> IMGLoader::LoadIMG(const aiTexture* texture, Texture::Type type)
+	std::optional<Texture> IMGLoader::LoadIMG(const aiTexture* texture, Texture::Type type)
 	{
 		// mHeight != 0 means the embedded texture is raw ARGB rather than an encoded file, which
 		// stbi_load_from_memory cannot read.
 		if (texture->mHeight != 0)
 		{
 			std::cout << "IMGLoader: Unsupported uncompressed embedded texture" << std::endl;
-			return nullptr;
+			return std::nullopt;
 		}
 
 		int width, height, channels;
@@ -54,10 +54,10 @@ namespace Nexus {
 		if (pixels == nullptr)
 		{
 			std::cout << "IMGLoader: Failed to load an embedded texture" << std::endl;
-			return nullptr;
+			return std::nullopt;
 		}
 
-		return std::make_shared<Texture>(width, height, channels, false, type, StbImageData(pixels));
+		return Texture(width, height, channels, false, type, StbImageData(pixels));
 	}
 
 }

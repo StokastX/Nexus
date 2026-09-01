@@ -5,6 +5,7 @@
 #include <cuda_runtime_api.h>
 #include <Utils/cuda_math.h>
 #include "Device/CudaTexture.h"
+#include "Device/DeviceTraits.h"
 
 namespace Nexus {
 
@@ -54,8 +55,8 @@ namespace Nexus {
 
 		// Uploads the pixels and builds the sampler. Explicit rather than done in the constructor
 		// because a Texture is a loaded image first and a device resource second; IMGLoader itself
-		// needs no CUDA context. A Texture that exists always has pixels -- LoadIMG returns null on
-		// failure -- so this can never be asked to upload nothing.
+		// needs no CUDA context. A Texture that exists always has pixels -- LoadIMG returns nothing
+		// on failure -- so this can never be asked to upload nothing.
 		void UploadToDevice();
 
 		/*
@@ -91,6 +92,26 @@ namespace Nexus {
 
 		// The device-resident copy, owned here the same way Mesh owns its DeviceVectors.
 		CudaTexture deviceTexture;
+	};
+
+
+	/*
+	 * A Texture reaches the device as the bare sampler handle the kernels index -- the pixels and
+	 * the sampler itself stay owned by the CudaTexture above. The same arrangement as Mesh, whose
+	 * device form is three pointers into containers the Mesh owns.
+	 *
+	 * Moving a Texture (which a std::vector does when it grows) moves the CudaTexture with it and
+	 * leaves the handle unchanged, so handles already uploaded stay valid across a reallocation.
+	 */
+	template<>
+	struct DeviceTraits<Texture>
+	{
+		using DeviceType = cudaTextureObject_t;
+
+		static cudaTextureObject_t ToDevice(const Texture& texture)
+		{
+			return texture.deviceTexture.Handle();
+		}
 	};
 
 }

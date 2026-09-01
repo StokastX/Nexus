@@ -33,6 +33,17 @@ namespace Nexus {
 			materialIdx = matIdx;
 		}
 
+		MeshInstance(const Mesh& mesh, uint32_t mIdx, uint32_t matIdx, float3 pos, float3 rot, float3 sc)
+		{
+			name = mesh.name;
+			rotation = rot;
+			scale = sc;
+			position = pos;
+			meshBounds = mesh.bvh.Bounds();
+			meshIdx = mIdx;
+			materialIdx = matIdx;
+		}
+
 		void SetPosition(float3 p) { position = p; }
 		void SetRotationX(float r) { rotation.x = r; }
 		void SetRotationY(float r) { position.y = r; }

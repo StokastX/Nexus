@@ -79,12 +79,12 @@ namespace Nexus {
 		m_Shader.SetVec3("uCamPosWorld", camera->GetTransform().GetTranslation());
 		m_Shader.SetBool("uOutline", false);
 
-		std::vector<Mesh>& meshes = m_Scene->GetAssetManager().GetMeshes();
-		std::vector<MeshInstance>& meshInstances = m_Scene->GetMeshInstances();
+		MirroredVector<Mesh>& meshes = m_Scene->GetAssetManager().GetMeshes();
+		MirroredVector<MeshInstance>& meshInstances = m_Scene->GetMeshInstances();
 
 		int32_t selectIdx = selectionContext.type == SelectionContext::Type::INSTANCE ? selectionContext.idx : -1;
 
-		for (uint32_t i = 0; i < meshInstances.size(); i++)
+		for (uint32_t i = 0; i < meshInstances.Size(); i++)
 		{
 			if (m_PixelQueryPending)
 			{
@@ -101,7 +101,7 @@ namespace Nexus {
 				glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
 			}
 
-			MeshInstance& meshInstance = meshInstances[i];
+			const MeshInstance& meshInstance = meshInstances[i];
 			m_Shader.SetMat4("uModel", meshInstance.GetTransfrom());
 			m_Shader.SetMat4("uModelInvTrans", meshInstance.GetTransfrom().Inverted().Transposed());
 			meshes[meshInstance.meshIdx].vertexArray.Bind();
@@ -114,7 +114,7 @@ namespace Nexus {
 		// Draw selected object outline
 		if (selectIdx >= 0)
 		{
-			MeshInstance& meshInstance = meshInstances[selectionContext.idx];
+			const MeshInstance& meshInstance = meshInstances[selectionContext.idx];
 
 			glStencilMask(0xFF);
 			glDepthFunc(GL_ALWAYS);

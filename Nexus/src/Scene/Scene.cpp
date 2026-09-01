@@ -20,11 +20,8 @@ namespace Nexus {
 	void Scene::Reset()
 	{
 		m_Invalid = true;
-		m_InvalidMeshInstances.clear();
-		m_MeshInstances.clear();
-		m_InvalidLights.clear();
-		m_Lights.clear();
-		m_DeviceLights.Clear();
+		m_MeshInstances.Clear();
+		m_Lights.Clear();
 		m_AssetManager.Reset();
 		m_Camera->Invalidate();
 		m_Tlas = NXB::BVH();
@@ -39,37 +36,33 @@ namespace Nexus {
 	{
 		m_Camera->SetInvalid(false);
 
-		if (m_InvalidMeshInstances.size() != 0)
-		{
-			for (uint32_t i : m_InvalidMeshInstances)
-			{
-				MeshInstance& meshInstance = m_MeshInstances[i];
-				m_DeviceMeshInstances[i] = meshInstance;
-			}
-
-			BuildTLAS();
-
-			m_InvalidMeshInstances.clear();
-		}
-
-		for (uint32_t i : m_AssetManager.GetInvalidMaterials())
+		// Mesh lights are derived from material emission, so they are re-derived from the materials
+		// that changed -- before UploadToDevice below flushes that set and clears it. This pass
+		// adds and removes lights, so it has to run before the lights are flushed too.
+		for (uint32_t i : m_AssetManager.GetMaterials().DirtyIndices())
 			UpdateSceneLighting(i);
 
-		m_AssetManager.SendDataToDevice();
+		m_AssetManager.UploadToDevice();
 
-		// Only punctual lights
-		for (uint32_t i : m_InvalidLights)
-			m_DeviceLights[i] = m_Lights[i];
+		m_Lights.Flush();
 
-		m_InvalidLights.clear();
+		if (m_MeshInstances.Dirty())
+		{
+			m_MeshInstances.Flush();
+
+			// Building a BVH over zero primitives is not worth asking NXB to handle; an empty
+			// scene has nothing to trace against anyway.
+			if (!m_MeshInstances.Empty())
+				BuildTLAS();
+		}
 
 		m_Invalid = false;
 	}
 
 	void Scene::BuildTLAS()
 	{
-		std::vector<NXB::AABB> instancesBounds(m_MeshInstances.size());
-		for (uint32_t i = 0; i < m_MeshInstances.size(); i++)
+		std::vector<NXB::AABB> instancesBounds(m_MeshInstances.Size());
+		for (uint32_t i = 0; i < m_MeshInstances.Size(); i++)
 			instancesBounds[i] = m_MeshInstances[i].GetBounds();
 
 		DeviceVector<NXB::AABB> deviceBounds = instancesBounds;
@@ -82,21 +75,12 @@ namespace Nexus {
 		m_DeviceTlas = m_Tlas.View();
 	}
 
-	MeshInstance& Scene::CreateMeshInstance(uint32_t meshId)
+	void Scene::CreateMeshInstance(uint32_t meshId, uint32_t materialId, float3 position, float3 direction, float3 scale)
 	{
-		Mesh& mesh = m_AssetManager.GetMeshes()[meshId];
+		const Mesh& mesh = m_AssetManager.GetMeshes()[meshId];
 
-		MeshInstance meshInstance(mesh, meshId, mesh.materialIdx);
-		m_MeshInstances.push_back(meshInstance);
-		m_DeviceMeshInstances.PushBack(meshInstance);
-
-		const size_t instanceId = m_MeshInstances.size() - 1;
-
-		// Create light if needed
-		//UpdateInstanceLighting(instanceId);
-		InvalidateMeshInstance(instanceId);
-
-		return m_MeshInstances[instanceId];
+		MeshInstance meshInstance(mesh, meshId, materialId, position, direction, scale);
+		m_MeshInstances.PushBack(meshInstance);
 	}
 
 	void Scene::CreateMeshInstanceFromFile(const std::string& path, const std::string& fileName)
@@ -106,7 +90,7 @@ namespace Nexus {
 
 	void Scene::AddHDRMap(const std::string& filePath, const std::string& fileName)
 	{
-		std::shared_ptr<Texture> hdrMap = IMGLoader::LoadIMG(filePath + fileName, Texture::Type::ENVIRONMENT);
+		std::optional<Texture> hdrMap = IMGLoader::LoadIMG(filePath + fileName, Texture::Type::ENVIRONMENT);
 
 		// Keep whatever map is already loaded if this one failed, rather than clearing it.
 		if (!hdrMap)
@@ -116,47 +100,31 @@ namespace Nexus {
 		m_HdrMap = std::move(hdrMap);
 	}
 
-	void Scene::InvalidateMeshInstance(uint32_t instanceId)
-	{
-		m_InvalidMeshInstances.insert(instanceId);
-	}
-
-	void Scene::InvalidateLight(uint32_t lightIdx)
-	{
-		m_InvalidLights.insert(lightIdx);
-	}
-
 	size_t Scene::AddLight(const Light& light)
 	{
-		m_Lights.push_back(light);
-		m_DeviceLights.PushBack(light);
-		uint32_t lightIdx = m_Lights.size() - 1;
-		InvalidateLight(lightIdx);
+		const size_t lightIdx = m_Lights.PushBack(light);
 		std::cout << "added light of type " << (int)light.type << std::endl;
 		return lightIdx;
 	}
 
 	void Scene::RemoveLight(const size_t index)
 	{
-		m_Lights.erase(m_Lights.begin() + index);
+		m_Lights.Erase(index);
 	}
 
 	D_Scene DeviceTraits<Scene>::ToDevice(const Scene& scene)
 	{
 		D_Scene deviceScene{};
 
-		const DeviceVector<cudaTextureObject_t>& deviceTextures = scene.m_AssetManager.GetDeviceTextureHandles();
-		const DeviceVector<Material>& deviceMaterials = scene.m_AssetManager.GetDeviceMaterials();
-
-		deviceScene.textures = deviceTextures.Data();
-		deviceScene.materials = deviceMaterials.Data();
-		deviceScene.meshInstances = scene.m_DeviceMeshInstances.Data();
-		deviceScene.lights = scene.m_DeviceLights.Data();
-		deviceScene.lightCount = scene.m_DeviceLights.Size();
+		deviceScene.textures = scene.m_AssetManager.GetTextures().DeviceData();
+		deviceScene.materials = scene.m_AssetManager.GetMaterials().DeviceData();
+		deviceScene.meshInstances = scene.m_MeshInstances.DeviceData();
+		deviceScene.lights = scene.m_Lights.DeviceData();
+		deviceScene.lightCount = scene.m_Lights.Size();
 
 		deviceScene.renderSettings = ConvertToDevice(scene.m_RenderSettings);
 
-		deviceScene.hasHdrMap = scene.m_HdrMap != nullptr;
+		deviceScene.hasHdrMap = scene.m_HdrMap.has_value();
 		deviceScene.hdrMap = scene.m_HdrMap ? scene.m_HdrMap->deviceTexture.Handle() : 0;
 		deviceScene.camera = ConvertToDevice(*scene.m_Camera);
 
@@ -165,25 +133,25 @@ namespace Nexus {
 
 	void Scene::UpdateSceneLighting(size_t index)
 	{
-		bool lightingChanged = false;
-		Material& material = m_AssetManager.GetMaterials()[index];
+		const Material& material = m_AssetManager.GetMaterials()[index];
 		// Remove lights that do not emit anymore
 		if ((material.emissiveMapId == -1 && fmaxf(material.emissionColor) == 0.0f)
 			|| material.intensity == 0.0f)
 		{
 			int counter = 0;
-			for (uint32_t j = 0; j < m_Lights.size(); j++)
+			for (uint32_t j = 0; j < m_Lights.Size(); )
 			{
-				if (m_Lights[j].type == Light::Type::MESH)
+				const Light& light = m_Lights[j];
+				if (light.type == Light::Type::MESH
+					&& m_MeshInstances[light.mesh.meshId].materialIdx == index)
 				{
-					MeshInstance instance = m_MeshInstances[m_Lights[j].mesh.meshId];
-					if (instance.materialIdx == index)
-					{
-						m_Lights.erase(m_Lights.begin() + j);
-						lightingChanged = true;
-						counter++;
-					}
+					// Not incremented here: erasing shifts the next light down into j, and stepping
+					// over it would leave a light behind that should have gone.
+					m_Lights.Erase(j);
+					counter++;
 				}
+				else
+					j++;
 			}
 			if (counter > 0)
 				std::cout << "Removed " << counter << " lights" << std::endl;
@@ -194,13 +162,13 @@ namespace Nexus {
 			&& material.intensity > 0.0f)
 		{
 			int counter = 0;
-			for (uint32_t j = 0; j < m_MeshInstances.size(); j++)
+			for (uint32_t j = 0; j < m_MeshInstances.Size(); j++)
 			{
 				bool addLight = true;
-				MeshInstance instance = m_MeshInstances[j];
+				const MeshInstance& instance = m_MeshInstances[j];
 				if (instance.materialIdx == index)
 				{
-					for (uint32_t k = 0; k < m_Lights.size(); k++)
+					for (uint32_t k = 0; k < m_Lights.Size(); k++)
 					{
 						if (m_Lights[k].type == Light::Type::MESH && m_Lights[k].mesh.meshId == j)
 						{
@@ -213,8 +181,7 @@ namespace Nexus {
 						Light meshLight;
 						meshLight.type = Light::Type::MESH;
 						meshLight.mesh.meshId = j;
-						m_Lights.push_back(meshLight);
-						lightingChanged = true;
+						m_Lights.PushBack(meshLight);
 						counter++;
 					}
 				}
@@ -222,9 +189,6 @@ namespace Nexus {
 			if (counter > 0)
 				std::cout << "Added " << counter << " lights" << std::endl;
 		}
-
-		if (lightingChanged)
-			m_DeviceLights = m_Lights;
 	}
 
 }

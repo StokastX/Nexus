@@ -129,10 +129,22 @@ namespace Nexus {
 			m_Dirty.insert(static_cast<uint32_t>(index));
 		}
 
+		/*
+		 * The elements changed since the last Flush.
+		 *
+		 * Read-only, and deliberately exposed: some state is *derived* from these elements and has
+		 * to be recomputed when they change -- mesh lights from material emission, for one. The
+		 * encapsulation that matters is that nothing can be modified without being recorded here;
+		 * being able to see what was recorded does not weaken it.
+		 *
+		 * Read it before the Flush that clears it.
+		 */
+		const std::set<uint32_t>& DirtyIndices() const { return m_Dirty; }
+
 		void MarkAllDirty()
 		{
 			for (size_t i = 0; i < m_Host.size(); i++)
-				m_Dirty.insert(static_cast<uint32_t>(i));
+				MarkDirty(i);
 		}
 
 		// ---- growing and shrinking ---------------------------------------------------------
@@ -145,6 +157,7 @@ namespace Nexus {
 			// device form points into memory the element owns, those pointers must be read after
 			// the element has been stored.
 			m_Device.PushBack(m_Host.back());
+			m_StructureChanged = true;
 			return m_Host.size() - 1;
 		}
 
@@ -152,6 +165,7 @@ namespace Nexus {
 		{
 			m_Host.push_back(std::move(value));
 			m_Device.PushBack(m_Host.back());
+			m_StructureChanged = true;
 			return m_Host.size() - 1;
 		}
 
@@ -160,6 +174,7 @@ namespace Nexus {
 		{
 			m_Host.emplace_back(std::forward<TArgs>(args)...);
 			m_Device.PushBack(m_Host.back());
+			m_StructureChanged = true;
 			return m_Host.size() - 1;
 		}
 
@@ -186,6 +201,8 @@ namespace Nexus {
 
 			// The tail is now clean, and the recorded indices into it no longer mean what they did.
 			m_Dirty.erase(m_Dirty.lower_bound(static_cast<uint32_t>(index)), m_Dirty.end());
+
+			m_StructureChanged = true;
 		}
 
 		void Clear()
@@ -193,11 +210,21 @@ namespace Nexus {
 			m_Host.clear();
 			m_Device.Clear();
 			m_Dirty.clear();
+			m_StructureChanged = true;
 		}
 
 		// ---- synchronising -----------------------------------------------------------------
 
-		bool Dirty() const { return !m_Dirty.empty(); }
+		/*
+		 * Whether anything about the array has changed since the last Flush.
+		 *
+		 * Adding or removing an element counts, even though PushBack and Erase already wrote the
+		 * device side themselves. Consumers care about more than the element bytes: the TLAS is
+		 * built from the whole instance array, so it has to be rebuilt when one appears or
+		 * disappears, not only when one is edited. Without this, loading a model would leave the
+		 * array dirty-free and the TLAS never built.
+		 */
+		bool Dirty() const { return !m_Dirty.empty() || m_StructureChanged; }
 
 		void Flush()
 		{
@@ -205,6 +232,7 @@ namespace Nexus {
 				Upload(i);
 
 			m_Dirty.clear();
+			m_StructureChanged = false;
 		}
 
 	private:
@@ -235,6 +263,9 @@ namespace Nexus {
 
 		// Ordered, which is what lets Erase drop a whole tail of indices in one call.
 		std::set<uint32_t> m_Dirty;
+
+		// Set by anything that changes the array's length. See Dirty().
+		bool m_StructureChanged = false;
 	};
 
 

@@ -280,23 +280,23 @@ namespace Nexus {
 			aiLight* assimpLight = assimpScene->mLights[i];
 			if (node->mName == assimpLight->mName)
 			{
-				Light& light = scene->GetLights()[i];
+				auto light = scene->GetLights().Mutate(i);
 				aiVector3D position, direction;
-				switch (light.type)
+				switch (light->type)
 				{
 				case Light::Type::POINT:
 					position = aiTransform * assimpLight->mPosition;
-					light.point.position = *(float3*)&position / scaleFactor;
+					light->point.position = *(float3*)&position / scaleFactor;
 					break;
 				case Light::Type::DIRECTIONAL:
 					direction = rotationMatrix * assimpLight->mDirection;
-					light.directional.direction = *(float3*)&direction;
+					light->directional.direction = *(float3*)&direction;
 					break;
 				case Light::Type::SPOT:
 					position = aiTransform * assimpLight->mPosition;
 					direction = rotationMatrix * assimpLight->mDirection;
-					light.spot.position = *(float3*)&position / scaleFactor;
-					light.spot.direction = *(float3*)&direction;
+					light->spot.position = *(float3*)&position / scaleFactor;
+					light->spot.direction = *(float3*)&direction;
 					break;
 				default:
 					break;
@@ -334,9 +334,7 @@ namespace Nexus {
 			scale /= scaleFactor;
 			position /= scaleFactor;
 
-			MeshInstance& meshInstance = scene->CreateMeshInstance(meshId);
-			meshInstance.AssignMaterial(materialIds[mesh->mMaterialIndex]);
-			meshInstance.SetTransform(position, rotation, scale);
+			scene->CreateMeshInstance(meshId, materialIds[mesh->mMaterialIndex], position, rotation, scale);
 		}
 
 		for (int i = 0; i < node->mNumChildren; i++)

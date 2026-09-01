@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <optional>
 #include "Texture.h"
 #include "assimp/scene.h"
 
@@ -11,10 +12,10 @@ namespace Nexus {
 		IMGLoader();
 		~IMGLoader();
 
-		static std::shared_ptr<Texture> LoadIMG(const std::string& pathfile, Texture::Type type);
+		static std::optional<Texture> LoadIMG(const std::string& pathfile, Texture::Type type);
 
 		// Load a texture embedded in an Assimp model
-		static std::shared_ptr<Texture> LoadIMG(const aiTexture* texture, Texture::Type type);
+		static std::optional<Texture> LoadIMG(const aiTexture* texture, Texture::Type type);
 
 	private:
 

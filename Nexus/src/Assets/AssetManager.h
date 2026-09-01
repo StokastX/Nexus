@@ -3,6 +3,7 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include <optional>
 #include <unordered_map>
 #include "Device/DeviceVector.h"
 #include "Assets/Mesh.h"
@@ -11,6 +12,7 @@
 #include "Cuda/Scene/Material.cuh"
 #include "Geometry/BVH/BVH.h"
 #include "Geometry/Triangle.h"
+#include "Device/MirroredVector.h"
 
 struct aiTexture;
 
@@ -27,18 +29,14 @@ namespace Nexus {
 
 		void AddMaterial();
 		uint32_t AddMaterial(const Material& material);
-		std::vector<Material>& GetMaterials() { return m_Materials; }
-		std::set<uint32_t>& GetInvalidMaterials() { return m_InvalidMaterials; }
-		void InvalidateMaterial(uint32_t index);
+		MirroredVector<Material>& GetMaterials() { return m_Materials; }
+		const MirroredVector<Material>& GetMaterials() const { return m_Materials; }
 		std::string GetMaterialsString();
-		std::vector<Mesh>& GetMeshes() { return m_Meshes; }
+		MirroredVector<Mesh>& GetMeshes() { return m_Meshes; }
+		const MirroredVector<Mesh>& GetMeshes() const { return m_Meshes; }
 
-		DeviceVector<Material>& GetDeviceMaterials() { return m_DeviceMaterials; }
-		DeviceVector<cudaTextureObject_t>& GetDeviceTextureHandles() { return m_DeviceTextureHandles; }
-		DeviceVector<Mesh>& GetDeviceMeshes() { return m_DeviceMeshes; }
-
-		const DeviceVector<Material>& GetDeviceMaterials() const { return m_DeviceMaterials; }
-		const DeviceVector<cudaTextureObject_t>& GetDeviceTextureHandles() const { return m_DeviceTextureHandles; }
+		MirroredVector<Texture>& GetTextures() { return m_Textures; }
+		const MirroredVector<Texture>& GetTextures() const { return m_Textures; }
 
 		/*
 		 * Loads, uploads and registers a texture, returning its index -- or -1 if it could not be
@@ -50,30 +48,26 @@ namespace Nexus {
 		int AddTexture(const std::string& filePath, Texture::Type type);
 		int AddTexture(const aiTexture* embedded, Texture::Type type);
 
-		bool SendDataToDevice();
+		void UploadToDevice();
 
-		bool IsInvalid() { return m_InvalidMaterials.size() > 0; }
+		bool IsInvalid() { return m_Materials.Dirty(); }
 
 	private:
 		// Uploads and registers an already-loaded texture; null means the load failed.
-		int StoreTexture(std::shared_ptr<Texture> texture);
+		int StoreTexture(std::optional<Texture> texture);
 
 	private:
-		std::vector<Material> m_Materials;
-		std::set<uint32_t> m_InvalidMaterials;
-		std::vector<std::shared_ptr<Texture>> m_Textures;
+		MirroredVector<Material> m_Materials;
+		MirroredVector<Mesh> m_Meshes;
+		// Each texture's pixels and sampler are owned by the CudaTexture inside it; the device
+		// array holds only the handles the kernels index.
+		MirroredVector<Texture> m_Textures;
 
 		// Index of an already-loaded texture, keyed by path and type. Without it a model whose
 		// materials share a base colour map loads and uploads that file once per material.
 		std::unordered_map<std::string, int> m_TextureIds;
-		std::vector<Mesh> m_Meshes;
 
 		// Device members
-		DeviceVector<Material> m_DeviceMaterials;
-		// The flat handle array the kernel indexes. Each texture's memory is owned by the
-		// CudaTexture inside the Texture in m_Textures above; these are only its handles.
-		DeviceVector<cudaTextureObject_t> m_DeviceTextureHandles;
-		DeviceVector<Mesh> m_DeviceMeshes;
 		DeviceInstance<D_Mesh*> m_DeviceMeshesAdress;
 	};
 
