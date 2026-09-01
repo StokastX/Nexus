@@ -85,6 +85,31 @@ namespace Nexus {
 		return std::make_tuple(triangles, triangleData);
 	}
 
+	/*
+	 * One texture map a material can carry: the assimp slot it is read from, how its pixels are to
+	 * be decoded, and the Material field that holds the resulting id.
+	 *
+	 * A table rather than six blocks of code, because the six differed only in these three values
+	 * and in nothing else.
+	 */
+	struct TextureSlot
+	{
+		aiTextureType aiType;
+		Texture::Type type;
+
+		// Pointer to member: what lets one loop write six different fields of Material.
+		int32_t Material::* id;
+	};
+
+	static constexpr TextureSlot s_TextureSlots[] = {
+		{ aiTextureType_DIFFUSE,                 Texture::Type::DIFFUSE,           &Material::baseColorMapId },
+		{ aiTextureType_NORMALS,                 Texture::Type::NORMALS,           &Material::normalMapId },
+		{ aiTextureType_DIFFUSE_ROUGHNESS,       Texture::Type::ROUGHNESS,         &Material::roughnessMapId },
+		{ aiTextureType_METALNESS,               Texture::Type::METALNESS,         &Material::metalnessMapId },
+		{ aiTextureType_GLTF_METALLIC_ROUGHNESS, Texture::Type::METALLICROUGHNESS, &Material::metallicRoughnessMapId },
+		{ aiTextureType_EMISSIVE,                Texture::Type::EMISSIVE,          &Material::emissiveMapId }
+	};
+
 	// Return the list of IDs of the created materials
 	static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, AssetManager* assetManager, const std::string& path)
 	{
@@ -118,78 +143,21 @@ namespace Nexus {
 			material->Get(AI_MATKEY_EMISSIVE_INTENSITY, newMaterial.intensity);
 			material->Get(AI_MATKEY_OPACITY, newMaterial.opacity);
 
-			if (material->GetTextureCount(aiTextureType_DIFFUSE) > 0)
+			for (const TextureSlot& slot : s_TextureSlots)
 			{
 				aiString mPath;
-				if (material->GetTexture(aiTextureType_DIFFUSE, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
-				{
-					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
-					if (embedded)
-						newMaterial.baseColorMapId = assetManager->AddTexture(embedded, Texture::Type::DIFFUSE);
-					else
-						newMaterial.baseColorMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::DIFFUSE);
-				}
+
+				// GetTexture already reports failure for a slot that holds no texture.
+				if (material->GetTexture(slot.aiType, 0, &mPath, NULL, NULL, NULL, NULL, NULL) != AI_SUCCESS)
+					continue;
+
+				const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
+				if (embedded)
+					newMaterial.*slot.id = assetManager->AddTexture(embedded, slot.type);
+				else
+					newMaterial.*slot.id = assetManager->AddTexture(path + mPath.C_Str(), slot.type);
 			}
-			if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
-			{
-				aiString mPath;
-				if (material->GetTexture(aiTextureType_NORMALS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
-				{
-					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
-					if (embedded)
-						newMaterial.normalMapId = assetManager->AddTexture(embedded, Texture::Type::NORMALS);
-					else
-						newMaterial.normalMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::NORMALS);
-				}
-			}
-			if (material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
-			{
-				aiString mPath;
-				if (material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
-				{
-					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
-					if (embedded)
-						newMaterial.roughnessMapId = assetManager->AddTexture(embedded, Texture::Type::ROUGHNESS);
-					else
-						newMaterial.roughnessMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::ROUGHNESS);
-				}
-			}
-			if (material->GetTextureCount(aiTextureType_METALNESS) > 0)
-			{
-				aiString mPath;
-				if (material->GetTexture(aiTextureType_METALNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
-				{
-					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
-					if (embedded)
-						newMaterial.metalnessMapId = assetManager->AddTexture(embedded, Texture::Type::METALNESS);
-					else
-						newMaterial.metalnessMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::METALNESS);
-				}
-			}
-			if (material->GetTextureCount(aiTextureType_GLTF_METALLIC_ROUGHNESS) > 0)
-			{
-				aiString mPath;
-				if (material->GetTexture(aiTextureType_GLTF_METALLIC_ROUGHNESS, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
-				{
-					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
-					if (embedded)
-						newMaterial.metallicRoughnessMapId = assetManager->AddTexture(embedded, Texture::Type::METALLICROUGHNESS);
-					else
-						newMaterial.metallicRoughnessMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::METALLICROUGHNESS);
-				}
-			}
-			if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0)
-			{
-				aiString mPath;
-				if (material->GetTexture(aiTextureType_EMISSIVE, 0, &mPath, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS)
-				{
-					const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
-					if (embedded)
-						newMaterial.emissiveMapId = assetManager->AddTexture(embedded, Texture::Type::EMISSIVE);
-					else
-						newMaterial.emissiveMapId = assetManager->AddTexture(path + mPath.C_Str(), Texture::Type::EMISSIVE);
-				}
-			}
+
 			materialIdx[i] = assetManager->AddMaterial(newMaterial);
 		}
 		return materialIdx;
