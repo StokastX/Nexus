@@ -4,6 +4,11 @@ project(Nexus LANGUAGES C CXX CUDA)
 find_package(CUDAToolkit REQUIRED)
 find_package(OpenGL)
 
+# std::thread (Utils/ParallelFor.h) needs no linking on MSVC, but does need -pthread on Linux,
+# where a program that leaves it out builds and then fails at run time rather than at link time.
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 set(CMAKE_CUDA_ARCHITECTURES native)
 
@@ -58,6 +63,7 @@ target_link_libraries(Nexus
 	imgui
 	tinyfiledialogs
 	NexusBVH
+	Threads::Threads
 )
 
 target_include_directories(Nexus

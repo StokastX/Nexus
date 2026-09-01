@@ -15,7 +15,7 @@ namespace Nexus {
 	 * Every buffer a Texture holds comes from stbi_load/stbi_loadf, so it has to be released with
 	 * stbi_image_free -- not delete, not free. Expressing that as a deleter type moves the
 	 * requirement into the pointer's type, instead of leaving it as an unwritten agreement between
-	 * IMGLoader (which allocates) and Texture (which releases).
+	 * TextureLoader (which allocates) and Texture (which releases).
 	 *
 	 * Stateless on purpose: an empty deleter costs nothing, so a StbImageData is exactly the size of
 	 * a bare pointer. operator() is defined in the .cpp so this header need not include stb_image.h.
@@ -54,7 +54,7 @@ namespace Nexus {
 		Texture& operator=(Texture&&) noexcept = default;
 
 		// Uploads the pixels and builds the sampler. Explicit rather than done in the constructor
-		// because a Texture is a loaded image first and a device resource second; IMGLoader itself
+		// because a Texture is a loaded image first and a device resource second; TextureLoader itself
 		// needs no CUDA context. A Texture that exists always has pixels -- LoadIMG returns nothing
 		// on failure -- so this can never be asked to upload nothing.
 		void UploadToDevice();
@@ -82,7 +82,7 @@ namespace Nexus {
 		uint32_t height = 0;
 
 		// What the source file held. The buffer is always 4 components wide regardless, because
-		// IMGLoader asks stb for 4 -- so never size an allocation or a copy from this.
+		// TextureLoader asks stb for 4 -- so never size an allocation or a copy from this.
 		uint32_t channels = 0;
 
 		bool HDR = false;

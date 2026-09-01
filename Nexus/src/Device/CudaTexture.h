@@ -22,7 +22,7 @@ namespace Nexus {
 		/*
 		 * Uploads `pixels` and builds a sampler over it: wrapped, linearly filtered, normalized
 		 * coordinates. The buffer is always four components wide -- one float each when `hdr`,
-		 * one unsigned char each otherwise -- because IMGLoader always asks stb for 4, so never
+		 * one unsigned char each otherwise -- because TextureLoader always asks stb for 4, so never
 		 * size this from a texture's `channels`. `sRGB` asks the hardware for the sRGB -> linear
 		 * conversion on fetch.
 		 */

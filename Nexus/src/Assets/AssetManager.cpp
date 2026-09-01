@@ -1,7 +1,8 @@
 #include "AssetManager.h"
 #include "SceneLoader.h"
-#include "IMGLoader.h"
+#include "TextureLoader.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
+#include "Utils/ParallelFor.h"
 
 namespace Nexus {
 
@@ -40,28 +41,98 @@ namespace Nexus {
 		return idx;
 	}
 
-	int AssetManager::AddTexture(const std::string& filePath, Texture::Type type)
+	/*
+	 * Identity of the image a request names, as a string that can be compared.
+	 *
+	 * Keyed on the type as well as the source: the same file can serve as a base colour map in one
+	 * material and a roughness map in another, and those want opposite sRGB handling. Sharing one
+	 * entry between them would give one of the two the wrong decode.
+	 */
+	static std::string TextureKey(const TextureRequest& request)
 	{
-		// Keyed on the type as well as the path: the same file can serve as a base colour map in one
-		// material and a roughness map in another, and those want opposite sRGB handling. Sharing one
-		// entry between them would give one of the two the wrong decode.
-		const std::string key = filePath + '#' + std::to_string(static_cast<int>(type));
+		const std::string suffix = '#' + std::to_string(static_cast<int>(request.type));
 
-		auto cached = m_TextureIds.find(key);
-		if (cached != m_TextureIds.end())
-			return cached->second;
+		// An embedded image has no name of its own, so its address in the aiScene is what
+		// distinguishes it. Valid for as long as the import, which is why keys of this shape are
+		// only ever compared within one batch -- see m_TextureIds.
+		if (request.embedded)
+			return '@' + std::to_string(reinterpret_cast<uintptr_t>(request.embedded)) + suffix;
 
-		const int id = StoreTexture(IMGLoader::LoadIMG(filePath, type));
-		if (id != -1)
-			m_TextureIds.emplace(key, id);
-
-		return id;
+		return request.path + suffix;
 	}
 
-	int AssetManager::AddTexture(const aiTexture* embedded, Texture::Type type)
+	std::vector<int> AssetManager::AddTextures(const std::vector<TextureRequest>& requests)
 	{
-		// Embedded textures carry no path to key the cache on.
-		return StoreTexture(IMGLoader::LoadIMG(embedded, type));
+		std::vector<int> ids(requests.size(), -1);
+
+		// The requests that will actually be decoded, as indices into `requests`.
+		std::vector<size_t> toDecode;
+
+		// For a request that repeats one already in `toDecode`, the index of that first request;
+		// npos for every request that is not a repeat. Resolved after the ids exist, because the
+		// first occurrence has no id yet at the point the repeat is found.
+		std::vector<size_t> repeatOf(requests.size(), std::string::npos);
+
+		std::unordered_map<std::string, size_t> firstRequest;
+
+		for (size_t i = 0; i < requests.size(); i++)
+		{
+			const std::string key = TextureKey(requests[i]);
+
+			// Already loaded by an earlier call -- a second model sharing a texture with the first.
+			auto cached = m_TextureIds.find(key);
+			if (cached != m_TextureIds.end())
+			{
+				ids[i] = cached->second;
+				continue;
+			}
+
+			const auto [entry, isFirst] = firstRequest.emplace(key, i);
+			if (isFirst)
+				toDecode.push_back(i);
+			else
+				repeatOf[i] = entry->second;
+		}
+
+		/*
+		 * The expensive part, and the only part that runs on more than one thread.
+		 *
+		 * Every worker writes one element of a vector sized above and reads nothing shared, so no
+		 * locking is involved. TextureLoader touches no CUDA and reports failure by returning nothing
+		 * rather than throwing, which is what makes it safe to call from here.
+		 */
+		std::vector<std::optional<Texture>> decoded(toDecode.size());
+
+		Utils::ParallelFor(toDecode.size(), [&](size_t slot)
+		{
+			const TextureRequest& request = requests[toDecode[slot]];
+
+			decoded[slot] = request.embedded
+				? TextureLoader::LoadIMG(request.embedded, request.type)
+				: TextureLoader::LoadIMG(request.path, request.type);
+		});
+
+		// Uploading and registering stays here, on one thread: it allocates device memory and
+		// appends to m_Textures, neither of which a worker may do. Walked in request order, so the
+		// ids a given scene produces do not depend on how the decode happened to be scheduled.
+		for (size_t slot = 0; slot < toDecode.size(); slot++)
+		{
+			const size_t requestIdx = toDecode[slot];
+			const int id = StoreTexture(std::move(decoded[slot]));
+
+			ids[requestIdx] = id;
+
+			if (id != -1 && !requests[requestIdx].embedded)
+				m_TextureIds.emplace(TextureKey(requests[requestIdx]), id);
+		}
+
+		for (size_t i = 0; i < requests.size(); i++)
+		{
+			if (repeatOf[i] != std::string::npos)
+				ids[i] = ids[repeatOf[i]];
+		}
+
+		return ids;
 	}
 
 	int AssetManager::StoreTexture(std::optional<Texture> texture)

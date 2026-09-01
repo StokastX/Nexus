@@ -1,18 +1,18 @@
 #define STB_IMAGE_IMPLEMENTATION
-#include "IMGLoader.h"
+#include "TextureLoader.h"
 #include "stb_image.h"
 
 namespace Nexus {
 
-	IMGLoader::IMGLoader()
+	TextureLoader::TextureLoader()
 	{
 	}
 
-	IMGLoader::~IMGLoader()
+	TextureLoader::~TextureLoader()
 	{
 	}
 
-	std::optional<Texture> IMGLoader::LoadIMG(const std::string& filepath, Texture::Type type)
+	std::optional<Texture> TextureLoader::LoadIMG(const std::string& filepath, Texture::Type type)
 	{
 		int width, height, channels;
 
@@ -31,20 +31,24 @@ namespace Nexus {
 		// cudaMallocArray. One representation of failure, checked at the call site.
 		if (pixels == nullptr)
 		{
-			std::cout << "IMGLoader: Failed to load texture " << filepath << std::endl;
+			// Built into one string and inserted once, not streamed piece by piece. These loads run
+			// on several threads at a time; std::cout is safe to write from all of them, but each
+			// insertion is only individually atomic, so a message spread over three of them
+			// interleaves with the other threads' messages exactly when it is needed most.
+			std::cout << ("TextureLoader: Failed to load texture " + filepath + '\n');
 			return std::nullopt;
 		}
 
 		return Texture(width, height, channels, HDR, type, StbImageData(pixels));
 	}
 
-	std::optional<Texture> IMGLoader::LoadIMG(const aiTexture* texture, Texture::Type type)
+	std::optional<Texture> TextureLoader::LoadIMG(const aiTexture* texture, Texture::Type type)
 	{
 		// mHeight != 0 means the embedded texture is raw ARGB rather than an encoded file, which
 		// stbi_load_from_memory cannot read.
 		if (texture->mHeight != 0)
 		{
-			std::cout << "IMGLoader: Unsupported uncompressed embedded texture" << std::endl;
+			std::cout << "TextureLoader: Unsupported uncompressed embedded texture\n";
 			return std::nullopt;
 		}
 
@@ -53,7 +57,7 @@ namespace Nexus {
 
 		if (pixels == nullptr)
 		{
-			std::cout << "IMGLoader: Failed to load an embedded texture" << std::endl;
+			std::cout << "TextureLoader: Failed to load an embedded texture\n";
 			return std::nullopt;
 		}
 

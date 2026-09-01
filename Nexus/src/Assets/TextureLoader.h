@@ -6,11 +6,11 @@
 
 namespace Nexus {
 
-	class IMGLoader
+	class TextureLoader
 	{
 	public:
-		IMGLoader();
-		~IMGLoader();
+		TextureLoader();
+		~TextureLoader();
 
 		static std::optional<Texture> LoadIMG(const std::string& pathfile, Texture::Type type);
 

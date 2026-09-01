@@ -1,7 +1,7 @@
 #include "SceneLoader.h"
 #include <vector>
 #include "stb_image.h"
-#include "IMGLoader.h"
+#include "TextureLoader.h"
 
 namespace Nexus {
 
@@ -110,15 +110,28 @@ namespace Nexus {
 		{ aiTextureType_EMISSIVE,                Texture::Type::EMISSIVE,          &Material::emissiveMapId }
 	};
 
+	// Which material field one entry of the request list is destined for.
+	struct SlotBinding
+	{
+		uint32_t materialIdx;
+		int32_t Material::* id;
+	};
+
 	// Return the list of IDs of the created materials
 	static std::vector<uint32_t > CreateMaterialsFromAiScene(const aiScene* scene, AssetManager* assetManager, const std::string& path)
 	{
-		std::vector<uint32_t> materialIdx(scene->mNumMaterials);
+		std::vector<Material> materials(scene->mNumMaterials);
 
-		for (int i = 0; i < scene->mNumMaterials; i++)
+		// Every image the scene asks for, collected before any of it is loaded. The loop below
+		// records what each material wants rather than fetching it, so that the whole set can be
+		// decoded in one pass that uses every core.
+		std::vector<TextureRequest> requests;
+		std::vector<SlotBinding> bindings;
+
+		for (uint32_t i = 0; i < scene->mNumMaterials; i++)
 		{
 			aiMaterial* material = scene->mMaterials[i];
-			Material newMaterial;
+			Material& newMaterial = materials[i];
 
 			aiColor3D baseColor(0.0f);
 			material->Get(AI_MATKEY_BASE_COLOR, baseColor);
@@ -151,15 +164,31 @@ namespace Nexus {
 				if (material->GetTexture(slot.aiType, 0, &mPath, NULL, NULL, NULL, NULL, NULL) != AI_SUCCESS)
 					continue;
 
-				const aiTexture* embedded = scene->GetEmbeddedTexture(mPath.data);
-				if (embedded)
-					newMaterial.*slot.id = assetManager->AddTexture(embedded, slot.type);
-				else
-					newMaterial.*slot.id = assetManager->AddTexture(path + mPath.C_Str(), slot.type);
-			}
+				TextureRequest request;
+				request.type = slot.type;
+				request.embedded = scene->GetEmbeddedTexture(mPath.data);
 
-			materialIdx[i] = assetManager->AddMaterial(newMaterial);
+				// A model that carries its images inside itself gives no path to resolve.
+				if (!request.embedded)
+					request.path = path + mPath.C_Str();
+
+				requests.push_back(std::move(request));
+				bindings.push_back({ i, slot.id });
+			}
 		}
+
+		// One id per request, in request order, which is what lets the bindings be walked in step.
+		const std::vector<int> textureIds = assetManager->AddTextures(requests);
+
+		for (size_t i = 0; i < bindings.size(); i++)
+			materials[bindings[i].materialIdx].*bindings[i].id = textureIds[i];
+
+		// Registered only now: a material is uploaded by AddMaterial, so it has to carry its final
+		// texture ids by the time it goes in.
+		std::vector<uint32_t> materialIdx(scene->mNumMaterials);
+		for (uint32_t i = 0; i < scene->mNumMaterials; i++)
+			materialIdx[i] = assetManager->AddMaterial(materials[i]);
+
 		return materialIdx;
 	}
 

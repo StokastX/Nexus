@@ -1,7 +1,7 @@
 #include "Scene.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Utils/cuda_math.h"
-#include "Assets/IMGLoader.h"
+#include "Assets/TextureLoader.h"
 #include "Assets/SceneLoader.h"
 
 
@@ -90,7 +90,7 @@ namespace Nexus {
 
 	void Scene::AddHDRMap(const std::string& filePath, const std::string& fileName)
 	{
-		std::optional<Texture> hdrMap = IMGLoader::LoadIMG(filePath + fileName, Texture::Type::ENVIRONMENT);
+		std::optional<Texture> hdrMap = TextureLoader::LoadIMG(filePath + fileName, Texture::Type::ENVIRONMENT);
 
 		// Keep whatever map is already loaded if this one failed, rather than clearing it.
 		if (!hdrMap)
