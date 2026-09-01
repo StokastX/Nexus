@@ -16,6 +16,7 @@ namespace Nexus {
 		EditorLayer();
 		virtual ~EditorLayer();
 
+		virtual void OnAttach() override;
 		virtual void OnUpdate(float deltaTime) override;
 		virtual void OnRender() override;
 
@@ -29,10 +30,10 @@ namespace Nexus {
 		void SaveScreenshot();
 
 	private:
+		Scene m_Scene;
 		Renderer m_Renderer;
 		OGLRenderer m_OGLRenderer;
 
-		Scene m_Scene;
 		RenderPanel m_RenderPanel;
 		ViewportPanel m_ViewportPanel;
 		SceneHierarchyPanel m_SceneHierarchyPanel;

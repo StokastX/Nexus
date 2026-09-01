@@ -12,6 +12,7 @@
 
 #include "Renderer/FileDialog.h"
 #include "Core/Application.h"
+#include "Utils/Paths.h"
 
 namespace Nexus {
 
@@ -24,6 +25,28 @@ namespace Nexus {
 
 	EditorLayer::~EditorLayer()
 	{
+	}
+
+	void EditorLayer::OnAttach()
+	{
+		// Open on a scene rather than an empty dockspace, the way Blender opens on its cube: every
+		// panel has something in it and the editor starts in the state it spends its life in.
+		std::string fileName, filePath;
+		Utils::GetPathAndFileName(Paths::Resolve("assets/demo_scenes/cornell_box/cornell_box.glb"), filePath, fileName);
+		m_Scene.CreateMeshInstanceFromFile(filePath, fileName);
+
+		// A punctual light so the light branch of the Properties panel is reachable without one
+		// having to be added by hand. Mesh lights do not appear in the outliner.
+		Light light;
+		light.type = Light::Type::POINT;
+		light.point.position = make_float3(0.0f, 1.0f, 0.0f);
+		light.point.color = make_float3(1.0f, 1.0f, 1.0f);
+		light.point.intensity = 1.0f;
+		m_Scene.AddLight(light);
+
+		CheckCudaErrors(cudaDeviceSynchronize());
+
+		m_SceneHierarchyPanel.SetSelectionContext(SelectionContext::Type::INSTANCE, 0);
 	}
 
 	void EditorLayer::OnUpdate(float deltaTime)

@@ -146,11 +146,14 @@ namespace Nexus {
 		colors[ImGuiCol_ButtonHovered] = Grey700;
 		colors[ImGuiCol_ButtonActive] = Mix(Grey800, Accent, 0.30f);
 
-		// Tree selection and collapsing headers: tinted, never fully saturated, so a selected row
-		// stays readable and several of them do not fight for attention.
-		colors[ImGuiCol_Header] = Alpha(Accent, 0.22f);
-		colors[ImGuiCol_HeaderHovered] = Alpha(Accent, 0.32f);
-		colors[ImGuiCol_HeaderActive] = Alpha(Accent, 0.42f);
+		// Header is shared by three things: selected tree rows, Selectables, and the fill of framed
+		// tree nodes / CollapsingHeaders -- and that last one is painted unconditionally, not only
+		// when selected. Any accent here turns every section bar in the Properties panel into a
+		// coloured block, so it stays neutral. Monotonic on purpose: hover is brighter than a
+		// resting selection, held is brightest.
+		colors[ImGuiCol_Header] = Grey500;
+		colors[ImGuiCol_HeaderHovered] = Grey400;
+		colors[ImGuiCol_HeaderActive] = Grey300;
 
 		colors[ImGuiCol_Separator] = Alpha(Grey400, 0.55f);
 		colors[ImGuiCol_SeparatorHovered] = Alpha(Accent, 0.60f);
