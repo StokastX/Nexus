@@ -16,9 +16,9 @@ namespace Nexus {
 		m_Meshes.Clear();
 	}
 
-	uint32_t AssetManager::AddMesh(const std::string& name, uint32_t materialIdx, const std::vector<NXB::Triangle>& triangles, const std::vector<TriangleData>& triangleData)
+	uint32_t AssetManager::AddMesh(std::string name, uint32_t materialIdx, std::vector<NXB::Triangle> triangles, std::vector<TriangleData> triangleData)
 	{
-		m_Meshes.EmplaceBack(name, triangles, triangleData, materialIdx);
+		m_Meshes.EmplaceBack(std::move(name), std::move(triangles), std::move(triangleData), materialIdx);
 
 		m_DeviceMeshesAdress = m_Meshes.DeviceData();
 

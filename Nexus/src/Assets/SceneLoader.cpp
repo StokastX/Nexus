@@ -7,82 +7,81 @@ namespace Nexus {
 
 	static std::tuple<std::vector<NXB::Triangle>, std::vector<TriangleData>> GetTrianglesFromAiMesh(const aiMesh* mesh)
 	{
-		std::vector<NXB::Triangle> triangles(mesh->mNumFaces);
-		std::vector<TriangleData> triangleData(mesh->mNumFaces);
+		/*
+		 * Reserved, not sized: a face that is not a triangle is dropped, so these end up shorter
+		 * than the face count. Sizing them up front instead left the dropped face's slot behind as
+		 * a zeroed entry -- a degenerate triangle at the origin, which still went into the BVH and
+		 * still answered intersection queries.
+		 */
+		std::vector<NXB::Triangle> triangles;
+		std::vector<TriangleData> triangleData;
+		triangles.reserve(mesh->mNumFaces);
+		triangleData.reserve(mesh->mNumFaces);
 
-		for (int i = 0; i < mesh->mNumFaces; i++)
+		// Hoisted out of the loops below: each asks what the mesh as a whole carries, which cannot
+		// change while it is being read. Inside the per-vertex loop they were three branches
+		// re-evaluated for every vertex of every face.
+		const bool hasNormals = mesh->HasNormals();
+		const bool hasTangents = mesh->HasTangentsAndBitangents();
+
+		// We only deal with one tex coord per vertex for now
+		const bool hasTexCoords = mesh->HasTextureCoords(0);
+
+		for (uint32_t i = 0; i < mesh->mNumFaces; i++)
 		{
+			const aiFace& face = mesh->mFaces[i];
+
+			// Tested once per face rather than once per vertex, which also stops a single bad face
+			// reporting itself three times.
+			if (face.mNumIndices != 3)
+			{
+				std::cout << "SceneLoader: a non triangle primitive with " + std::to_string(face.mNumIndices)
+					+ " vertices has been discarded\n";
+				continue;
+			}
+
 			float3 pos[3] = { };
 			float3 normal[3] = { };
 			float3 tangent[3] = { };
 			float2 texCoord[3] = { };
-			bool skipFace = false;
 
-			for (int k = 0; k < 3; k++)
+			for (uint32_t k = 0; k < 3; k++)
 			{
-				if (mesh->mFaces[i].mNumIndices != 3)
-				{
-					std::cout << "SceneLoader: a non triangle primitive with " << mesh->mFaces[i].mNumIndices << " vertices has been discarded" << std::endl;
-					skipFace = true;
-					continue;
-				}
-				unsigned int vertexIndex = mesh->mFaces[i].mIndices[k];
+				const uint32_t vertexIndex = face.mIndices[k];
 
-				aiVector3D v = mesh->mVertices[vertexIndex];
-				pos[k].x = v.x;
-				pos[k].y = v.y;
-				pos[k].z = v.z;
+				const aiVector3D& v = mesh->mVertices[vertexIndex];
+				pos[k] = make_float3(v.x, v.y, v.z);
 
-				if (mesh->HasNormals())
+				if (hasNormals)
 				{
-					v = mesh->mNormals[vertexIndex];
-					normal[k].x = v.x;
-					normal[k].y = v.y;
-					normal[k].z = v.z;
+					const aiVector3D& n = mesh->mNormals[vertexIndex];
+					normal[k] = make_float3(n.x, n.y, n.z);
 				}
 
-				if (mesh->HasTangentsAndBitangents())
+				if (hasTangents)
 				{
-					v = mesh->mTangents[vertexIndex];
-					tangent[k].x = v.x;
-					tangent[k].y = v.y;
-					tangent[k].z = v.z;
+					const aiVector3D& t = mesh->mTangents[vertexIndex];
+					tangent[k] = make_float3(t.x, t.y, t.z);
 				}
 
-				// We only deal with one tex coord per vertex for now
-				if (mesh->HasTextureCoords(0))
+				if (hasTexCoords)
 				{
-					v = mesh->mTextureCoords[0][vertexIndex];
-					texCoord[k].x = v.x;
-					texCoord[k].y = v.y;
-
+					const aiVector3D& uv = mesh->mTextureCoords[0][vertexIndex];
+					texCoord[k] = make_float2(uv.x, uv.y);
 				}
 			}
-			if (skipFace)
-				continue;
 
-			NXB::Triangle triangle(
-				pos[0],
-				pos[1],
-				pos[2]
+			triangles.emplace_back(pos[0], pos[1], pos[2]);
+			triangleData.emplace_back(
+				normal[0], normal[1], normal[2],
+				tangent[0], tangent[1], tangent[2],
+				texCoord[0], texCoord[1], texCoord[2]
 			);
-
-			TriangleData data(
-				normal[0],
-				normal[1],
-				normal[2],
-				tangent[0],
-				tangent[1],
-				tangent[2],
-				texCoord[0],
-				texCoord[1],
-				texCoord[2]
-			);
-
-			triangles[i] = triangle;
-			triangleData[i] = data;
 		}
-		return std::make_tuple(triangles, triangleData);
+
+		// Moved out, not copied: these are the largest allocations in a scene load, and returning
+		// them by name would copy both into the tuple.
+		return std::make_tuple(std::move(triangles), std::move(triangleData));
 	}
 
 	/*
@@ -252,7 +251,10 @@ namespace Nexus {
 
 			std::string meshName = mesh->mName.data;
 			uint32_t mIdx = materialIdx[mesh->mMaterialIndex];
-			uint32_t meshId = assetManager->AddMesh(meshName, mIdx, triangles, triangleData);
+
+			// Handed over rather than lent: nothing here reads the arrays again, and AddMesh is
+			// the last stop before they come to rest inside the Mesh.
+			uint32_t meshId = assetManager->AddMesh(std::move(meshName), mIdx, std::move(triangles), std::move(triangleData));
 			meshIds.push_back(meshId);
 		}
 		return meshIds;

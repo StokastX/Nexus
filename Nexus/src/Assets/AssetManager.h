@@ -47,7 +47,12 @@ namespace Nexus {
 
 		void Reset();
 
-		uint32_t AddMesh(const std::string& name, uint32_t materialIdx, const std::vector<NXB::Triangle>& triangles, const std::vector<TriangleData>& triangleData);
+		/*
+		 * Takes ownership of the arrays: they are the largest allocations a scene load makes, and
+		 * the Mesh keeps both for the lifetime of the scene, so lending them here only meant
+		 * copying them into it. Pass them with std::move.
+		 */
+		uint32_t AddMesh(std::string name, uint32_t materialIdx, std::vector<NXB::Triangle> triangles, std::vector<TriangleData> triangleData);
 
 		void AddMaterial();
 		uint32_t AddMaterial(const Material& material);

@@ -16,10 +16,13 @@ namespace Nexus {
 	struct Mesh
 	{
 		Mesh() = default;
-		Mesh(const std::string n, const std::vector<NXB::Triangle>& t, const std::vector<TriangleData>& td,
+		// The arrays are taken by value and moved into place: a Mesh holds them for as long as it
+		// lives, so a caller that has no further use for them should hand them over rather than
+		// have them copied. Cheap either way for a caller that does still need its own.
+		Mesh(std::string n, std::vector<NXB::Triangle> t, std::vector<TriangleData> td,
 			uint32_t mId = INVALID_IDX, float3 p = make_float3(0.0f),
 			float3 r = make_float3(0.0f), float3 s = make_float3(1.0f))
-			: name(n), triangles(t), triangleData(td), materialIdx(mId), position(p), rotation(r), scale(s)
+			: name(std::move(n)), triangles(std::move(t)), triangleData(std::move(td)), materialIdx(mId), position(p), rotation(r), scale(s)
 		{
 			deviceTriangles = triangles;
 			deviceTriangleData = triangleData;
