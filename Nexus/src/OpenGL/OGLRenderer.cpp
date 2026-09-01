@@ -45,7 +45,7 @@ namespace Nexus {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_FrameBuffer.Get());
 
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
-		glClearColor(0.24f, 0.24f, 0.24f, 1.0f);
+		glClearColor(0.22f, 0.22f, 0.22f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
