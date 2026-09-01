@@ -45,32 +45,32 @@ namespace Nexus {
 		if (Input::IsKeyPressed(GLFW_KEY_W))
 		{
 			m_Position += ts * speed * m_ForwardDirection;
-			m_Invalid = true;
+			m_Changed = true;
 		}
 		else if (Input::IsKeyPressed(GLFW_KEY_S))
 		{
 			m_Position -= ts * speed * m_ForwardDirection;
-			m_Invalid = true;
+			m_Changed = true;
 		}
 		if (Input::IsKeyPressed(GLFW_KEY_A))
 		{
 			m_Position -= ts * speed * m_RightDirection;
-			m_Invalid = true;
+			m_Changed = true;
 		}
 		else if (Input::IsKeyPressed(GLFW_KEY_D))
 		{
 			m_Position += ts * speed * m_RightDirection;
-			m_Invalid = true;
+			m_Changed = true;
 		}
 		if (Input::IsKeyPressed(GLFW_KEY_Q))
 		{
 			m_Position -= ts * speed * upDirection;
-			m_Invalid = true;
+			m_Changed = true;
 		}
 		else if (Input::IsKeyPressed(GLFW_KEY_E))
 		{
 			m_Position += ts * speed * upDirection;
-			m_Invalid = true;
+			m_Changed = true;
 		}
 
 		if (delta.x != 0.0f || delta.y != 0.0f)
@@ -82,7 +82,7 @@ namespace Nexus {
 			m_ForwardDirection = q.Rotate(m_ForwardDirection);
 			m_RightDirection = normalize(cross(m_ForwardDirection, upDirection));
 
-			m_Invalid = true;
+			m_Changed = true;
 		}
 	}
 
@@ -93,7 +93,7 @@ namespace Nexus {
 
 		m_Resolution.x = resolution.x;
 		m_Resolution.y = resolution.y;
-		Invalidate();
+		MarkChanged();
 	}
 
 	float Camera::GetRotationSpeed()

@@ -6,6 +6,7 @@
 #include <optional>
 #include <unordered_map>
 #include "Device/DeviceVector.h"
+#include "Device/DeviceSymbol.h"
 #include "Assets/Mesh.h"
 #include "Assets/Material.h"
 #include "Texture.h"
@@ -50,7 +51,9 @@ namespace Nexus {
 
 		void UploadToDevice();
 
-		bool IsInvalid() { return m_Materials.Dirty(); }
+		// Every mirrored array UploadToDevice flushes. Reporting only on materials left a mesh
+		// or texture pushed without any material change able to sit unflushed indefinitely.
+		bool NeedsUpload() const { return m_Materials.Dirty() || m_Meshes.Dirty() || m_Textures.Dirty(); }
 
 	private:
 		// Uploads and registers an already-loaded texture; null means the load failed.
@@ -68,7 +71,7 @@ namespace Nexus {
 		std::unordered_map<std::string, int> m_TextureIds;
 
 		// Device members
-		DeviceInstance<D_Mesh*> m_DeviceMeshesAdress;
+		DeviceSymbol<D_Mesh*> m_DeviceMeshesAdress;
 	};
 
 }

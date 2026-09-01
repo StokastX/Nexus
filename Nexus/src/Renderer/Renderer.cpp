@@ -21,7 +21,10 @@ namespace Nexus {
 
 	void Renderer::Render()
 	{
-		if (m_Scene->IsInvalid())
+		// One branch covers both signals because NeedsAccumulationReset is a superset of
+		// NeedsUpload. Update is a no-op when nothing is dirty, and it is what clears the
+		// camera and render-setting flags, so it has to run for those too.
+		if (m_Scene->NeedsAccumulationReset())
 		{
 			m_Scene->Update();
 			m_PathTracer.ResetFrameNumber();

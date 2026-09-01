@@ -46,9 +46,16 @@ namespace Nexus {
 		void SetRightDirection(const float3& rightDirection) { m_RightDirection = rightDirection; }
 		Ray RayThroughPixel(int2 pixel);
 
-		bool IsInvalid() { return m_Invalid; }
-		void SetInvalid(bool invalid) { m_Invalid = invalid; }
-		void Invalidate() { m_Invalid = true; }
+		/*
+		 * Whether the view changed since the last frame was accumulated.
+		 *
+		 * Not an upload signal. The camera crosses to the device inside D_Scene, which ToDevice
+		 * rebuilds every frame, so there is never anything to flush -- the only consequence of a
+		 * camera change is that the accumulated image has to restart.
+		 */
+		bool Changed() const { return m_Changed; }
+		void MarkChanged() { m_Changed = true; }
+		void ClearChanged() { m_Changed = false; }
 
 		friend struct DeviceTraits<Camera>;
 
@@ -62,7 +69,7 @@ namespace Nexus {
 		float3 m_ForwardDirection = make_float3(0.0f, 0.0f, -1.0f);
 		float3 m_RightDirection = cross(m_ForwardDirection, make_float3(0.0f, 1.0f, 0.0f));
 
-		bool m_Invalid = true;
+		bool m_Changed = true;
 	};
 
 

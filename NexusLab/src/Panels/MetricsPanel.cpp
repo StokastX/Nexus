@@ -57,11 +57,11 @@ namespace Nexus {
 		ImGui::Spacing();
 		ImGui::SeparatorText("Camera settings");
 		if (ImGui::SliderFloat("Horizontal FOV", &camera->GetHorizontalFOV(), 1.0f, 180.0f))
-			camera->Invalidate();
+			camera->MarkChanged();
 		if (ImGui::DragFloat("Focus distance", &camera->GetFocusDist(), 0.02f, 0.01f, 1000.0f))
-			camera->Invalidate();
+			camera->MarkChanged();
 		if (ImGui::DragFloat("Defocus angle", &camera->GetDefocusAngle(), 0.2f, 0.0f, 180.0f))
-			camera->Invalidate();
+			camera->MarkChanged();
 
 		RenderSettings& renderSettings = m_Context->GetScene()->GetRenderSettings();
 		ImGui::Spacing();
@@ -74,7 +74,7 @@ namespace Nexus {
 			if (resolution.x > 0 && resolution.x <= MaxRenderResolution && resolution.y > 0 && resolution.y <= MaxRenderResolution)
 			{
 				m_Context->OnResize(make_uint2(resolution.x, resolution.y));
-				m_Context->GetScene()->Invalidate();
+				m_Context->GetScene()->InvalidateAccumulation();
 			}
 		}
 		ImGui::EndDisabled();
@@ -83,25 +83,25 @@ namespace Nexus {
 		ImGui::Spacing();
 		ImGui::SeparatorText("Render settings");
 		if (ImGui::Checkbox("Use MIS", &renderSettings.useMIS))
-			m_Context->GetScene()->Invalidate();
+			m_Context->GetScene()->InvalidateAccumulation();
 		if (ImGui::Checkbox("Vizualize BVH", &renderSettings.visualizeBvh))
-			m_Context->GetScene()->Invalidate();
+			m_Context->GetScene()->InvalidateAccumulation();
 		if (renderSettings.visualizeBvh)
 			if (ImGui::Checkbox("Wireframe", &renderSettings.wireframeBvh))
-				m_Context->GetScene()->Invalidate();
+				m_Context->GetScene()->InvalidateAccumulation();
 
 		int pathLength = renderSettings.pathLength;
 
 		if (ImGui::SliderInt("Path length", &pathLength, 1, PATH_MAX_LENGTH))
-			m_Context->GetScene()->Invalidate();
+			m_Context->GetScene()->InvalidateAccumulation();
 
 		renderSettings.pathLength = pathLength;
 
 		if (ImGui::ColorEdit3("Background color", (float*)&renderSettings.backgroundColor))
-			m_Context->GetScene()->Invalidate();
+			m_Context->GetScene()->InvalidateAccumulation();
 
 		if (ImGui::DragFloat("Background intensity", &renderSettings.backgroundIntensity, 0.01, 0.0f, 1000.0f))
-			m_Context->GetScene()->Invalidate();
+			m_Context->GetScene()->InvalidateAccumulation();
 
 		ImGui::Spacing();
 		ImGui::SeparatorText("Color management");

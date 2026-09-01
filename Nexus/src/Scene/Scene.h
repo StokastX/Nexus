@@ -3,6 +3,7 @@
 #include <iostream>
 #include <optional>
 #include "Device/DeviceVector.h"
+#include "Device/DeviceSymbol.h"
 #include "Device/DeviceTraits.h"
 
 #include "Camera.h"
@@ -40,8 +41,23 @@ namespace Nexus {
 		RenderSettings& GetRenderSettings() { return m_RenderSettings; }
 
 		bool IsEmpty() { return m_MeshInstances.Empty(); }
-		void Invalidate() { m_Invalid = true; }
-		bool IsInvalid() { return m_Invalid || m_MeshInstances.Dirty() || m_Lights.Dirty() || m_Camera->IsInvalid() || m_AssetManager.IsInvalid(); }
+		/*
+		 * The two signals a frame depends on.
+		 *
+		 * NeedsUpload is a transfer question: some mirrored array holds elements the device copy
+		 * has not seen. Update answers it.
+		 *
+		 * NeedsAccumulationReset is an image question: the picture being accumulated no longer
+		 * matches the scene and has to start over. Every upload implies it, but not the reverse --
+		 * moving the camera or changing a render setting implies it with nothing to upload at all,
+		 * because both reach the kernels inside D_Scene, which ToDevice rebuilds every frame.
+		 */
+		bool NeedsUpload() const { return m_MeshInstances.Dirty() || m_Lights.Dirty() || m_AssetManager.NeedsUpload(); }
+		bool NeedsAccumulationReset() const { return m_AccumulationInvalid || m_Camera->Changed() || NeedsUpload(); }
+
+		// For a change that alters the image without changing anything stored on the device
+		// separately -- a render setting, the resolution.
+		void InvalidateAccumulation() { m_AccumulationInvalid = true; }
 
 		void Update();
 		void BuildTLAS();
@@ -73,10 +89,11 @@ namespace Nexus {
 
 		RenderSettings m_RenderSettings;
 
-		bool m_Invalid = true;
+		// True at construction: nothing has been accumulated yet.
+		bool m_AccumulationInvalid = true;
 
 		// Device members
-		DeviceInstance<NXB::D_BVH> m_DeviceTlas;
+		DeviceSymbol<NXB::D_BVH> m_DeviceTlas;
 	};
 
 

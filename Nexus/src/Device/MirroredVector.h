@@ -239,11 +239,6 @@ namespace Nexus {
 		/*
 		 * Writes one element's device form straight into the device array.
 		 *
-		 * Deliberately not m_Device[i] = m_Host[i]: DeviceVector::operator[] builds a
-		 * DeviceInstance, whose constructor reads the element back with a blocking
-		 * cudaMemcpy D2H before the assignment overwrites it. Flushing a dirty set that way
-		 * would stall the host once per changed element for a value about to be discarded.
-		 *
 		 * deviceValue is a local, which is safe because the source is pageable host memory:
 		 * cudaMemcpyAsync stages such a copy before returning, so it does not outlive this frame.
 		 */

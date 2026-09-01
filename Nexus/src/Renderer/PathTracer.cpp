@@ -29,7 +29,7 @@ namespace Nexus {
 
 	void PathTracer::FreeDeviceBuffers()
 	{
-		CudaMemory::FreeAsync(m_AccumulationBuffer.Instance());
+		CudaMemory::FreeAsync(m_AccumulationBuffer.Value());
 		CudaMemory::FreeAsync(m_PathState->lastPdf);
 		CudaMemory::FreeAsync(m_PathState->throughput);
 		CudaMemory::FreeAsync(m_PathState->radiance);

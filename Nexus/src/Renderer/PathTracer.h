@@ -3,6 +3,7 @@
 #include "OpenGL/InteropTexture.h"
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Device/DeviceVector.h"
+#include "Device/DeviceSymbol.h"
 #include "Scene/Scene.h"
 #include "Device/Kernels/CUDAGraph.h"
 
@@ -49,23 +50,23 @@ namespace Nexus {
 		uint2 m_Resolution;
 
 		// Device members
-		DeviceInstance<float3*> m_AccumulationBuffer;
-		DeviceInstance<uint32_t> m_DeviceFrameNumber;
-		DeviceInstance<uint32_t> m_DeviceBounce;
-		DeviceInstance<cudaSurfaceObject_t> m_RenderSurface;
+		DeviceSymbol<float3*> m_AccumulationBuffer;
+		DeviceSymbol<uint32_t> m_DeviceFrameNumber;
+		DeviceSymbol<uint32_t> m_DeviceBounce;
+		DeviceSymbol<cudaSurfaceObject_t> m_RenderSurface;
 
-		DeviceInstance<Scene> m_Scene;
+		DeviceSymbol<Scene> m_Scene;
 
-		DeviceInstance<D_PixelQuery> m_PixelQuery;
+		DeviceSymbol<D_PixelQuery> m_PixelQuery;
 		bool m_PixelQueryPending = false;
 
-		DeviceInstance<D_PathStateSOA> m_PathState;
+		DeviceSymbol<D_PathStateSOA> m_PathState;
 
-		DeviceInstance<D_TraceRequestSOA> m_TraceRequest;
-		DeviceInstance<D_ShadowTraceRequestSOA> m_ShadowTraceRequest;
+		DeviceSymbol<D_TraceRequestSOA> m_TraceRequest;
+		DeviceSymbol<D_ShadowTraceRequestSOA> m_ShadowTraceRequest;
 
-		DeviceInstance<D_MaterialRequestSOA> m_MaterialRequest;
-		DeviceInstance<D_QueueSize> m_QueueSize;
+		DeviceSymbol<D_MaterialRequestSOA> m_MaterialRequest;
+		DeviceSymbol<D_QueueSize> m_QueueSize;
 	};
 
 }

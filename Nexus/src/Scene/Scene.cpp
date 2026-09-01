@@ -19,11 +19,11 @@ namespace Nexus {
 
 	void Scene::Reset()
 	{
-		m_Invalid = true;
+		m_AccumulationInvalid = true;
 		m_MeshInstances.Clear();
 		m_Lights.Clear();
 		m_AssetManager.Reset();
-		m_Camera->Invalidate();
+		m_Camera->MarkChanged();
 		m_Tlas = NXB::BVH();
 	}
 
@@ -34,8 +34,6 @@ namespace Nexus {
 
 	void Scene::Update()
 	{
-		m_Camera->SetInvalid(false);
-
 		// Mesh lights are derived from material emission, so they are re-derived from the materials
 		// that changed -- before UploadToDevice below flushes that set and clears it. This pass
 		// adds and removes lights, so it has to run before the lights are flushed too.
@@ -56,7 +54,9 @@ namespace Nexus {
 				BuildTLAS();
 		}
 
-		m_Invalid = false;
+		// Both signals are cleared here, at the end, once the work they asked for is done.
+		m_Camera->ClearChanged();
+		m_AccumulationInvalid = false;
 	}
 
 	void Scene::BuildTLAS()

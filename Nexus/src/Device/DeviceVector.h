@@ -1,9 +1,7 @@
 #pragma once
 #include <vector>
 #include <cassert>
-#include "Allocators/DeviceAllocator.h"
 #include "CudaMemory.h"
-#include "DeviceInstance.h"
 #include "DeviceTraits.h"
 
 /*
@@ -28,29 +26,23 @@ namespace Nexus {
 			Realloc(2);
 		}
 
-		DeviceVector(size_t size, DeviceAllocator<TDevice>* allocator = nullptr)
-			: m_Allocator(allocator)
+		DeviceVector(size_t size)
 		{
 			Realloc(size);
 			m_Size = size;
 		}
 
-		DeviceVector(const DeviceVector<THost>& other)
-			: m_Allocator(other.m_Allocator)
-		{
-			Realloc(other.Size());
-			m_Size = other.Size();
-			CudaMemory::CopyAsync<TDevice>(m_Data, other.Data(), other.Size(), cudaMemcpyDeviceToDevice);
-		}
+		// Move-only: this owns a device allocation, and nothing ever copied one.
+		DeviceVector(const DeviceVector<THost>& other) = delete;
+		DeviceVector<THost>& operator=(const DeviceVector<THost>& other) = delete;
 
 		DeviceVector(DeviceVector<THost>&& other)
-			: m_Allocator(other.m_Allocator), m_Capacity(other.m_Capacity), m_Size(other.m_Size), m_Data(other.m_Data)
+			: m_Capacity(other.m_Capacity), m_Size(other.m_Size), m_Data(other.m_Data)
 		{
 			other.m_Data = nullptr;
 		}
 
-		DeviceVector(const std::vector<THost>& hostVector, DeviceAllocator<TDevice>* allocator = nullptr)
-			: m_Allocator(allocator)
+		DeviceVector(const std::vector<THost>& hostVector)
 		{
 			Realloc(hostVector.size());
 			m_Size = hostVector.size();
@@ -74,21 +66,7 @@ namespace Nexus {
 			Clear();
 
 			if (m_Data)
-				DeviceAllocator<TDevice>::Free(m_Allocator, m_Data);
-		}
-
-		DeviceVector<THost>& operator=(const DeviceVector<THost>& other)
-		{
-			if (this != &other)
-			{
-				Clear();
-				m_Allocator = other.m_Allocator;
-				m_Capacity = other.m_Capacity;
-				Realloc(m_Capacity);
-				m_Size = other.Size();
-				CudaMemory::CopyAsync<TDevice>(m_Data, other.m_Data, other.m_Size, cudaMemcpyDeviceToDevice);
-			}
-			return *this;
+				CudaMemory::Free(m_Data);
 		}
 
 		DeviceVector<THost>& operator=(DeviceVector<THost>&& other)
@@ -96,8 +74,10 @@ namespace Nexus {
 			if (this != &other)
 			{
 				Clear();
+
+				// Released before the pointer is overwritten, or the old block leaks.
 				CudaMemory::Free(m_Data);
-				m_Allocator = other.m_Allocator;
+
 				m_Capacity = other.m_Capacity;
 				m_Data = other.m_Data;
 				m_Size = other.m_Size;
@@ -141,16 +121,10 @@ namespace Nexus {
 
 		TDevice* Data() const { return m_Data; }
 
-		DeviceInstance<THost> operator[] (size_t index)
-		{
-			assert(index >= 0 && index < m_Size);
-			return DeviceInstance<THost>(m_Data + index);
-		}
-
 	private:
 		void Realloc(size_t newCapacity)
 		{
-			TDevice* newBlock = DeviceAllocator<TDevice>::Alloc(m_Allocator, newCapacity);
+			TDevice* newBlock = CudaMemory::Allocate<TDevice>(newCapacity);
 
 			size_t size = std::min(newCapacity, m_Size);
 
@@ -158,14 +132,13 @@ namespace Nexus {
 			if (m_Data && size > 0)
 				CudaMemory::CopyAsync<TDevice>(newBlock, m_Data, size, cudaMemcpyDeviceToDevice);
 
-			DeviceAllocator<TDevice>::Free(m_Allocator, m_Data);
+			CudaMemory::Free(m_Data);
 			m_Data = newBlock;
 			m_Capacity = newCapacity;
 		}
 
 	private:
 		TDevice* m_Data = nullptr;
-		DeviceAllocator<TDevice>* m_Allocator = nullptr;
 
 		size_t m_Size = 0;
 		size_t m_Capacity = 0;
