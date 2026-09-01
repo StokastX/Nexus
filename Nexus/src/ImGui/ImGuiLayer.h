@@ -3,6 +3,8 @@
 #include <iostream>
 #include "Core/Layer.h"
 
+struct ImFont;
+
 namespace Nexus {
 
 	class ImGuiLayer : public Layer
@@ -29,7 +31,13 @@ namespace Nexus {
 		// which imgui_internal.h #errors on when imgui.h was already included without it.
 		static void ApplyTheme();
 
+		// The semibold face, for section headings. Owned by the ImGui font atlas, valid between
+		// OnAttach and OnDetach. Null before the fonts are loaded.
+		static ImFont* SemiBoldFont() { return s_SemiBoldFont; }
+
 	private:
+		static ImFont* s_SemiBoldFont;
+
 		bool m_BlockEvents = true;
 	};
 

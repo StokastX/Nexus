@@ -12,6 +12,8 @@
 
 namespace Nexus {
 
+	ImFont* ImGuiLayer::s_SemiBoldFont = nullptr;
+
 	namespace {
 
 		/*
@@ -66,7 +68,11 @@ namespace Nexus {
 		float xscale, yscale;
 		glfwGetWindowContentScale(Application::Get().GetWindow().GetHandle(), &xscale, &yscale);
 
-		io.Fonts->AddFontFromFileTTF(Paths::Resolve("assets/fonts/SF-Pro-Text-Regular.otf").c_str(), 14.0f * xscale);
+		// The first face added becomes the default the whole UI draws with. The second is pushed
+		// explicitly around section headings; see UI::BeginSection.
+		io.Fonts->AddFontFromFileTTF(Paths::Resolve("assets/fonts/Inter-Regular.otf").c_str(), 14.0f * xscale);
+		s_SemiBoldFont = io.Fonts->AddFontFromFileTTF(Paths::Resolve("assets/fonts/Inter-SemiBold.otf").c_str(), 14.0f * xscale);
+
 		ImGui::GetStyle().ScaleAllSizes(xscale);
 
 		ImGui_ImplGlfw_InitForOpenGL(Application::Get().GetWindow().GetHandle(), true);
@@ -198,7 +204,9 @@ namespace Nexus {
 		ImGuiStyle& style = ImGui::GetStyle();
 
 		style.WindowPadding = ImVec2(10.00f, 8.00f);
-		style.FramePadding = ImVec2(7.00f, 4.00f);
+		// Vertical padding stays at the original 3: the extra pixel per widget was multiplied by
+		// every row of every property table and made the panels noticeably airier than they were.
+		style.FramePadding = ImVec2(7.00f, 3.00f);
 		style.CellPadding = ImVec2(6.00f, 6.00f);
 		style.ItemSpacing = ImVec2(8.00f, 6.00f);
 		style.ItemInnerSpacing = ImVec2(6.00f, 4.00f);

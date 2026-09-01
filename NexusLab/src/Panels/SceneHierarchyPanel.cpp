@@ -2,9 +2,18 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "UI/PropertyTable.h"
+#include "UI/Section.h"
 
 
 namespace Nexus {
+
+	// Outliner rows have no children yet. Leaf suppresses the disclosure arrow -- every row used
+	// to draw one that did nothing -- and NoTreePushOnOpen means no matching TreePop. They stay
+	// tree nodes rather than Selectables so transform parenting can nest under them later.
+	static constexpr ImGuiTreeNodeFlags LeafFlags = ImGuiTreeNodeFlags_Leaf
+		| ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_SpanFullWidth
+		| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
 
 	SceneHierarchyPanel::SceneHierarchyPanel(Scene* context)
 	{
@@ -25,7 +34,7 @@ namespace Nexus {
 	void SceneHierarchyPanel::OnImGuiRender()
 	{
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-		ImGui::Begin("Hierarchy panel");
+		ImGui::Begin("Outliner");
 		ImGui::PopStyleVar();
 
 		MirroredVector<MeshInstance>& meshInstances = m_Context->GetMeshInstances();
@@ -34,15 +43,11 @@ namespace Nexus {
 		{
 			const MeshInstance& meshInstance = meshInstances[i];
 			bool itemSelected = m_SelectionContext.type == SelectionContext::Type::INSTANCE && m_SelectionContext.idx == i;
-			ImGuiTreeNodeFlags flags = (itemSelected ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-			flags |= ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
-			bool opened = ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s", meshInstance.name.c_str());
+			ImGuiTreeNodeFlags flags = (itemSelected ? ImGuiTreeNodeFlags_Selected : 0) | LeafFlags;
+			ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s", meshInstance.name.c_str());
 
 			if (ImGui::IsItemClicked())
 				SetSelectionContext(SelectionContext::Type::INSTANCE, i);
-
-			if (opened)
-				ImGui::TreePop();
 		}
 
 		MirroredVector<Light>& lights = m_Context->GetLights();
@@ -53,19 +58,18 @@ namespace Nexus {
 				continue;
 
 			bool itemSelected = m_SelectionContext.type == SelectionContext::Type::LIGHT && m_SelectionContext.idx == i;
-			ImGuiTreeNodeFlags flags = (itemSelected ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-			flags |= ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowItemOverlap;
-			bool opened = ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "Light %u", i);
+			ImGuiTreeNodeFlags flags = (itemSelected ? ImGuiTreeNodeFlags_Selected : 0) | LeafFlags;
+			ImGui::TreeNodeEx(std::to_string(i).c_str(), flags, "%s %u", lightTypeNames[static_cast<int>(light.type)], i);
 
 			if (ImGui::IsItemClicked())
 				SetSelectionContext(SelectionContext::Type::LIGHT, i);
-
-			if (opened)
-				ImGui::TreePop();
 		}
 		ImGui::PopStyleVar();
 
-		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
+		// Clicking empty space clears the selection. IsItemClicked above fires on the same frame as
+		// IsMouseDown, so without the IsAnyItemHovered guard this cleared the selection on the very
+		// frame a row set it, and clicking a row did nothing.
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered() && !ImGui::IsAnyItemHovered())
 			m_SelectionContext.idx = -1;
 
 		ImGui::End();
@@ -77,87 +81,26 @@ namespace Nexus {
 		ImGui::End();
 	}
 
-	static bool DrawFloat3Control(const std::string& label, float3& values, float resetValue = 0.0f, float step = 0.1f, const char* format = "%.2f", float columnWidth = 50.0f)
-	{
-		ImGui::PushID(label.c_str());
-
-		ImGui::Columns(2);
-		ImGui::SetColumnWidth(0, columnWidth * ImGui::GetWindowDpiScale());
-		ImGui::Text("%s", label.c_str());
-		ImGui::NextColumn();
-
-		ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImGui::GetStyle().ItemSpacing * 0.5f);
-
-		float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-		ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
-
-		bool modified = false;
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-		if (ImGui::Button("X", buttonSize))
-			values.x = resetValue, modified = true;
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-		if (ImGui::DragFloat("##X", &values.x, step, 0.0f, 0.0f, format))
-			modified = true;
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-		if (ImGui::Button("Y", buttonSize))
-			values.y = resetValue, modified = true;
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-		if (ImGui::DragFloat("##Y", &values.y, step, 0.0f, 0.0f, format))
-			modified = true;
-		ImGui::PopItemWidth();
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-		if (ImGui::Button("Z", buttonSize))
-			values.z = resetValue, modified = true;
-		ImGui::PopStyleColor(3);
-
-		ImGui::SameLine();
-		if (ImGui::DragFloat("##Z", &values.z, step, 0.0f, 0.0f, format))
-			modified = true;
-		ImGui::PopItemWidth();
-
-		ImGui::PopStyleVar();
-
-		ImGui::Columns(1);
-
-		ImGui::PopID();
-
-		return modified;
-	}
-
 	void SceneHierarchyPanel::DrawProperties(SelectionContext selectionContext)
 	{
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_Framed
-			| ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_SpanAvailWidth;
-
-		ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 0.0f);
 		if (selectionContext.type == SelectionContext::Type::INSTANCE)
 		{
 			auto meshInstance = m_Context->GetMeshInstances().Mutate(selectionContext.idx);
 
-			if (ImGui::TreeNodeEx("Transform", flags))
+			if (UI::BeginSection("Transform"))
 			{
-				DrawFloat3Control("Location", meshInstance->position);
-				DrawFloat3Control("Rotation", meshInstance->rotation);
-				DrawFloat3Control("Scale", meshInstance->scale, 1.0f, 0.01f, "%.3f");
+				if (UI::BeginPropertyTable("transform"))
+				{
+					UI::DragFloat3Row("Location", meshInstance->position);
+					ImGui::Spacing();
+					UI::DragFloat3Row("Rotation", meshInstance->rotation);
+					ImGui::Spacing();
+					UI::DragFloat3Row("Scale", meshInstance->scale, 0.01f, "%.3f");
 
-				ImGui::TreePop();
+					UI::EndPropertyTable();
+				}
+
+				UI::EndSection();
 			}
 
 			AssetManager& assetManager = m_Context->GetAssetManager();
@@ -165,7 +108,7 @@ namespace Nexus {
 			MirroredVector<Material>& materials = assetManager.GetMaterials();
 			std::string materialsString = assetManager.GetMaterialsString();
 
-			if (ImGui::TreeNodeEx("Material", flags))
+			if (UI::BeginSection("Material"))
 			{
 				if (meshInstance->materialIdx == -1)
 				{
@@ -174,72 +117,118 @@ namespace Nexus {
 				}
 				else
 				{
-					int materialIdx = meshInstance->materialIdx;
-					if (ImGui::Combo("Id", &materialIdx, materialsString.c_str()))
-						meshInstance->materialIdx = materialIdx;
-
-					auto material = materials.Mutate(meshInstance->materialIdx);
-
-					ImGui::ColorEdit3("Base color", (float*)&material->baseColor);
-					ImGui::DragFloat("Metalness", &material->metalness, 0.01f, 0.0f, 1.0f);
-					ImGui::DragFloat("Roughness", &material->roughness, 0.01f, 0.0f, 1.0f);
-					ImGui::DragFloat("IOR", &material->ior, 0.01f, 1.0f, 2.5f);
-					ImGui::DragFloat("Transmission", &material->transmission, 0.01f, 0.0f, 1.0f);
-					ImGui::DragFloat("Opacity", (float*)&material->opacity, 0.01f, 0.0f, 1.0f);
-					if (ImGui::TreeNodeEx("Specular", flags))
+					if (UI::BeginPropertyTable("material"))
 					{
-						ImGui::DragFloat("Specular weight", &material->specularWeight, 0.01f, 0.0f, 1.0f);
-						ImGui::ColorEdit3("Specular color", (float*)&material->specularColor);
-						ImGui::DragFloat("Anisotropy", &material->anisotropy, 0.01f, 0.0f, 1.0f);
-						ImGui::TreePop();
+						UI::PropertyLabel("Id");
+						int materialIdx = meshInstance->materialIdx;
+						if (ImGui::Combo("##id", &materialIdx, materialsString.c_str()))
+							meshInstance->materialIdx = materialIdx;
+
+						// Taken after the combo so it guards whichever material is now selected.
+						// Specular and Emission take their own guards below: the sub-sections have
+						// to sit outside this table, and a guard only records what it outlives.
+						auto material = materials.Mutate(meshInstance->materialIdx);
+
+						UI::PropertyLabel("Base color");
+						ImGui::ColorEdit3("##basecolor", (float*)&material->baseColor, ImGuiColorEditFlags_NoInputs);
+						UI::PropertyLabel("Metalness");
+						ImGui::DragFloat("##metalness", &material->metalness, 0.01f, 0.0f, 1.0f);
+						UI::PropertyLabel("Roughness");
+						ImGui::DragFloat("##roughness", &material->roughness, 0.01f, 0.0f, 1.0f);
+						UI::PropertyLabel("IOR", "Index of refraction");
+						ImGui::DragFloat("##ior", &material->ior, 0.01f, 1.0f, 2.5f);
+						UI::PropertyLabel("Transmission");
+						ImGui::DragFloat("##transmission", &material->transmission, 0.01f, 0.0f, 1.0f);
+						UI::PropertyLabel("Opacity");
+						ImGui::DragFloat("##opacity", (float*)&material->opacity, 0.01f, 0.0f, 1.0f);
+
+						UI::EndPropertyTable();
 					}
-					if (ImGui::TreeNodeEx("Emission", flags & ~ImGuiTreeNodeFlags_DefaultOpen))
+
+					if (UI::BeginSection("Specular"))
 					{
-						ImGui::ColorEdit3("Emission color", (float*)&material->emissionColor);
-						ImGui::DragFloat("Intensity", (float*)&material->intensity, 0.1f, 0.0f, 1000.0f);
-						ImGui::TreePop();
+						auto material = materials.Mutate(meshInstance->materialIdx);
+						if (UI::BeginPropertyTable("specular"))
+						{
+							UI::PropertyLabel("Weight");
+							ImGui::DragFloat("##specularweight", &material->specularWeight, 0.01f, 0.0f, 1.0f);
+							UI::PropertyLabel("Color");
+							ImGui::ColorEdit3("##specularcolor", (float*)&material->specularColor, ImGuiColorEditFlags_NoInputs);
+							UI::PropertyLabel("Anisotropy");
+							ImGui::DragFloat("##anisotropy", &material->anisotropy, 0.01f, 0.0f, 1.0f);
+
+							UI::EndPropertyTable();
+						}
+						UI::EndSection();
+					}
+					if (UI::BeginSection("Emission", false))
+					{
+						auto material = materials.Mutate(meshInstance->materialIdx);
+						if (UI::BeginPropertyTable("emission"))
+						{
+							UI::PropertyLabel("Color");
+							ImGui::ColorEdit3("##emissioncolor", (float*)&material->emissionColor, ImGuiColorEditFlags_NoInputs);
+							UI::PropertyLabel("Intensity");
+							ImGui::DragFloat("##emissionintensity", (float*)&material->intensity, 0.1f, 0.0f, 1000.0f);
+
+							UI::EndPropertyTable();
+						}
+						UI::EndSection();
 					}
 				}
-				ImGui::TreePop();
+				UI::EndSection();
 			}
 		}
 		else if (selectionContext.type == SelectionContext::Type::LIGHT)
 		{
 			auto light = m_Context->GetLights().Mutate(selectionContext.idx);
-			if (ImGui::TreeNodeEx("Light", flags))
+			if (UI::BeginSection("Light"))
 			{
-				int currentIndex = static_cast<int>(light->type);
-				if (ImGui::Combo("Type", &currentIndex, lightTypeNames, IM_ARRAYSIZE(lightTypeNames)))
-					light->type = static_cast<Light::Type>(currentIndex);
-
-				switch (light->type)
+				if (UI::BeginPropertyTable("light"))
 				{
-				case Light::Type::POINT:
-					DrawFloat3Control("Location", light->point.position);
-					ImGui::ColorEdit3("Color", (float*)&light->point.color);
-					ImGui::DragFloat("Intensity", &light->point.intensity, 0.1f, 0.0f, 1000.0f);
-					break;
+					UI::PropertyLabel("Type");
+					int currentIndex = static_cast<int>(light->type);
+					if (ImGui::Combo("##type", &currentIndex, lightTypeNames, IM_ARRAYSIZE(lightTypeNames)))
+						light->type = static_cast<Light::Type>(currentIndex);
 
-				case Light::Type::SPOT:
-					DrawFloat3Control("Location", light->spot.position);
-					ImGui::ColorEdit3("Color", (float*)&light->spot.color);
-					ImGui::DragFloat("Intensity", &light->spot.intensity, 0.1f, 0.0f, 1000.0f);
-					ImGui::DragFloat("Falloff Start", &light->spot.falloffStart, 0.1f, 0.0f, 180.0f);
-					ImGui::DragFloat("Falloff End", &light->spot.falloffEnd, 0.1f, 0.0f, 180.0f);
-					break;
+					switch (light->type)
+					{
+					case Light::Type::POINT:
+						UI::DragFloat3Row("Location", light->point.position);
+						UI::PropertyLabel("Color");
+						ImGui::ColorEdit3("##color", (float*)&light->point.color, ImGuiColorEditFlags_NoInputs);
+						UI::PropertyLabel("Intensity");
+						ImGui::DragFloat("##intensity", &light->point.intensity, 0.1f, 0.0f, 1000.0f);
+						break;
 
-				case Light::Type::DIRECTIONAL:
-					DrawFloat3Control("Direction", light->directional.direction);
-					ImGui::ColorEdit3("Color", (float*)&light->directional.color);
-					ImGui::DragFloat("Intensity", &light->directional.intensity, 0.1f, 0.0f, 1000.0f);
-					break;
-				default:
-					break;
+					case Light::Type::SPOT:
+						UI::DragFloat3Row("Location", light->spot.position);
+						UI::PropertyLabel("Color");
+						ImGui::ColorEdit3("##color", (float*)&light->spot.color, ImGuiColorEditFlags_NoInputs);
+						UI::PropertyLabel("Intensity");
+						ImGui::DragFloat("##intensity", &light->spot.intensity, 0.1f, 0.0f, 1000.0f);
+						UI::PropertyLabel("Falloff start");
+						ImGui::DragFloat("##falloffstart", &light->spot.falloffStart, 0.1f, 0.0f, 180.0f);
+						UI::PropertyLabel("Falloff end");
+						ImGui::DragFloat("##falloffend", &light->spot.falloffEnd, 0.1f, 0.0f, 180.0f);
+						break;
+
+					case Light::Type::DIRECTIONAL:
+						UI::DragFloat3Row("Direction", light->directional.direction);
+						UI::PropertyLabel("Color");
+						ImGui::ColorEdit3("##color", (float*)&light->directional.color, ImGuiColorEditFlags_NoInputs);
+						UI::PropertyLabel("Intensity");
+						ImGui::DragFloat("##intensity", &light->directional.intensity, 0.1f, 0.0f, 1000.0f);
+						break;
+					default:
+						break;
+					}
+
+					UI::EndPropertyTable();
 				}
-				ImGui::TreePop();
+				UI::EndSection();
 			}
 		}
-		ImGui::PopStyleVar();
 	}
 
 }

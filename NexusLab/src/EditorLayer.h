@@ -3,7 +3,7 @@
 #include "Core/Layer.h"
 #include "Renderer/Renderer.h"
 #include "OpenGL/OGLRenderer.h"
-#include "Panels/MetricsPanel.h"
+#include "Panels/RenderSettingsPanel.h"
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/ViewportPanel.h"
 #include "Panels/RenderPanel.h"
@@ -37,7 +37,7 @@ namespace Nexus {
 		RenderPanel m_RenderPanel;
 		ViewportPanel m_ViewportPanel;
 		SceneHierarchyPanel m_SceneHierarchyPanel;
-		MetricsPanel m_MetricsPanel;
+		RenderSettingsPanel m_RenderSettingsPanel;
 	};
 
 }

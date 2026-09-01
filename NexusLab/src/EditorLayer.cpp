@@ -18,7 +18,7 @@ namespace Nexus {
 
 	EditorLayer::EditorLayer()
 		: m_Scene(), m_Renderer(&m_Scene),
-		m_OGLRenderer(&m_Scene), m_SceneHierarchyPanel(&m_Scene), m_MetricsPanel(&m_Renderer),
+		m_OGLRenderer(&m_Scene), m_SceneHierarchyPanel(&m_Scene), m_RenderSettingsPanel(&m_Renderer),
 		m_ViewportPanel(&m_OGLRenderer), m_RenderPanel(&m_Renderer)
 	{
 	}
@@ -52,7 +52,7 @@ namespace Nexus {
 	void EditorLayer::OnUpdate(float deltaTime)
 	{
 		m_Scene.GetCamera()->OnUpdate(deltaTime);
-		m_MetricsPanel.UpdateMetrics(deltaTime);
+		m_RenderSettingsPanel.UpdateMetrics(deltaTime);
 	}
 
 	void EditorLayer::OnRender()
@@ -106,7 +106,7 @@ namespace Nexus {
 		{
 			CheckCudaErrors(cudaDeviceSynchronize());
 			m_Renderer.Reset();
-			m_MetricsPanel.Reset();
+			m_RenderSettingsPanel.Reset();
 			m_Scene.Reset();
 
 			std::string fileName, filePath;
@@ -136,7 +136,7 @@ namespace Nexus {
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 5.0f * ImGui::GetWindowDpiScale()));
 		bool menuBar = ImGui::BeginMainMenuBar();
 		ImGui::PopStyleVar();
-		if (menuBar);
+		if (menuBar)
 		{
 			if (ImGui::BeginMenu("File"))
 			{
@@ -153,9 +153,9 @@ namespace Nexus {
 
 		// Render ImGui panels
 		m_ViewportPanel.OnImGuiRender();
-		m_RenderPanel.OnImGuiRender(m_MetricsPanel.FitRenderToViewport());
+		m_RenderPanel.OnImGuiRender(m_RenderSettingsPanel.FitRenderToViewport());
 		m_SceneHierarchyPanel.OnImGuiRender();
-		m_MetricsPanel.OnImGuiRender(m_Renderer.GetPathTracer()->GetFrameNumber());
+		m_RenderSettingsPanel.OnImGuiRender(m_Renderer.GetPathTracer()->GetFrameNumber());
 	}
 
 	void EditorLayer::SaveScreenshot()

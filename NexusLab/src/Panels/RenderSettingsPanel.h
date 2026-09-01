@@ -3,14 +3,15 @@
 #include "Cuda/PathTracer/PathTracer.cuh"
 #include "Renderer/Renderer.h"
 #include <imgui.h>
+#include "UI/PropertyTable.h"
 
 
 namespace Nexus {
 
-	class MetricsPanel
+	class RenderSettingsPanel
 	{
 	public:
-		MetricsPanel(Renderer* context);
+		RenderSettingsPanel(Renderer* context);
 
 		void Reset();
 		void UpdateMetrics(float deltaTime);
